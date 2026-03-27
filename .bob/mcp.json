@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "watsonx-orchestrate-documentation-mcp":{
+      "type": "streamable-http",
+      "url": "https://developer.watson-orchestrate.ibm.com/mcp"
+    },
+    "watsonx-orchestrate-adk": {
+      "command": "uvx",
+      "args": [
+        "--with",
+        "ibm-watsonx-orchestrate==2.2.0",
+        "ibm-watsonx-orchestrate-mcp-server==2.2.0"
+      ],
+      "env": {
+        "WXO_MCP_WORKING_DIRECTORY": ".",
+        "WXO_MCP_DEBUG": ""
+      },
+      "timeout": 300
+    },
+    "watsonx-orchestrate-local-mcp": {
+      "type": "streamable-http",
+      "url": "http://192.168.2.53:8080/mcp"
+    },
+    "booking-mcp": {
+      "headers": {
+        "Authorization": "Basic ZGVtby1iYXNpYy11c2VyOmRlbW8tYmFzaWMtcGFzc3dvcmQ=",
+        "Accept": "application/json"
+      },
+      "type": "streamable-http",
+      "url": "http://192.168.2.53:8084/mcp"
+    }
+  }
+}

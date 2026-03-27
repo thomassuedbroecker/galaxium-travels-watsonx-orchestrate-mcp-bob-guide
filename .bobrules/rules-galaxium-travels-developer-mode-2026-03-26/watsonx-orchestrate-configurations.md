@@ -1,0 +1,1 @@
+Any configuration must fit to the used watsonx Orchestrate ADK!
