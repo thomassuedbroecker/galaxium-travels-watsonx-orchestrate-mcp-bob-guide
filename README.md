@@ -9,6 +9,13 @@ This repository is a step-by-step guide for:
 - configuring IBM Bob for this project
 - preparing a Bob prompt for the Galaxium booking agent
 
+## Related YouTube video
+
+`How to Use IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent?`
+
+[![Related YouTube video](/images/youtube-01.png)](https://www.youtube.com/watch?v=QRb2_ZVlynE)
+
+
 ## Main Objective
 
 The main objective of this repository is to provide a working local environment
