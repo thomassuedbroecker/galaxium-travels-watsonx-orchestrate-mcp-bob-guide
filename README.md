@@ -12,7 +12,7 @@ This repository is a step-by-step guide for:
 ## Related YouTube video
 
 `How to Use IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent?`
-[![Related YouTube video](./images/youtube-01.jpg)](https://www.youtube.com/watch?QRb2_ZVlynE?si=9yGqytFHMCzqygAw)
+[![Related YouTube video](./images/youtube-01.jpg)](https://youtu.be/QRb2_ZVlynE?si=MG6RmWewAlmGkSjn)
 
 ## Related blog post
 
