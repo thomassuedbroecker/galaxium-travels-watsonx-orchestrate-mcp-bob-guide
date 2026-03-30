@@ -12,11 +12,11 @@ This repository is a step-by-step guide for:
 ## Related YouTube video
 
 `How to Use IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent?`
-[![Related YouTube video](/images/youtube-01.png)](https://www.youtube.com/watch?QRb2_ZVlynE?si=9yGqytFHMCzqygAw)
+[![Related YouTube video](./images/youtube-01.jpg)](https://www.youtube.com/watch?QRb2_ZVlynE?si=9yGqytFHMCzqygAw)
 
 ## Related blog post
 
-[Using IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent](https://suedbroecker.net/2026/03/29/using-ibm-bob-mcp-and-watsonx-orchestrate-to-generate-an-agent/)
+[Using IBM Bob , MCP, and watsonx Orchestrate to Generate an Agent](https://suedbroecker.net/2026/03/29/using-ibm-bob-mcp-and-watsonx-orchestrate-to-generate-an-agent/)
 
 ## Main Objective
 
