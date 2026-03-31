@@ -3,6 +3,9 @@
 Use this guide to prepare a local `watsonx Orchestrate Development Edition`
 environment that can later import the Galaxium MCP server.
 
+Run the command blocks below from the repository root unless a block states
+otherwise.
+
 ## 3.1 Prerequisites
 
 - Python `3.13`
@@ -14,7 +17,7 @@ environment that can later import the Galaxium MCP server.
 ## 3.2 Create The Local `.env` File
 
 ```sh
-cp .env_template .env
+cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
 ```
 
 Edit `.env` and fill in the required values:
@@ -51,27 +54,32 @@ python3 -m pip install ibm-watsonx-orchestrate==2.2.0
 orchestrate --version
 ```
 
-This repo currently pins `ibm-watsonx-orchestrate==2.2.0` - `ibm-watsonx-orchestrate-mcp-server==2.2.0`, because the it is tested against that CLI version.
+This repo currently pins `ibm-watsonx-orchestrate==2.2.0` and
+`ibm-watsonx-orchestrate-mcp-server==2.2.0` because the workflow is tested
+against that version pair.
 
 ## 3.4 Create The Python Virtual Environment for the MCP server
 
 ```sh
 cd watsonx-orchestrate-mcp-server
+cp .env_template .env
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install ibm-watsonx-orchestrate-mcp-server==2.2.0
 #python3 -m pip install ibm-watsonx-orchestrate-mcp-server
-source ../watsonx-orchestrate-adk/.env
+source .env
 echo "Configuration:"
 echo "HOST:${WXO_MCP_HOST}"
-echo "PORT:\n${WXO_MCP_PORT}"
-echo "TRANPORT:${WXO_MCP_TRANSPORT}"
+echo "PORT:${WXO_MCP_PORT}"
+echo "TRANSPORT:${WXO_MCP_TRANSPORT}"
 echo "DIRECTORY:${WXO_MCP_WORKING_DIRECTORY}"
 ibm-watsonx-orchestrate-mcp-server
 ```
 
-This repo currently pins `ibm-watsonx-orchestrate==2.2.0` - `ibm-watsonx-orchestrate-mcp-server==2.2.0`, because the it is tested against that CLI version.
+This repo currently pins `ibm-watsonx-orchestrate==2.2.0` and
+`ibm-watsonx-orchestrate-mcp-server==2.2.0` because the workflow is tested
+against that version pair.
 
 ## 3.5 Optional Cleanup
 
@@ -133,7 +141,7 @@ The folder also contains helper scripts for the same local workflow:
 - watsonx-orchestrate-adk
   - `get_ip-connection.sh`
   - `wxo_add_basic_auth_mcp_server.sh`
-  - `wxo_local_start_and_mcp_server_auth.sh`
+  - `wxo_local_start_and_mcp_basic_auth.sh`
   - `wxo_local_start.sh`
 
 - watsonx-orchestrate-mcp-server

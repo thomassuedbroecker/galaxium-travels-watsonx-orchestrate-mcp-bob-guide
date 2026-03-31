@@ -22,9 +22,9 @@ Use this skill when working on:
 
 ## Project Context
 
-The relevant customization target is located in:
+The intended customization target in this repository is:
 
-`galaxium-travels-mcp-watsonx-orchestrate-integration-with-ibm-bob/watsonx-orchestrate-adk/customization`
+`watsonx-orchestrate-adk/customization`
 
 The broader project context is based on the Galaxium Travels infrastructure repository:
 

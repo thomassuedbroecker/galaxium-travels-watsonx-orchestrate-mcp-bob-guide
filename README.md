@@ -72,14 +72,13 @@ The active Bob configuration in this repository is stored in:
 The repository also contains Bob support content in:
 
 - `bob-modes-exports/`
-- `bob_resources/`
 - `prompts/`
 
 ## Clone This Repository
 
 ```sh
-git clone https://github.com/thomassuedbroecker/galaxium-travels-mcp-watsonx-orchestrate-integration-with-ibm-bob.git
-cd galaxium-travels-mcp-watsonx-orchestrate-integration-with-ibm-bob
+git clone https://github.com/thomassuedbroecker/galaxium-travels-watsonx-orchestrate-mcp-bob-guide.git
+cd galaxium-travels-watsonx-orchestrate-mcp-bob-guide
 ```
 
 ## Guide Flow
@@ -88,8 +87,8 @@ cd galaxium-travels-mcp-watsonx-orchestrate-integration-with-ibm-bob
 2. [Manually Verify The Basic Auth MCP Server](./2-galaxium_manual_basic_auth_mcp_verification.md)
 3. [Set Up The `watsonx Orchestrate` ADK](./3-watsonx-orchestrate-adk-setup.md)
 4. [Add The Basic Auth MCP Server To `watsonx Orchestrate`](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md)
-9. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
-10. Use `prompts/prepared-initial-prompt-for-bob.md` to start the Bob-based agent work
+5. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
+6. Use `prompts/prepared-initial-prompt-for-bob.md` to start the Bob-based agent work
 
 ## Repository Layout
 
@@ -106,6 +105,7 @@ The current top-level structure is:
 ├── 9-bob-configuration.md
 ├── AGENTS.md
 ├── README.md
+├── architecture
 ├── bob-modes-exports
 ├── images
 ├── infrastructure
@@ -120,8 +120,9 @@ The current top-level structure is:
 - `.bobrules/` contains Bob project rules.
 - `.bobignore` exists in the repository and is currently empty.
 - `AGENTS.md` contains repository-level team standards for agent work.
-- `bob-modes-exports/` contains an exported copy of the Bob custom mode.
-- `images/` currently contains the Bob configuration screenshot `bob-config-01.jpg`.
+- `architecture/` contains the editable infrastructure diagram `galaxim-travel-infrastructure.drawio`.
+- `bob-modes-exports/` currently contains a placeholder `README.md` for Bob mode exports.
+- `images/` currently contains the YouTube preview image `youtube-01.jpg`.
 - `infrastructure/` is the folder where you can place the external Galaxium Travels infrastructure repository.
 - `prompts/` contains the prepared Bob prompt. The current file is `prepared-initial-prompt-for-bob.md`.
 - `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`.
@@ -130,6 +131,7 @@ The current top-level structure is:
 ## How The Parts Fit Together
 
 - The numbered Markdown files are the main guide.
+- The `architecture/` folder stores the editable Draw.io source for the infrastructure view.
 - The `infrastructure/` folder is used together with the separate Galaxium Travels infrastructure repository.
 - The `watsonx-orchestrate-adk/` folder helps you run local `watsonx Orchestrate Developer Edition`.
 - The `.bob`, `.bobignore`, `.bobrules`, and `AGENTS.md` files configure how IBM Bob should work in this repository.
@@ -144,6 +146,46 @@ The current top-level structure is:
 5. Follow [4-watsonx-orchestrate-adk-add-basic-auth-mcp.md](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) to import the Basic Auth MCP server.
 6. Follow [9-bob-configuration.md](./9-bob-configuration.md) to use the IBM Bob configuration in this repository.
 7. Use `prompts/prepared-initial-prompt-for-bob.md` when you want Bob to start building the Galaxium booking agent.
+
+## Open-Source Dependencies
+
+This repository is primarily documentation plus helper shell scripts. It does not
+currently declare a root-level `pyproject.toml` or `package.json`.
+
+The local workflow documented in this repository still pins the following
+open-source Python packages as of `2026-03-31`.
+
+Current pinned Python version:
+
+- `Python 3.13`
+
+Current pinned main runtime libraries:
+
+| Library | Version used in this repo | License | Where referenced |
+| --- | --- | --- | --- |
+| `ibm-watsonx-orchestrate` | `2.2.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate-mcp-server` | `2.2.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+
+Current open-source CLI prerequisites and tools referenced by the repository:
+
+| Tool | Version in this repo | Notes |
+| --- | --- | --- |
+| `git` | not pinned | Used to clone the infrastructure repository |
+| `curl` | not pinned | Used for manual verification flows |
+| `jq` | not pinned | Used with `curl` during verification |
+| `npx` | not pinned | Needed only if you use MCP Inspector |
+| `uvx` | not pinned | Used by `.bob/mcp.json` to launch the local ADK-based MCP integration |
+
+This repository also requires IBM service credentials that are not open-source
+library dependencies:
+
+- `WO_ENTITLEMENT_KEY`
+- `WATSONX_APIKEY`
+- `WATSONX_SPACE_ID`
+
+Unlike `chaindocs_MCP_example`, this repository does not currently include an
+automated local license-audit script because it documents an integration
+workflow rather than shipping one installable application.
 
 ## Related Repositories
 

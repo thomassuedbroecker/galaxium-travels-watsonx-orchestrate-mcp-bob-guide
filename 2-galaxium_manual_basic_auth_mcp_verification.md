@@ -25,7 +25,7 @@ The transport stays on `Streamable HTTP`.
 ## 2.3 Prepare The Working Folder
 
 ```sh
-cd galaxium-travels-infrastructure/galaxium-travels-infrastructure-tsuedbro
+cd infrastructure/galaxium-travels-infrastructure-tsuedbro
 cp local-container/basic-auth.env.template local-container/basic-auth.env
 source local-container/basic-auth.env
 ```

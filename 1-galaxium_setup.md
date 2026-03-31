@@ -5,8 +5,8 @@ stack still comes from the separate infrastructure repository.
 
 Use this guide to:
 
-- clone that infrastructure repository into `./galaxium-travels-infrastructure/`
-- start the Basic Auth stack used by guides `2` and `5`
+- clone that infrastructure repository into `./infrastructure/`
+- start the Basic Auth stack used by guides `2` and `4`
 
 ## 1.1 Prerequisites
 
@@ -28,16 +28,16 @@ cd galaxium-travels-infrastructure-tsuedbro
 If you already cloned it earlier, just enter:
 
 ```sh
-cd infrastructure/galaxium-travels-infrastructure/galaxium-travels-infrastructure-tsuedbro
+cd infrastructure/galaxium-travels-infrastructure-tsuedbro
 ```
 
-## 1.3. Basic Auth Stack For Guides 2 And 5
+## 1.3. Basic Auth Stack For Guides 2 And 4
 
 Use this mode when you want:
 
 - the MCP backend protected by shared Basic Auth
 - the manual backend verification from guide `2`
-- the `watsonx Orchestrate` remote MCP import from guide `5`
+- the `watsonx Orchestrate` remote MCP import from guide `4`
 
 ### 1.3.1 Prepare The Env File
 
@@ -61,7 +61,7 @@ bash local-container/verify-basic-auth-frontends-and-inspector.sh
 
 ### 1.3.3 Start The Running Basic Auth Stack
 
-VM-style variant using the local nextwork and not the host network:
+VM-style variant using the local network and not the host network:
 
 ```sh
 docker compose --env-file local-container/basic-auth.env \

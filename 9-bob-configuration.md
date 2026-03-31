@@ -1,6 +1,8 @@
 # 9. Configure IBM Bob For This Repository
 
-This repository already contains Bob-related project files.
+This repository already contains the Bob-related project files needed for the
+local workflow.
+
 The active Bob configuration is stored in:
 
 - `.bob`
@@ -8,10 +10,9 @@ The active Bob configuration is stored in:
 - `.bobignore`
 - `AGENTS.md`
 
-The repository also contains Bob support files:
+The repository also contains one Bob support folder:
 
 - `bob-modes-exports/`
-- `bob_resources/`
 
 ## 9.1 Current Bob-Related Structure
 
@@ -25,7 +26,9 @@ The current Bob-related files in this repository are:
     └── galaxium_travels_watsonx_orchestrate_customization_developer.md
 
 .bobrules/
-└── rules-code/
+├── rules-code/
+│   └── coding-style.md
+└── rules-galaxium-travels-developer-mode-2026-03-26/
     ├── coding-style.md
     └── watsonx-orchestrate-configurations.md
 
@@ -33,10 +36,7 @@ The current Bob-related files in this repository are:
 AGENTS.md
 
 bob-modes-exports/
-└── galaxium-travels-developer-mode-2026-03-26-export.yaml
-
-bob_resources/
-└── .bobrules/
+└── README.md
 ```
 
 ## 9.2 Active Bob Configuration Files
@@ -47,12 +47,13 @@ For day-to-day Bob usage in this repository, the active files are:
 - `.bob/custom_modes.yaml`
 - `.bob/skills/...`
 - `.bobrules/rules-code/...`
+- `.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/...`
 - `.bobignore`
 - `AGENTS.md`
 
-The folders `bob-modes-exports/` and `bob_resources/` are support material in
-the repository. They are not the main active configuration files used by the
-project-local Bob setup.
+The `bob-modes-exports/` folder is only support material in the repository. It
+is not part of the main active Bob configuration used by the project-local Bob
+setup.
 
 ## 9.3 The `.bob/mcp.json` File
 
@@ -103,10 +104,14 @@ The current file content is:
 
 ### What The Four Entries Do
 
-- `watsonx-orchestrate-documentation-mcp` connects Bob to the public `watsonx Orchestrate` documentation MCP endpoint.
-- `watsonx-orchestrate-adk` starts the local ADK-based MCP integration through `uvx`.
-- `watsonx-orchestrate-local-mcp` connects Bob to the locally reachable `watsonx Orchestrate` MCP endpoint on port `8080`.
-- `booking-mcp` connects Bob to the Galaxium Travels MCP server on port `8084` and sends a Basic Auth header.
+- `watsonx-orchestrate-documentation-mcp` connects Bob to the public
+  `watsonx Orchestrate` documentation MCP endpoint.
+- `watsonx-orchestrate-adk` starts the local ADK-based MCP integration through
+  `uvx`.
+- `watsonx-orchestrate-local-mcp` connects Bob to the locally reachable
+  `watsonx Orchestrate` MCP endpoint on port `8080`.
+- `booking-mcp` connects Bob to the Galaxium Travels MCP server on port `8084`
+  and sends a Basic Auth header.
 
 ### Local Values You May Need To Change
 
@@ -152,9 +157,11 @@ The current custom instructions tell Bob to:
 - use Python for implementation examples and code changes
 - prefer clear, maintainable, production-oriented solutions
 - consider the existing project structure before proposing changes
-- keep compatibility with container-based and local execution workflows
-- consider MCP design, tool definitions, authentication flow, and `watsonx Orchestrate` integration
-- align recommendations with real Galaxium Travels development tasks
+- keep compatibility with container-based development and local execution workflows
+- consider MCP server design, tool definitions, authentication flow, and `watsonx Orchestrate` integration when relevant
+- favor simple, reproducible solutions over unnecessary complexity
+- consider configuration, testing, logging, and error handling when useful
+- align recommendations with real development tasks in the Galaxium Travels repository
 - use the `Galaxium Travels watsonx Orchestrate Customization Developer` skill when relevant
 
 ## 9.5 The Skill In `.bob/skills`
@@ -174,15 +181,7 @@ The current skill focuses on:
 - separation between configuration and executable code
 - local and container-based workflows
 
-The current skill also states these important rules:
-
-- create implementation code in Python
-- generate files only inside the `customization` folder unless told otherwise
-- keep configuration files separate from implementation files
-- prefer small, focused modules
-- include logging and error handling when useful
-
-The skill points to this customization target:
+The skill currently points at this intended customization target:
 
 ```text
 watsonx-orchestrate-adk/customization
@@ -206,11 +205,12 @@ customization/
 
 ## 9.6 The `.bobrules` Folder
 
-The `.bobrules` folder contains project rules for Bob.
+The `.bobrules` folder currently contains two rule areas:
 
-### `rules-code/coding-style.md`
+- `.bobrules/rules-code/`
+- `.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/`
 
-This file currently defines coding standards for:
+The two `coding-style.md` files currently define the same coding standards for:
 
 - consistency in formatting, naming, and structure
 - readable code
@@ -220,9 +220,11 @@ This file currently defines coding standards for:
 - small and focused functions
 - comments that explain why, not only what
 
-### `rules-code/watsonx-orchestrate-configurations.md`
+The file
+`.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/watsonx-orchestrate-configurations.md`
+currently contains one short rule:
 
-This file exists, but it is currently empty.
+> Any configuration must fit to the used watsonx Orchestrate ADK!
 
 ## 9.7 The `.bobignore` File
 
@@ -235,30 +237,25 @@ The file `AGENTS.md` adds repository-level team standards for agent-based work.
 The current file states these main rules:
 
 - minimize context usage wherever possible
-- provide answers only when the accuracy can be verified, otherwise state `Insufficient information.`
-- use only approved libraries, especially open source libraries or libraries provided by IBM
+- provide an answer only when the accuracy of the sources can be verified, otherwise state `Insufficient information.`
+- use only approved libraries, especially open-source libraries or libraries provided by IBM
 - keep code documentation to the minimum necessary
 
 These instructions complement the `.bob` and `.bobrules` files.
 
-## 9.9 Export And Support Files
+## 9.9 Export Support Files
 
-The repository also contains Bob-related support files outside the main active
-configuration.
+The repository also contains Bob-related support material outside the main
+active configuration.
 
 ### `bob-modes-exports/`
 
 This folder currently contains:
 
-- `galaxium-travels-developer-mode-2026-03-26-export.yaml`
+- `README.md`
 
-This file is an exported copy of the `Galaxium Travels Developer` Bob mode.
-It mirrors the project mode configuration in a separate export file.
-
-### `bob_resources/`
-
-This folder currently contains a `.bobrules/` folder, but there is no documented
-project rule content inside it yet.
+At the moment this folder is only a placeholder location for Bob mode exports.
+No exported mode YAML file is currently checked into the repository.
 
 ## 9.10 Basic Auth Header Used In The Repository
 
@@ -290,7 +287,6 @@ The Bob-related repository content is currently organized like this:
 - `.bobrules/` contains the active Bob rules
 - `.bobignore` exists and is currently empty
 - `AGENTS.md` contains repository-level agent guidance
-- `bob-modes-exports/` contains a mode export file
-- `bob_resources/` contains additional Bob support material
+- `bob-modes-exports/` is currently a placeholder folder for future export files
 
 ### [Home](./README.md)
