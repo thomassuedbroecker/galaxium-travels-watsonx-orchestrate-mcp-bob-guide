@@ -187,6 +187,9 @@ Unlike `chaindocs_MCP_example`, this repository does not currently include an
 automated local license-audit script because it documents an integration
 workflow rather than shipping one installable application.
 
+For the maintained dependency/license mapping, see
+[Dependency And License Transparency](DEPENDENCY_LICENSE_TRANSPARENCY.md).
+
 ## Related Repositories
 
 - Galaxium Travels infrastructure repository:
