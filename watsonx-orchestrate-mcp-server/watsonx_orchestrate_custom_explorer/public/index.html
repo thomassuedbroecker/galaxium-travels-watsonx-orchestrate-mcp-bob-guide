@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>watsonx Orchestrate Custom Explorer</title>
+  <link rel="icon" href="data:," />
+  <!--
+    D3.js v7  – ISC License (https://github.com/d3/d3/blob/main/LICENSE)
+    CDN      : jsDelivr (open-source, no tracking)
+    SRI hash : curl -s <url> | openssl dgst -sha256 -binary | openssl base64
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"
+          integrity="sha256-8glLv2FBs1lyLE/kVOtsSw8OQswQzHr5IfwVj864ZTk="
+          crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── header ──────────────────────────────────────────────────────── -->
+  <header>
+    <h1>watsonx Orchestrate Custom Explorer</h1>
+    <div id="controls">
+      <button id="btn-refresh">↻ Refresh</button>
+      <button id="btn-listings">☰ Listings</button>
+      <span id="status-msg"></span>
+      <div id="legend">
+        <span class="leg-item"><span class="dot" style="background:#4A90E2"></span>Agent</span>
+        <span class="leg-item"><span class="dot" style="background:#7ED321"></span>Tool</span>
+        <span class="leg-item"><span class="dot" style="background:#F5A623"></span>Toolkit</span>
+        <span class="leg-item"><span class="dot" style="background:#BD10E0"></span>Connection</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── main workspace ──────────────────────────────────────────────── -->
+  <main id="workspace">
+
+    <!-- left: detail sidebar -->
+    <aside id="sidebar">
+      <div id="sidebar-heading">Node Detail</div>
+      <p id="sidebar-hint">Click a node to inspect it.</p>
+      <div id="sidebar-content"></div>
+    </aside>
+
+    <!-- drag handle -->
+    <div id="resize-handle" title="Drag to resize"></div>
+
+    <!-- centre: graph -->
+    <section id="graph-container">
+      <svg id="graph"></svg>
+    </section>
+
+  </main>
+
+  <!-- ── listings drawer (slides in from right) ──────────────────────── -->
+  <div id="drawer-overlay"></div>
+  <div id="drawer" role="dialog" aria-label="Listings">
+    <div id="drawer-header">
+      <span id="drawer-title">Listings</span>
+      <button id="drawer-close" aria-label="Close">✕</button>
+    </div>
+
+    <!-- tab bar -->
+    <div id="drawer-tabs">
+      <button class="tab-btn active" data-tab="agents">Agents</button>
+      <button class="tab-btn" data-tab="tools">Tools</button>
+      <button class="tab-btn" data-tab="toolkits">Toolkits</button>
+      <button class="tab-btn" data-tab="connections">Connections</button>
+    </div>
+
+    <!-- search -->
+    <div id="drawer-search-wrap">
+      <input id="drawer-search" type="search" placeholder="Filter…" autocomplete="off" />
+    </div>
+
+    <!-- table area -->
+    <div id="drawer-body"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

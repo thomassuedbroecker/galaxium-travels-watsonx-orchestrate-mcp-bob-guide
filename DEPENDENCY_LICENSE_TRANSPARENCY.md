@@ -6,6 +6,7 @@ complete SBOM for any local virtual environment, container runtime, IBM product
 installation, or generated deployment artifact.
 
 Review date: `2026-05-29`
+Last updated: `2026-06-02` (added `watsonx_orchestrate_custom_explorer` application dependencies)
 
 Repository license: MIT. See [LICENSE](LICENSE).
 
@@ -36,6 +37,10 @@ Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 | Rancher Desktop | Not pinned | Apache-2.0 | <https://github.com/rancher-sandbox/rancher-desktop> | Optional local container runtime alternative | Capture runtime version if used for support or audit evidence. |
 | `curl` | Not pinned | curl license | <https://curl.se/docs/copyright.html> | Used in manual HTTP verification commands | Normally system-provided; record version for reproducible test evidence. |
 | `jq` | Not pinned | MIT for `jq`; documentation under CC BY 3.0; includes decNumber under ICU License | <https://github.com/jqlang/jq> | Used in manual JSON inspection commands | Normally system-provided; record version for reproducible test evidence. |
+| **`flask`** (watsonx_orchestrate_custom_explorer) | `3.0.0` | BSD-3-Clause | <https://pypi.org/project/Flask/3.0.0/>, <https://github.com/pallets/flask/blob/main/LICENSE.txt> | Backend web framework for the Custom Explorer app | BSD-3-Clause is permissive; no redistribution constraints beyond attribution. |
+| **`flask-cors`** (watsonx_orchestrate_custom_explorer) | `4.0.0` | MIT | <https://pypi.org/project/Flask-Cors/4.0.0/>, <https://github.com/corydolphin/flask-cors/blob/main/LICENSE> | CORS middleware for the Flask backend | MIT is permissive. |
+| **`python-dotenv`** (watsonx_orchestrate_custom_explorer) | `>=1.1.0` (required by fastmcp in the SDK venv) | BSD-3-Clause | <https://pypi.org/project/python-dotenv/>, <https://github.com/theskumar/python-dotenv/blob/main/LICENSE> | Loads `.env` file into environment at startup | BSD-3-Clause is permissive. |
+| **D3.js v7** (watsonx_orchestrate_custom_explorer frontend) | `7.9.0` | ISC (functionally equivalent to MIT) | <https://github.com/d3/d3/blob/main/LICENSE>, <https://cdn.jsdelivr.net/npm/d3@7.9.0/> | Force-directed graph rendering in the browser; loaded from jsDelivr CDN | ISC is permissive. The jsDelivr CDN is open-source (<https://github.com/jsdelivr/jsdelivr>); no tracking or proprietary analytics included. |
 
 ## IBM Package And Product Boundary
 
