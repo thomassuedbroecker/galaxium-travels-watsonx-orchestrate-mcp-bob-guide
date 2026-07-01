@@ -8,8 +8,8 @@
       "command": "uvx",
       "args": [
         "--with",
-        "ibm-watsonx-orchestrate==2.2.0",
-        "ibm-watsonx-orchestrate-mcp-server==2.2.0"
+        "ibm-watsonx-orchestrate",
+        "ibm-watsonx-orchestrate-mcp-server"
       ],
       "env": {
         "WXO_MCP_WORKING_DIRECTORY": ".",
@@ -28,19 +28,6 @@
       },
       "type": "streamable-http",
       "url": "http://192.168.2.53:8084/mcp"
-    },
-    "bob-marketplace": {
-      "type": "streamable-http",
-      "url": "http://127.0.0.1:39247/mcp",
-      "headers": {
-        "Bob-Marketplace-Token": "bob-marketplace-local"
-      },
-      "disabled": false,
-      "alwaysAllow": [
-        "search_assets",
-        "get_asset",
-        "list_installed"
-      ]
     }
   }
 }
