@@ -158,8 +158,8 @@ Current pinned main runtime libraries:
 
 | Library | Version used in this repo | License | Where referenced |
 | --- | --- | --- | --- |
-| `ibm-watsonx-orchestrate` | `2.2.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
-| `ibm-watsonx-orchestrate-mcp-server` | `2.2.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate` | `2.12.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate-mcp-server` | `2.12.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
 
 Current open-source CLI prerequisites and tools referenced by the repository:
 
