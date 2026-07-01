@@ -82,7 +82,7 @@ cd galaxium-travels-watsonx-orchestrate-mcp-bob-guide
 3. [Set Up The `watsonx Orchestrate` ADK](./3-watsonx-orchestrate-adk-setup.md)
 4. [Add The Basic Auth MCP Server To `watsonx Orchestrate`](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md)
 5. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
-6. Use `prompts/prepared-initial-prompt-for-bob.md` to start the Bob-based agent work
+6. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build an watsonx Orchestrate agent and more, using IBM Bob.
 
 ## Repository Layout
 
