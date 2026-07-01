@@ -36,9 +36,10 @@ With this setup in place, you can focus on:
 - agent and tool setup
 - code changes in the infrastructure when needed
 
-## Why The First Steps Matter
+## The First Steps
 
 The first part of this repository is about building the working infrastructure.
+
 That means:
 
 - cloning and starting the Galaxium Travels infrastructure
@@ -49,16 +50,9 @@ That means:
 This setup comes first because Bob is most useful only after the local
 environment is ready and understood.
 
-## Later Bob Goal
+## Goal with IBM Bob
 
-After the infrastructure and local runtime are working, the later goal is to use
-Bob to build the Galaxium booking agent.
-
-The prepared Bob prompt is in:
-
-- `prompts/prepared-initial-prompt-for-bob.md`
-
-Its current objective is:
+Its current goal is:
 
 > Build an AI travel booking agent in watsonx Orchestrate Developer Edition using the Galaxium Travels MCP server. Complete all setup and verification steps automatically with minimal user interaction. Switch modes as needed.
 
@@ -103,6 +97,7 @@ The current top-level structure is:
 ├── 3-watsonx-orchestrate-adk-setup.md
 ├── 4-watsonx-orchestrate-adk-add-basic-auth-mcp.md
 ├── 9-bob-configuration.md
+├── 10-bob-prompts.md
 ├── AGENTS.md
 ├── README.md
 ├── architecture
