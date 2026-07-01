@@ -50,11 +50,11 @@ cd watsonx-orchestrate-adk
 python3.13 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install ibm-watsonx-orchestrate==2.2.0
+python3 -m pip install ibm-watsonx-orchestrate
 orchestrate --version
 ```
 
-This repo currently pins `ibm-watsonx-orchestrate==2.2.0` and
+This repo did pin `ibm-watsonx-orchestrate==2.2.0` and
 `ibm-watsonx-orchestrate-mcp-server==2.2.0` because the workflow is tested
 against that version pair.
 
@@ -66,7 +66,7 @@ cp .env_template .env
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install ibm-watsonx-orchestrate-mcp-server==2.2.0
+python3 -m pip install ibm-watsonx-orchestrate-mcp-server
 #python3 -m pip install ibm-watsonx-orchestrate-mcp-server
 source .env
 echo "Configuration:"
