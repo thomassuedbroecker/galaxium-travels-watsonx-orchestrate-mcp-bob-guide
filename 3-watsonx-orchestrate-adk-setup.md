@@ -56,7 +56,7 @@ orchestrate --version
 
 This repo did pin `ibm-watsonx-orchestrate==2.2.0` and
 `ibm-watsonx-orchestrate-mcp-server==2.2.0` because the workflow is tested
-against that version pair.
+against that version pair in the past.
 
 ## 3.4 Create The Python Virtual Environment for the MCP server
 
