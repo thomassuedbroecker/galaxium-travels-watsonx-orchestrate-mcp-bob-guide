@@ -21,7 +21,10 @@ customModes:
     groups:
       - read
       - edit
-      - browser
-      - command
+      - execute
       - mcp
-      - modes
+      - skill
+      - workflow
+      - todo
+      - subtask
+      - subagent

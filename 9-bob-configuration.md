@@ -153,14 +153,18 @@ The current mode is intended for:
 - container-based local development
 - authentication, debugging, and API integration tasks
 
-The enabled Bob groups are:
+The enabled Bob groups are ([details in the IBM Bob documentation](https://bob.ibm.com/docs/ide/configuration/custom-modes)):
 
 - `read`
 - `edit`
-- `browser`
-- `command`
+- `execute`
 - `mcp`
-- `modes`
+- `skill`
+- `workflow`
+- `todo`
+- `subtask`
+- `subagent`
+- `mode`
 
 The current custom instructions tell Bob to:
 
