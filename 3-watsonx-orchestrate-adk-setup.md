@@ -77,9 +77,6 @@ echo "DIRECTORY:${WXO_MCP_WORKING_DIRECTORY}"
 ibm-watsonx-orchestrate-mcp-server
 ```
 
-This repo currently pins `ibm-watsonx-orchestrate==2.2.0` and
-`ibm-watsonx-orchestrate-mcp-server==2.2.0` because the workflow is tested
-against that version pair.
 
 ## 3.5 Optional Cleanup
 
