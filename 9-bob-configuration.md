@@ -19,11 +19,21 @@ The repository also contains one Bob support folder:
 The current Bob-related files in this repository are:
 
 ```text
-.bob/
 ├── custom_modes.yaml
 ├── mcp.json
-└── skills/
-    └── galaxium_travels_watsonx_orchestrate_customization_developer.md
+└── skills
+    └── watsonx-orchestrate
+        ├── README.md
+        ├── SKILL.md
+        └── references
+            ├── agentops-evaluations.md
+            ├── agents-tools-schemas.md
+            ├── cli-reference.md
+            ├── connections-models-kb.md
+            ├── mcp-toolkits.md
+            ├── runtime-api-embedding.md
+            ├── setup-venv.sh
+            ├── testing-deb
 
 .bobrules/
 ├── rules-code/
