@@ -140,7 +140,7 @@ The current top-level structure is:
 4. Follow [3-watsonx-orchestrate-adk-setup.md](./3-watsonx-orchestrate-adk-setup.md) to start the local `watsonx Orchestrate` environment.
 5. Follow [4-watsonx-orchestrate-adk-add-basic-auth-mcp.md](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) to import the Basic Auth MCP server.
 6. Follow [9-bob-configuration.md](./9-bob-configuration.md) to use the IBM Bob configuration in this repository.
-7. Use `prompts/prepared-initial-prompt-for-bob.md` when you want Bob to start building the Galaxium booking agent.
+7. Use [Bob prompts](./10-bob-prompts.md) when you want Bob to start building the Galaxium booking agent.
 
 ## Open-Source Dependencies
 
