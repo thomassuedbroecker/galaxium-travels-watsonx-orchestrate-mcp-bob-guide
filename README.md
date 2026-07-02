@@ -4,10 +4,17 @@ This repository is a step-by-step guide for:
 
 - setting up the Galaxium Travels infrastructure
 - checking the Basic Auth MCP server by hand
-- starting local `watsonx Orchestrate Development Edition`
+- starting local `watsonx Orchestrate Developer Edition`
 - adding the Galaxium Travels MCP server to `watsonx Orchestrate`
+- integrating the new agent in watsonx Orchestrate into the Galaxium Travels UI
 - configuring IBM Bob for this project
 - preparing a Bob prompt for the Galaxium booking agent
+
+Example for the final result:
+
+![](./images/watsonx_orchestrate_agent_02.jpg)
+
+![](./images/watsonx_orchestrate_agent_01.jpg)
 
 ## Related YouTube video
 
@@ -58,6 +65,10 @@ Its current goal is:
 
 > Build an AI travel booking agent in watsonx Orchestrate Developer Edition using the Galaxium Travels MCP server. Complete all setup and verification steps automatically with minimal user interaction. Switch modes as needed.
 
+IBM Bob was also used to generate the **`watsonx_orchestrate_custom_explorer`** application — a dashboard-style single-page app that uses the watsonx Orchestrate MCP server to visualise agent and tool dependencies as an interactive diagram, allowing you to navigate to individual agents and tools directly from the diagram.
+
+![](./images/watsonx_orchestrate_custom_explorer_01.gif)
+
 The active Bob configuration in this repository is stored in:
 
 - `.bob`
@@ -97,7 +108,7 @@ cd <your-repo-name>
 3. [Set Up The `watsonx Orchestrate` ADK](./3-watsonx-orchestrate-adk-setup.md)
 4. [Add The Basic Auth MCP Server To `watsonx Orchestrate`](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md)
 5. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
-6. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build an watsonx Orchestrate agent and more, using IBM Bob.
+6. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build a watsonx Orchestrate agent and more, using IBM Bob.
 
 ## Repository Layout
 
@@ -121,7 +132,8 @@ The current top-level structure is:
 ├── infrastructure
 ├── prompts
 ├── watsonx-orchestrate-adk
-└── watsonx-orchestrate-mcp-server
+├── watsonx-orchestrate-mcp-server
+└── watsonx_orchestrate_custom_explorer
 ```
 
 ## Important Folders And Files
@@ -137,6 +149,7 @@ The current top-level structure is:
 - `prompts/` contains the prepared Bob prompt. The current file is `prepared-initial-prompt-for-bob.md`.
 - `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`.
 - `watsonx-orchestrate-mcp-server/` contains the local MCP server helper script and a short README.
+- `watsonx_orchestrate_custom_explorer/` contains a dashboard-style single-page application generated with IBM Bob. It uses the watsonx Orchestrate MCP server to display agent and tool dependencies as an interactive diagram and lets you navigate to individual agents and tools directly from the diagram view.
 
 ## How The Parts Fit Together
 
@@ -146,6 +159,7 @@ The current top-level structure is:
 - The `watsonx-orchestrate-adk/` folder helps you run local `watsonx Orchestrate Developer Edition`.
 - The `.bob`, `.bobignore`, `.bobrules`, and `AGENTS.md` files configure how IBM Bob should work in this repository.
 - The `prompts/` folder contains prompt text you can use with Bob when building the Galaxium booking agent.
+- The `watsonx_orchestrate_custom_explorer/` application was generated with IBM Bob using the watsonx Orchestrate MCP server. It provides a diagram-based dashboard to explore dependencies between agents and tools and navigate to them directly.
 
 ## Recommended Run Order
 
