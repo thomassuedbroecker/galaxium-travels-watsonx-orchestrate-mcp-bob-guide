@@ -18,6 +18,8 @@ This repository is a step-by-step guide for:
 
 [Using IBM Bob , MCP, and watsonx Orchestrate to Generate an Agent](https://suedbroecker.net/2026/03/29/using-ibm-bob-mcp-and-watsonx-orchestrate-to-generate-an-agent/)
 
+> **Note:** Both the video and the blog post were created with **Bob 1.0** and **watsonx Orchestrate 2.2.0**. The concrete configuration steps shown there (Bob setup, ADK commands, Basic Auth MCP server registration) reflect those older versions and may differ from the current guide. Only the **main concept** — running a local watsonx Orchestrate environment and connecting a **Basic Auth MCP server** via IBM Bob — and the **concrete implementation approach** remain applicable.
+
 ## Main Objective
 
 The main objective of this repository is to provide a working local environment
@@ -43,9 +45,9 @@ The first part of this repository is about building the working infrastructure.
 That means:
 
 - cloning and starting the Galaxium Travels infrastructure
-- enabling the Basic Auth configuration
+- enabling the Basic Auth configuration for the MCP server in the Galaxium Travels example
 - preparing the local `watsonx Orchestrate Developer Edition` runtime
-- preparing the local `watsonx Orchestrate` MCP server
+- preparing the local `watsonx Orchestrate` Basic Auth MCP server
 
 This setup comes first because Bob is most useful only after the local
 environment is ready and understood.
@@ -68,12 +70,25 @@ The repository also contains Bob support content in:
 - `bob-modes-exports/`
 - `prompts/`
 
-## Clone This Repository
+## Use This Repository As A Template
+
+This repository is a **GitHub template**. To get started, generate your own repository from it:
+
+1. Click the **"Use this template"** button at the top of the repository page on GitHub.
+2. Choose a name and visibility for your new repository.
+3. Clone your newly generated repository:
 
 ```sh
-git clone https://github.com/thomassuedbroecker/galaxium-travels-watsonx-orchestrate-mcp-bob-guide.git
-cd galaxium-travels-watsonx-orchestrate-mcp-bob-guide
+git clone https://github.com/<your-username>/<your-repo-name>.git
+cd <your-repo-name>
 ```
+
+> **Contributing:** Clone this repository directly only if you want to contribute documentation or examples back to the template itself.
+>
+> ```sh
+> git clone https://github.com/thomassuedbroecker/galaxium-travels-watsonx-orchestrate-mcp-bob-guide.git
+> cd galaxium-travels-watsonx-orchestrate-mcp-bob-guide
+> ```
 
 ## Guide Flow
 

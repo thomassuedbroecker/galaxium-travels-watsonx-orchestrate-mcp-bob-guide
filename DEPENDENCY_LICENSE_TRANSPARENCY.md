@@ -28,8 +28,8 @@ Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 | Component | Version or pin used here | License or terms recorded | Source used for mapping | Repository scope | Follow-up for redistribution |
 | --- | --- | --- | --- | --- | --- |
-| `ibm-watsonx-orchestrate` | `2.2.0` | MIT License in PyPI metadata | <https://pypi.org/project/ibm-watsonx-orchestrate/2.2.0/> | Installed by setup guide and referenced from `.bob/mcp.json` | Generate a resolved dependency report before distributing any environment or image. |
-| `ibm-watsonx-orchestrate-mcp-server` | `2.2.0` | MIT License in PyPI metadata | <https://pypi.org/project/ibm-watsonx-orchestrate-mcp-server/> | Installed by setup guide and referenced from `.bob/mcp.json` | Generate a resolved dependency report before distributing any environment or image. |
+| `ibm-watsonx-orchestrate` | `2.12.0` | MIT License in PyPI metadata | <https://pypi.org/project/ibm-watsonx-orchestrate/2.12.0/> | Installed by setup guide and referenced from `.bob/mcp.json` | Generate a resolved dependency report before distributing any environment or image. |
+| `ibm-watsonx-orchestrate-mcp-server` | `2.12.0` | MIT License in PyPI metadata | <https://pypi.org/project/ibm-watsonx-orchestrate-mcp-server/> | Installed by setup guide and referenced from `.bob/mcp.json` | Generate a resolved dependency report before distributing any environment or image. |
 | IBM watsonx Orchestrate Developer Edition | Not pinned as a package in this repo | IBM product entitlement and license terms apply | <https://developer.watson-orchestrate.ibm.com/developer_edition/wxOde_setup>, <https://developer.watson-orchestrate.ibm.com/license/li_en> | Required runtime/service context for the documented workflow | Confirm user entitlement and IBM terms before use in any organization or delivery context. |
 | `npx` / npm CLI | Not pinned | npm CLI: Artistic-2.0; npm registry/service terms also apply when fetching packages | <https://github.com/npm/cli>, <https://raw.githubusercontent.com/npm/cli/latest/LICENSE> | Used for optional MCP Inspector execution | Pin Node.js/npm versions for reproducible audit evidence if this becomes an automated workflow. |
 | `uvx` / `uv` | Not pinned | Apache-2.0 OR MIT, at user's option | <https://github.com/astral-sh/uv> | Used by `.bob/mcp.json` to launch Python tools in an ephemeral environment | Pin `uv` version and capture resolved Python dependencies for release evidence. |
@@ -44,8 +44,8 @@ Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## IBM Package And Product Boundary
 
-The Python packages `ibm-watsonx-orchestrate==2.2.0` and
-`ibm-watsonx-orchestrate-mcp-server==2.2.0` are listed as MIT-licensed packages
+The Python packages `ibm-watsonx-orchestrate==2.12.0` and
+`ibm-watsonx-orchestrate-mcp-server==2.12.0` are listed as MIT-licensed packages
 in PyPI metadata. That package license does not replace the IBM product
 entitlement requirements for watsonx Orchestrate Developer Edition, watsonx.ai,
 IBM Cloud services, or other IBM services used by the workflow.

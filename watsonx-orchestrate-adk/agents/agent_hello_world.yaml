@@ -1,0 +1,9 @@
+spec_version: v1
+kind: native
+name: agent_hello_world
+description: A minimal smoke-test agent to verify agent creation works.
+instructions: >
+  You are a simple test assistant. When greeted, respond with a friendly hello
+  and confirm you are working correctly.
+llm: watsonx/meta-llama/llama-3-3-70b-instruct
+style: react_intrinsic

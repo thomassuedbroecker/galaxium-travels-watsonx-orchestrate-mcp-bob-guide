@@ -19,6 +19,7 @@ The repository also contains one Bob support folder:
 The current Bob-related files in this repository are:
 
 ```text
+.bob/
 ├── custom_modes.yaml
 ├── mcp.json
 └── skills
@@ -33,7 +34,8 @@ The current Bob-related files in this repository are:
             ├── mcp-toolkits.md
             ├── runtime-api-embedding.md
             ├── setup-venv.sh
-            ├── testing-deb
+            ├── testing-debugging.md
+            └── wxo-chat.sh
 
 .bobrules/
 ├── rules-code/
@@ -87,8 +89,8 @@ The current file content is:
       "command": "uvx",
       "args": [
         "--with",
-        "ibm-watsonx-orchestrate==2.2.0",
-        "ibm-watsonx-orchestrate-mcp-server==2.2.0"
+        "ibm-watsonx-orchestrate",
+        "ibm-watsonx-orchestrate-mcp-server"
       ],
       "env": {
         "WXO_MCP_WORKING_DIRECTORY": ".",
@@ -164,7 +166,6 @@ The enabled Bob groups are ([details in the IBM Bob documentation](https://bob.i
 - `todo`
 - `subtask`
 - `subagent`
-- `mode`
 
 The current custom instructions tell Bob to:
 
@@ -180,42 +181,30 @@ The current custom instructions tell Bob to:
 
 ## 9.5 The Skill In `.bob/skills`
 
-The folder `.bob/skills` currently contains one skill file:
+The folder `.bob/skills` currently contains the **`watsonx-orchestrate`** skill
+in `.bob/skills/watsonx-orchestrate/`:
 
-- `galaxium_travels_watsonx_orchestrate_customization_developer.md`
+- `SKILL.md` — the main skill definition activated when watsonx Orchestrate
+  topics are relevant
+- `README.md` — additional background material
 
-This skill supports development for the `watsonx Orchestrate` Developer Edition
-customization in this repository.
+The `references/` sub-folder contains supporting documents used by the skill:
 
-The current skill focuses on:
+| File | Content |
+|---|---|
+| `agentops-evaluations.md` | Agent evaluation patterns |
+| `agents-tools-schemas.md` | Agent and tool YAML schemas |
+| `cli-reference.md` | `orchestrate` CLI reference |
+| `connections-models-kb.md` | Connections, models, and knowledge base guide |
+| `mcp-toolkits.md` | MCP toolkit integration |
+| `runtime-api-embedding.md` | Runtime REST API and embedding |
+| `setup-venv.sh` | Virtual environment setup helper |
+| `testing-debugging.md` | Testing and debugging guidance |
+| `wxo-chat.sh` | Chat startup helper script |
 
-- Python-based implementation
-- MCP integration patterns
-- clean customization structure
-- separation between configuration and executable code
-- local and container-based workflows
-
-The skill currently points at this intended customization target:
-
-```text
-watsonx-orchestrate-adk/customization
-```
-
-It also recommends this layout:
-
-```text
-customization/
-├── configurations/
-│   ├── agents/
-│   ├── tools/
-│   ├── connections/
-│   └── environments/
-├── implementations/
-│   ├── agents/
-│   ├── tools/
-│   ├── integrations/
-│   └── utils/
-```
+The skill covers: building, importing, testing, debugging, and publishing IBM
+watsonx Orchestrate agents, tools, flows, toolkits (MCP), connections, models,
+and knowledge bases using the ADK and the `orchestrate` CLI.
 
 ## 9.6 The `.bobrules` Folder
 
@@ -236,9 +225,13 @@ The two `coding-style.md` files currently define the same coding standards for:
 
 The file
 `.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/watsonx-orchestrate-configurations.md`
-currently contains one short rule:
+currently contains two rules:
 
 > Any configuration must fit to the used watsonx Orchestrate ADK!
+
+> For watsonx Orchestrate ADK version 2.12.0 you must use
+> `llm: watsonx/meta-llama/llama-3-3-70b-instruct` for the agent
+> configuration.
 
 ## 9.7 The `.bobignore` File
 

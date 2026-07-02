@@ -1,4 +1,10 @@
-# 4. Add The Basic Auth MCP Server To `watsonx Orchestrate`
+# 4. Add The Basic Auth MCP Server To `watsonx Orchestrate` *(Optional — Manual Configuration)*
+
+> **This guide is optional.**
+> It covers manual CLI steps for registering the Galaxium MCP server with
+> `watsonx Orchestrate` using Basic Auth.
+> If you prefer automation, skip to [4.7 Optional Automation Script](#47-optional-automation-script)
+> or use Bob to perform these steps for you.
 
 Use this guide after:
 
@@ -37,9 +43,12 @@ orchestrate connections add --app-id ${APP_ID}
 
 ## 4.3 Configure The Connection
 
-You need to understand there are two URLs the 
+Two distinct URLs are used:
 
-http://${LOCAL_NET_IP}:8084
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `MCP_REMOTE_BASE_SERVER_URL` | `http://<IP>:8084` | Connection credential — server root, no path |
+| `MCP_REMOTE_SERVER_URL` | `http://<IP>:8084/mcp` | Toolkit import — full MCP endpoint |
 
 ```sh
 export ENVIRONMENT="draft"
@@ -111,7 +120,7 @@ when you manage agents or tools.
 
 ## 4.7 Optional Automation Script
 
-The folder also contains `wxo_wxomcp_basic_auth.sh`, which automates the same
+The folder also contains [`wxo_add_basic_auth_mcp_server.sh`](./watsonx-orchestrate-adk/wxo_add_basic_auth_mcp_server.sh), which automates the same
 connection and toolkit-import flow.
 
 ### [Home](./README.md)
