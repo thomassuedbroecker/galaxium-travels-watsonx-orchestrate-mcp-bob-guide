@@ -54,7 +54,7 @@ That means:
 - cloning and starting the Galaxium Travels infrastructure
 - enabling the Basic Auth configuration for the MCP server in the Galaxium Travels example
 - preparing the local `watsonx Orchestrate Developer Edition` runtime
-- preparing the local `watsonx Orchestrate` Basic Auth MCP server
+- preparing the local `watsonx Orchestrate MCP server`
 
 This setup comes first because Bob is most useful only after the local
 environment is ready and understood.
