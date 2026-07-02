@@ -6,12 +6,24 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${YELLOW} Starting watsonx Orchestrate Development Edition ${NC}"
+echo -e "${YELLOW} Verify environment ${NC}"
 clear 
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Activating Pythonvirtual environment... ${NC}"
 source .venv/bin/activate
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Verify watsonx Orchestrate version... ${NC}"
+orchestrate --version
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} List models for watsonx Orchestrate... ${NC}"
+orchestrate models list -a
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Starting watsonx Orchestrate Development Edition ${NC}"
+clear 
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Running watsonx Orchestrate server reset...${NC}"
@@ -30,6 +42,17 @@ echo -e "${YELLOW} Activating local environment watsonx Orchestrate configuratio
 orchestrate env activate local
 
 echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Set connection to import watsonx.ai models ...${NC}"
+orchestrate connections add -a watsonx_credentials
+orchestrate connections configure -a watsonx_credentials --env draft -k key_value -t team
+orchestrate connections set-credentials -a watsonx_credentials --env draft -e "api_key=${WATSONX_APIKEY}"
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Import models from watsonx.ai ...${NC}"
+orchestrate models import --file ./model-configs/model-config_llama_3_3_70b_instruct.yaml_template --app-id watsonx_credentials
+orchestrate models import --file ./model-configs/model-config_openai_gpt_oss_120b.yaml --app-id watsonx_credentials
+
+echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Starting local Orchestrate chat... ${NC}"
 orchestrate chat start
 
@@ -39,5 +62,5 @@ echo "HOST:${WXO_MCP_HOST}\nPORT:\n${WXO_MCP_PORT}\nTRANPORT:${WXO_MCP_TRANSPORT
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Start watsonx Orchestrate MCP Server config... ${NC}"
-../watsonx-orchestrate-mcp-server/ibm-watsonx-orchestrate-mcp-server
+cd ../watsonx-orchestrate-mcp-server/ibm-watsonx-orchestrate-mcp-server
 

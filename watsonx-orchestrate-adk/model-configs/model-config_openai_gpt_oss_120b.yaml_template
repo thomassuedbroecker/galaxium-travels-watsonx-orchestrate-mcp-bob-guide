@@ -1,0 +1,12 @@
+spec_version: v1
+kind: model
+name: watsonx/openai/gpt-oss-120b
+display_name: IBM watsonx.ai (gpt-oss-120b)
+description: |
+  IBM watsonx.ai model using Space-scoped configuration (July 2026).
+tags:
+  - ibm
+  - watsonx
+model_type: chat
+provider_config:
+  watsonx_space_id: YOUR_SPACE_ID
