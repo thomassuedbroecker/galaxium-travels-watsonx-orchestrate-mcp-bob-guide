@@ -1,6 +1,6 @@
 # Labs with Bob
 
-Three end-to-end labs that use **IBM Bob** to build, integrate, and visualise watsonx Orchestrate components on top of the Galaxium Travels application.
+Three end-to-end labs that use **IBM Bob** to build, integrate, and visualize watsonx Orchestrate components on top of the Galaxium Travels application.
 
 ---
 
@@ -60,7 +60,7 @@ Bob will update the web app source, rebuild the containers, and verify the stack
 
 ## Lab 3 — Build the watsonx Orchestrate Custom Explorer
 
-**Goal:** Generate a Flask + D3.js v7 web application that connects to the `ibm-watsonx-orchestrate-mcp-server` and visualises agents, tools, toolkits, and connections as an interactive force-directed dependency graph.
+**Goal:** Generate a Flask + D3.js v7 web application that connects to the `ibm-watsonx-orchestrate-mcp-server` and visualizes agents, tools, toolkits, and connections as an interactive force-directed dependency graph.
 
 The finished application lives in `watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/`.  
 See its [`README.md`](watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) for setup and usage after generation.
@@ -77,7 +77,7 @@ watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/.
 
 The application is a Flask + D3.js v7 web UI that connects to the
 ibm-watsonx-orchestrate-mcp-server (Streamable-HTTP transport) and
-visualises agents, tools, toolkits, and connections as an interactive
+visualizes agents, tools, toolkits, and connections as an interactive
 force-directed dependency graph.
 
 All libraries must be open-source (Flask, flask-cors, python-dotenv,
@@ -109,7 +109,7 @@ watsonx_orchestrate_custom_explorer/
     │                      # using asyncio.run(); parses TextContent blocks into list[dict]
     └── graph.py           # build_graph(agents, tools, connections, toolkits) → D3
                            # {nodes, links}; node kinds: agent/tool/toolkit/connection;
-                           # colours: agent #4A90E2, tool #7ED321,
+                           # colors: agent #4A90E2, tool #7ED321,
                            #         toolkit #F5A623, connection #BD10E0;
                            # edges: agent→tool (uses_tool), agent→collaborator (collaborates),
                            #        agent→connection (uses_connection),
@@ -138,13 +138,13 @@ watsonx_orchestrate_custom_explorer/
 
 • D3 v7.9.0 from cdn.jsdelivr.net with SRI hash
 • Header: title + ↻ Refresh button + ☰ Listings button + status span
-  + colour legend (Agent/Tool/Toolkit/Connection dots)
+  + color legend (Agent/Tool/Toolkit/Connection dots)
 • Workspace: #sidebar (resizable) | #resize-handle | #graph-container > svg
 • Listings drawer: right slide-in overlay with 4 tabs (Agents/Tools/
   Toolkits/Connections), search input, sortable table, expand-row JSON,
   "Focus" button that pans/zooms the graph to the matching node
 
-─── public/script.js behaviour ────────────────────────────────────────
+─── public/script.js behavior ─────────────────────────────────────────
 
 • On load: fetch /api/graph, /api/agents, /api/tools, /api/toolkits,
   /api/connections concurrently via Promise.all
@@ -153,11 +153,11 @@ watsonx_orchestrate_custom_explorer/
 • Click a node → show detail card in sidebar (kind pill, metadata rows,
   array values as pills, nested objects as JSON pre block)
 • Clicking a Listings row highlights it in the table; Focus button calls
-  focusNode(id) which uses d3.zoom transform to centre the node
+  focusNode(id) which uses d3.zoom transform to center the node
 • Sidebar is drag-resizable (mousedown on #resize-handle)
 • Escape key closes the drawer
 
-Do NOT create node_modules, package.json, or any Node.js artefact.
+Do NOT create node_modules, package.json, or any Node.js artifact.
 Do NOT add a database.
 Ensure all Python files import from the src/ directory correctly
 (app.py adds its own directory to sys.path so api.py and graph.py are

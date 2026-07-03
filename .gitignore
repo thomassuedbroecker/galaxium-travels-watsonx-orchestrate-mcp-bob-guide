@@ -210,7 +210,7 @@ __marimo__/
 
 .DS_Store
 infrastructure/
-.$galaxim-travel-infrastructure.drawio.bkp
+.$galaxium-travels-infrastructure.drawio.bkp
 galaxium-travels-watsonx-orchestrate-mcp-bob-guide.code-workspace
 watsonx-orchestrate-adk/model-configs/model-config_llama_3_3_70b_instruct.yaml
 watsonx-orchestrate-adk/model-configs/model-config_openai_gpt_oss_120b.yaml

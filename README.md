@@ -65,7 +65,7 @@ Its current goal is:
 
 > Build an AI travel booking agent in watsonx Orchestrate Developer Edition using the Galaxium Travels MCP server. Complete all setup and verification steps automatically with minimal user interaction. Switch modes as needed.
 
-IBM Bob was also used to generate the **`watsonx_orchestrate_custom_explorer`** application — a dashboard-style single-page app that uses the watsonx Orchestrate MCP server to visualise agent and tool dependencies as an interactive diagram, allowing you to navigate to individual agents and tools directly from the diagram.
+IBM Bob was also used to generate the **`watsonx_orchestrate_custom_explorer`** application — a dashboard-style single-page app that uses the watsonx Orchestrate MCP server to visualize agent and tool dependencies as an interactive diagram, allowing you to navigate to individual agents and tools directly from the diagram.
 
 ![](./images/watsonx_orchestrate_custom_explorer_01.gif)
 
@@ -109,7 +109,12 @@ cd <your-repo-name>
 4. [Add The Basic Auth MCP Server To `watsonx Orchestrate`](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md)
 5. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
 6. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build a watsonx Orchestrate agent and more, using IBM Bob.
-7. [Inspect The watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) — a Flask + D3.js dashboard generated with IBM Bob that visualises agent and tool dependencies as an interactive force-directed diagram.
+7. [Inspect The watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) — a Flask + D3.js dashboard generated with IBM Bob that visualizes agent and tool dependencies as an interactive force-directed diagram.
+
+> **File numbering:** the guide files are prefixed `1`–`4`, `9`, `10`. Numbers
+> `5`–`8` are intentionally reserved for future guides, so the Bob configuration
+> (`9-bob-configuration.md`) and prompts (`10-bob-prompts.md`) guides keep those
+> prefixes even though they appear as steps 5 and 6 in the flow above.
 
 ## Repository Layout
 
@@ -143,7 +148,7 @@ The current top-level structure is:
 - `.bobrules/` contains Bob project rules.
 - `.bobignore` exists in the repository and is currently empty.
 - `AGENTS.md` contains repository-level team standards for agent work.
-- `architecture/` contains the editable infrastructure diagram `galaxim-travel-infrastructure.drawio`.
+- `architecture/` contains the editable infrastructure diagram `galaxium-travels-infrastructure.drawio`.
 - `bob-modes-exports/` currently contains a placeholder `README.md` for Bob mode exports.
 - `images/` contains the YouTube preview image `youtube-01.jpg` and screenshots/GIFs of the running setup, including `watsonx_orchestrate_custom_explorer_01.gif`.
 - `infrastructure/` is the folder where you can place the external Galaxium Travels infrastructure repository.
@@ -171,7 +176,7 @@ The current top-level structure is:
 5. Follow [4-watsonx-orchestrate-adk-add-basic-auth-mcp.md](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) to import the Basic Auth MCP server.
 6. Follow [9-bob-configuration.md](./9-bob-configuration.md) to use the IBM Bob configuration in this repository.
 7. Use [Bob prompts](./10-bob-prompts.md) when you want Bob to start building the Galaxium booking agent.
-8. Inspect the [watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) to visualise your agents, tools, toolkits, and connections as an interactive diagram.
+8. Inspect the [watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) to visualize your agents, tools, toolkits, and connections as an interactive diagram.
 
 ## Open-Source Dependencies
 
@@ -192,6 +197,17 @@ Current pinned main runtime libraries:
 | `ibm-watsonx-orchestrate` | `2.12.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
 | `ibm-watsonx-orchestrate-mcp-server` | `2.12.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
 
+The `watsonx_orchestrate_custom_explorer/` application (generated with IBM Bob)
+adds these open-source libraries:
+
+| Library | Version used in this repo | License | Where referenced |
+| --- | --- | --- | --- |
+| `flask` | `3.0.0` | BSD-3-Clause | `watsonx_orchestrate_custom_explorer/requirements.txt` |
+| `flask-cors` | `4.0.0` | MIT | `watsonx_orchestrate_custom_explorer/requirements.txt` |
+| `python-dotenv` | `>=1.1.0` | BSD-3-Clause | `watsonx_orchestrate_custom_explorer/requirements.txt` |
+| `mcp` (SDK) | inherited from parent `.venv` | Apache-2.0 | `watsonx_orchestrate_custom_explorer/src/api.py` |
+| `D3.js` | `7.9.0` | ISC | `watsonx_orchestrate_custom_explorer/public/index.html` (jsDelivr CDN) |
+
 Current open-source CLI prerequisites and tools referenced by the repository:
 
 | Tool | Version in this repo | Notes |
@@ -209,9 +225,9 @@ library dependencies:
 - `WATSONX_APIKEY`
 - `WATSONX_SPACE_ID`
 
-Unlike `chaindocs_MCP_example`, this repository does not currently include an
-automated local license-audit script because it documents an integration
-workflow rather than shipping one installable application.
+This repository does not currently include an automated local license-audit
+script, because it documents an integration workflow rather than shipping a
+single installable application.
 
 For the maintained dependency/license mapping, see
 [Dependency And License Transparency](DEPENDENCY_LICENSE_TRANSPARENCY.md).

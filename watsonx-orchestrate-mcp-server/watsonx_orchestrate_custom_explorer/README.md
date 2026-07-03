@@ -1,6 +1,6 @@
 # watsonx Orchestrate Custom Explorer
 
-A **Flask + D3.js v7** web application that connects to the `ibm-watsonx-orchestrate-mcp-server` and visualises agents, tools, toolkits, and connections as an interactive force-directed dependency graph.
+A **Flask + D3.js v7** web application that connects to the `ibm-watsonx-orchestrate-mcp-server` and visualizes agents, tools, toolkits, and connections as an interactive force-directed dependency graph.
 
 ---
 
@@ -57,9 +57,9 @@ open http://localhost:5001
 | **Force-directed graph** | D3 v7 simulation with zoom, pan, and drag. Nodes auto-cluster by kind. |
 | **Node detail sidebar** | Click any node to inspect all its metadata. Arrays shown as pills; nested objects as formatted JSON. Sidebar is drag-resizable. |
 | **Listings drawer** | `☰ Listings` opens a slide-in panel with four sortable, filterable tables — Agents, Tools, Toolkits, Connections. |
-| **Focus node** | The *Focus* button in the Listings drawer pans and zooms the graph to centre the selected node. |
+| **Focus node** | The *Focus* button in the Listings drawer pans and zooms the graph to center the selected node. |
 | **Live refresh** | `↻ Refresh` re-fetches all data from the MCP server without a page reload. |
-| **Colour legend** | Agent `#4A90E2` · Tool `#7ED321` · Toolkit `#F5A623` · Connection `#BD10E0` |
+| **Color legend** | Agent `#4A90E2` · Tool `#7ED321` · Toolkit `#F5A623` · Connection `#BD10E0` |
 
 ---
 
@@ -107,7 +107,7 @@ watsonx_orchestrate_custom_explorer/
 
 All open-source:
 
-| Package | Licence | Purpose |
+| Package | License | Purpose |
 |---|---|---|
 | [Flask 3.0](https://flask.palletsprojects.com/) | BSD-3-Clause | Web framework |
 | [flask-cors 4.0](https://github.com/corydolphin/flask-cors) | MIT | CORS headers |

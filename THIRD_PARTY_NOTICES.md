@@ -84,7 +84,7 @@ The repository includes:
 
 - `images/youtube-01.jpg`, used as the preview image for the related YouTube
   video linked from `README.md`.
-- `architecture/galaxim-travel-infrastructure.drawio`, an editable Draw.io
+- `architecture/galaxium-travels-infrastructure.drawio`, an editable Draw.io
   architecture diagram.
 
 The Draw.io diagram uses Draw.io library references such as built-in clip art,

@@ -41,6 +41,7 @@ Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 | **`flask-cors`** (watsonx_orchestrate_custom_explorer) | `4.0.0` | MIT | <https://pypi.org/project/Flask-Cors/4.0.0/>, <https://github.com/corydolphin/flask-cors/blob/main/LICENSE> | CORS middleware for the Flask backend | MIT is permissive. |
 | **`python-dotenv`** (watsonx_orchestrate_custom_explorer) | `>=1.1.0` (required by fastmcp in the SDK venv) | BSD-3-Clause | <https://pypi.org/project/python-dotenv/>, <https://github.com/theskumar/python-dotenv/blob/main/LICENSE> | Loads `.env` file into environment at startup | BSD-3-Clause is permissive. |
 | **D3.js v7** (watsonx_orchestrate_custom_explorer frontend) | `7.9.0` | ISC (functionally equivalent to MIT) | <https://github.com/d3/d3/blob/main/LICENSE>, <https://cdn.jsdelivr.net/npm/d3@7.9.0/> | Force-directed graph rendering in the browser; loaded from jsDelivr CDN | ISC is permissive. The jsDelivr CDN is open-source (<https://github.com/jsdelivr/jsdelivr>); no tracking or proprietary analytics included. |
+| **`mcp`** (watsonx_orchestrate_custom_explorer backend) | Inherited from parent `.venv` | Apache-2.0 | <https://pypi.org/project/mcp/>, <https://github.com/modelcontextprotocol/python-sdk/blob/main/LICENSE> | MCP Streamable-HTTP client used by `src/api.py` to call the local MCP server | Apache-2.0 is permissive; capture the resolved version from the parent venv for release evidence. |
 
 ## IBM Package And Product Boundary
 

@@ -40,7 +40,7 @@ The current Bob-related files in this repository are:
 .bobrules/
 ├── rules-code/
 │   └── coding-style.md
-└── rules-galaxium-travels-developer-mode-2026-03-26/
+└── rules-galaxium-travels-developer-mode-2026-07-02/
     ├── coding-style.md
     └── watsonx-orchestrate-configurations.md
 
@@ -59,7 +59,7 @@ For day-to-day Bob usage in this repository, the active files are:
 - `.bob/custom_modes.yaml`
 - `.bob/skills/...`
 - `.bobrules/rules-code/...`
-- `.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/...`
+- `.bobrules/rules-galaxium-travels-developer-mode-2026-07-02/...`
 - `.bobignore`
 - `AGENTS.md`
 
@@ -144,7 +144,7 @@ ipconfig getifaddr en0
 
 The file `.bob/custom_modes.yaml` defines one custom Bob mode:
 
-- slug: `galaxium-travels-developer-mode-2026-03-26`
+- slug: `galaxium-travels-developer-mode-2026-07-02`
 - name: `Galaxium Travels Developer`
 
 The current mode is intended for:
@@ -211,7 +211,7 @@ and knowledge bases using the ADK and the `orchestrate` CLI.
 The `.bobrules` folder currently contains two rule areas:
 
 - `.bobrules/rules-code/`
-- `.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/`
+- `.bobrules/rules-galaxium-travels-developer-mode-2026-07-02/`
 
 The two `coding-style.md` files currently define the same coding standards for:
 
@@ -224,7 +224,7 @@ The two `coding-style.md` files currently define the same coding standards for:
 - comments that explain why, not only what
 
 The file
-`.bobrules/rules-galaxium-travels-developer-mode-2026-03-26/watsonx-orchestrate-configurations.md`
+`.bobrules/rules-galaxium-travels-developer-mode-2026-07-02/watsonx-orchestrate-configurations.md`
 currently contains two rules:
 
 > Any configuration must fit to the used watsonx Orchestrate ADK!

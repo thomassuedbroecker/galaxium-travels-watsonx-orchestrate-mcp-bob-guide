@@ -97,7 +97,7 @@ Once running, the server exposes the following tool groups:
 
 ## watsonx Orchestrate Custom Explorer
 
-The `watsonx_orchestrate_custom_explorer/` sub-directory contains a **Flask + D3.js v7** web application that connects to this MCP server and visualises agents, tools, toolkits, and connections as an interactive force-directed dependency graph.
+The `watsonx_orchestrate_custom_explorer/` sub-directory contains a **Flask + D3.js v7** web application that connects to this MCP server and visualizes agents, tools, toolkits, and connections as an interactive force-directed dependency graph.
 
 **Start this MCP server first** — the explorer calls it at runtime to fetch all data.
 
@@ -130,9 +130,9 @@ watsonx_orchestrate_custom_explorer/
 | `GET /api/graph` | D3-ready `{nodes, links}` built from all four lists |
 | `GET /api/health` | Socket reachability check for `WXO_MCP_BASE_URL` |
 
-### Node kinds and colours
+### Node kinds and colors
 
-| Kind | Colour | Source |
+| Kind | Color | Source |
 |---|---|---|
 | Agent | `#4A90E2` | native / external / assistant agents |
 | Tool | `#7ED321` | individual tools |

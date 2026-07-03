@@ -97,7 +97,7 @@ cd watsonx-orchestrate-adk
 bash wxo_local_start.sh
 ```
 
-The script guides you through each step with coloured status messages.
+The script guides you through each step with colored status messages.
 Here is what it does, in order:
 
 ### Step 1 — Activate the Python virtual environment

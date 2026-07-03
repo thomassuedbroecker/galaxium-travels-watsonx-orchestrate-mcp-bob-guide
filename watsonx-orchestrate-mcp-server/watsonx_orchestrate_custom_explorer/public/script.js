@@ -59,7 +59,7 @@ let expandedRow  = null;   // index of expanded table row
 
 // graph state
 let simulation, svg, linkGroup, nodeGroup, linkSel;
-let zoomBehaviour = null;   // D3 zoom instance, kept for programmatic pan/zoom
+let zoomBehavior = null;   // D3 zoom instance, kept for programmatic pan/zoom
 let simNodeCache  = [];     // live sim nodes (with x/y), updated after each render
 
 // ── status helper ─────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ function initSvg() {
 
   d3.select("#graph").selectAll("*").remove();
 
-  zoomBehaviour = d3.zoom().scaleExtent([0.15, 5])
+  zoomBehavior = d3.zoom().scaleExtent([0.15, 5])
     .on("zoom", ev => {
       linkGroup.attr("transform", ev.transform);
       nodeGroup.attr("transform", ev.transform);
@@ -199,7 +199,7 @@ function initSvg() {
 
   svg = d3.select("#graph")
     .attr("viewBox", [0, 0, w, h])
-    .call(zoomBehaviour);
+    .call(zoomBehavior);
 
   svg.append("defs").append("marker")
     .attr("id", "arrow").attr("viewBox", "0 -5 10 10")
@@ -287,7 +287,7 @@ function renderGraph(data) {
 
 /**
  * Select the graph node whose id equals nodeId, highlight its links,
- * populate the detail sidebar, and smoothly pan+zoom the SVG to centre it.
+ * populate the detail sidebar, and smoothly pan+zoom the SVG to center it.
  */
 function focusNode(nodeId) {
   if (!svg || !nodeGroup || !linkSel) return;
@@ -308,7 +308,7 @@ function focusNode(nodeId) {
 
   renderSidebar(target);
 
-  // smooth pan + zoom to centre the node
+  // smooth pan + zoom to center the node
   const w       = GRAPH_CT.clientWidth;
   const h       = GRAPH_CT.clientHeight;
   const scale   = 1.6;                          // zoom-in level on focus
@@ -317,7 +317,7 @@ function focusNode(nodeId) {
   const transform = d3.zoomIdentity.translate(tx, ty).scale(scale);
 
   svg.transition().duration(600)
-    .call(zoomBehaviour.transform, transform);
+    .call(zoomBehavior.transform, transform);
 }
 
 // ── derive graph node id from a listing row ───────────────────────────────────

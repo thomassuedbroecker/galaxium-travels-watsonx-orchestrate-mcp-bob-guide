@@ -1,5 +1,5 @@
 customModes:
-  - slug: galaxium-travels-developer-mode-2026-03-26
+  - slug: galaxium-travels-developer-mode-2026-07-02
     name: Galaxium Travels Developer
     description: |
       Development mode for working on the Galaxium Travels infrastructure and related Python-based services.
