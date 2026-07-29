@@ -75,10 +75,11 @@ EOF
 }
 
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
-require_cmd orchestrate "Activate the virtual environment first: source .venv/bin/activate"
-require_cmd python3     "Python 3 is required to locate the bundled limactl binary"
+require_cmd python3 "Python 3 is required to locate the bundled limactl binary"
 
 # ── Activate venv + env vars ──────────────────────────────────────────────────
+# The virtual environment must be activated before we can call `python3 -c` to
+# locate the bundled limactl, and before `orchestrate` is available.
 print_header "Activating virtual environment"
 source .venv/bin/activate
 
@@ -182,8 +183,11 @@ LAST_IDX=$(( ${#CONTAINERS[@]} - 1 ))
 echo -e "${GREEN}Manifest written: ${MANIFEST}${NC}"
 
 # ── Stream logs in parallel ───────────────────────────────────────────────────
-# `orchestrate server logs --name <container>` is the correct command here.
-# It routes internally through limactl to reach the container inside the VM.
+# Use `limactl shell ... -- docker logs --follow` directly.
+# `orchestrate server logs` calls `docker logs` against the *active* Docker
+# context, which may be "default" (host socket) rather than the Lima VM socket.
+# Routing through limactl shell guarantees we reach the correct daemon regardless
+# of which Docker context is currently active on the host.
 print_header "Streaming logs in parallel — press Ctrl-C to stop"
 echo ""
 
@@ -193,16 +197,12 @@ for CONTAINER in "${CONTAINERS[@]}"; do
   LOG_FILE="${LOG_SESSION_DIR}/${CONTAINER}.log"
   echo -e "${GREEN}[START]${NC} ${CYAN}${CONTAINER}${NC} → ${LOG_FILE}"
 
-  # Build command — include --env-file only when the file exists.
-  if [ -f "${ENV_FILE}" ]; then
-    CMD="orchestrate server logs --name \"${CONTAINER}\" --env-file \"${ENV_FILE}\""
-  else
-    CMD="orchestrate server logs --name \"${CONTAINER}\""
-  fi
-
-  eval "${CMD}" 2>&1 \
-    | tee "${LOG_FILE}" \
-    | sed "s/^/[${CONTAINER}] /" &
+  # Run limactl in a subshell so its PID is what we record.
+  # `tee` writes to the log file AND stdout; `sed` prefixes each terminal line.
+  # We capture the subshell PID ($!) which encompasses the whole pipeline.
+  ( "${LIMACTL}" shell "${LIMA_VM}" -- docker logs --follow "${CONTAINER}" 2>&1 \
+      | tee "${LOG_FILE}" \
+      | sed "s/^/[${CONTAINER}] /" ) &
 
   PIDS+=($!)
 done
