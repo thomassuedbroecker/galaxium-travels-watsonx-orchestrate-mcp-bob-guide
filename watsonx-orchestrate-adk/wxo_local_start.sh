@@ -118,4 +118,16 @@ echo "HOST:${WXO_MCP_HOST}\nPORT:\n${WXO_MCP_PORT}\nTRANPORT:${WXO_MCP_TRANSPORT
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Start watsonx Orchestrate MCP Server config... ${NC}"
-cd ../watsonx-orchestrate-mcp-server/ibm-watsonx-orchestrate-mcp-server
+cd ../watsonx-orchestrate-mcp-server
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Copying .env_template to .env... ${NC}"
+cp .env_template .env
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Installing/upgrading ibm-watsonx-orchestrate-mcp-server... ${NC}"
+pip install --upgrade ibm-watsonx-orchestrate-mcp-server
+
+echo -e "\n${BLUE}========================================${NC}"
+echo -e "${YELLOW} Starting watsonx Orchestrate MCP Server... ${NC}"
+bash wxo_mcp_local_start.sh
