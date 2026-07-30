@@ -27,17 +27,20 @@ Terminal
         │          limactl → docker logs --follow per container → *.log files
         │
         ├─ Step 2  wxo_server_log_analyze.sh
-        │          reads *.log files → ANALYSIS_REPORT.md
+        │          reads *.log files → ANALYSIS_REPORT.md + SUMMARY_FOR_BOB.md
         │
-        └─ Step 3  cat ANALYSIS_REPORT.md | bob --chat-mode ask \
-                       --hide-intermediary-output \
-                       --approval-mode yolo \
-                       -p "<question>"
+        ├─ Step 3  cat SUMMARY_FOR_BOB.md | bob --chat-mode ask \
+        │              --approval-mode yolo \
+        │              -p "<question>" | tee -a BOB_ANALYSIS_REPORT.md
+        │
+        └─ Step 4  BOB_ANALYSIS_REPORT.md written to <session-dir>/
+                   (header with session metadata + Bob's full response)
 ```
 
 Bob CLI receives the pre-built Markdown report on **stdin** via the pipe and
-reasons over it. No watsonx Orchestrate agent. No tool imports. No Lima VM access
-from Bob's side.
+reasons over it. Its response is simultaneously printed to the terminal (via
+`tee`) and appended to `BOB_ANALYSIS_REPORT.md`. No watsonx Orchestrate agent.
+No tool imports. No Lima VM access from Bob's side.
 
 ---
 
@@ -107,17 +110,28 @@ bash wxo_bob_inspect.sh -q "Which containers had Redis or database connection er
 
 ---
 
-## Step 4 — Present Bob's output
+## Step 4 — Present Bob's output and the exported report
 
-After `execute_command` completes, the final output from the `bob` invocation
-will be in the command output. Present it to the user clearly, noting:
+After `execute_command` completes:
+
+1. The terminal shows Bob's live response (streamed via `tee`).
+2. `BOB_ANALYSIS_REPORT.md` has been written to the session directory, containing a
+   metadata header followed by Bob's full response.
+
+Present the analysis clearly, noting:
 
 - **Overall health** — ERRORS / WARNINGS / CLEAN
 - **Top error containers** — ranked by count
 - **Root cause notes** — which are startup noise vs real issues
 - **Recommendation**
 
-If the user wants to drill into a specific container log, use `read_file` directly:
+To show the user where the exported report was saved, use `read_file`:
+
+```
+watsonx-orchestrate-adk/server-logs/<SESSION>/BOB_ANALYSIS_REPORT.md
+```
+
+If the user wants to drill into a specific container log, read the raw file:
 
 ```
 watsonx-orchestrate-adk/server-logs/<SESSION>/<container>.log
@@ -137,6 +151,7 @@ No further scripts needed — Bob reads log files directly.
 | `--log-dir DIR` | `./server-logs` | Root directory of sessions |
 | `--mode MODE` | `ask` | Bob chat mode (`ask`, `arch-review`, etc.) |
 | `--question TEXT` | health prompt | Custom question for Bob |
+| `--export-file FILE` | `<session-dir>/BOB_ANALYSIS_REPORT.md` | Override the path for the exported Bob analysis markdown |
 | `--full-report` | off | Send entire `ANALYSIS_REPORT.md` to Bob (slower, ~291 KB) instead of the summary extract (~1.8 KB) |
 
 ## Why responses are fast
