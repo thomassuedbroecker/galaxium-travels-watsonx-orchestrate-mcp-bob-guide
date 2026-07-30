@@ -194,12 +194,14 @@ if [ -z "${EXPORT_FILE}" ]; then
   EXPORT_FILE="${SESSION_DIR}/BOB_ANALYSIS_REPORT.md"
 fi
 
-# Write a markdown header to the export file before streaming Bob's response.
-# This lets the file stand alone as a readable report.
+# Write a metadata header to the export file before streaming Bob's response.
+# Use a distinct heading (## Run Metadata) so it does not collide with Bob's
+# own "# watsonx Orchestrate Server Log Analysis Report" heading when the
+# post-processing step de-duplicates that title.
 RUN_TS=$(date '+%Y-%m-%d %H:%M:%S')
 CONTEXT_LABEL="${CONTEXT_FILE##*/}"
 cat > "${EXPORT_FILE}" <<HEADER
-# watsonx Orchestrate Server Log Analysis Report
+## Run Metadata
 
 | Field | Value |
 |---|---|
@@ -225,6 +227,40 @@ cat "${CONTEXT_FILE}" | bob \
   --chat-mode    "${BOB_MODE}" \
   --approval-mode yolo \
   -p "${QUESTION}" | tee -a "${EXPORT_FILE}"
+
+# ── Step 4b: Clean the exported file ─────────────────────────────────────────
+# Bob's raw stdout contains <thinking> blocks, [using tool …] scaffolding, and
+# ---output--- markers. When the analysis body is repeated (intermediate + final
+# output), only the last occurrence is kept. Strip all noise in-place.
+python3 - "${EXPORT_FILE}" <<'PYEOF'
+import sys, re
+
+with open(sys.argv[1]) as f:
+    raw = f.read()
+
+# 1. Remove <thinking>…</thinking> blocks (including multiline)
+clean = re.sub(r'<thinking>.*?</thinking>\n?', '', raw, flags=re.DOTALL)
+
+# 2. Remove [using tool …] lines and the ---output--- fences around them
+clean = re.sub(r'\[using tool [^\]]+\]\n?', '', clean)
+clean = re.sub(r'---output---\n?', '', clean)
+
+# 3. If the analysis heading appears more than once (duplicate from intermediate
+#    + final output), keep only the content after the last occurrence.
+marker = '# watsonx Orchestrate Server Log Analysis Report'
+parts = clean.split(marker)
+if len(parts) > 2:
+    # re-attach: header block (parts[0]) + last analysis body
+    clean = parts[0].rstrip() + '\n\n' + marker + parts[-1]
+
+# 4. Collapse runs of 3+ blank lines to 2
+clean = re.sub(r'\n{3,}', '\n\n', clean)
+
+with open(sys.argv[1], 'w') as f:
+    f.write(clean.strip() + '\n')
+
+print(f"Cleaned export: {sys.argv[1]}")
+PYEOF
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 echo ""
