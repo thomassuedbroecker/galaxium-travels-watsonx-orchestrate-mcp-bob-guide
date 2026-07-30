@@ -7,6 +7,7 @@
 #   1. Resolve / optionally run wxo_server_log_inspector.sh  (log capture)
 #   2. Run wxo_server_log_analyze.sh                          (pre-analysis)
 #   3. Pipe ANALYSIS_REPORT.md into bob -p "<question>"       (Bob CLI analysis)
+#   4. Export Bob's response to BOB_ANALYSIS_REPORT.md        (markdown export)
 #
 # Usage:
 #   bash wxo_bob_inspect.sh [OPTIONS]
@@ -21,6 +22,8 @@
 #   --log-dir   -d       Root directory of session folders. Default: ./server-logs
 #   --question  -q       Question for Bob. Default: standard health question.
 #   --mode      -m       Bob chat mode. Default: ask
+#   --export-file -o     Path for the exported Bob analysis markdown.
+#                        Default: <session-dir>/BOB_ANALYSIS_REPORT.md
 #   --env-file  -e       Path to a .env file. Default: .env
 #   --full-report        Send the complete ANALYSIS_REPORT.md to Bob instead of
 #                        the summary extract. Slower but gives Bob full log detail.
@@ -38,6 +41,9 @@
 #
 #   # Use arch-review mode for a deeper analysis:
 #   bash wxo_bob_inspect.sh --mode arch-review
+#
+#   # Write Bob's response to a specific file:
+#   bash wxo_bob_inspect.sh -o ./my-report.md
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -50,6 +56,7 @@ LOG_DIR="./server-logs"
 SESSION=""
 BOB_MODE="ask"
 ENV_FILE=".env"
+EXPORT_FILE=""
 QUESTION="Analyse the watsonx Orchestrate server log report below. Provide: 1) Overall health status. 2) Sessions Overview table. 3) Top 5 containers by error count. 4) Root cause notes per error container — which are Developer Edition startup noise versus real issues. 5) Recommendation."
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
@@ -61,6 +68,7 @@ while [ $# -gt 0 ]; do
     --log-dir|-d)           LOG_DIR="$2";             shift 2 ;;
     --question|-q)          QUESTION="$2";            shift 2 ;;
     --mode|-m)              BOB_MODE="$2";            shift 2 ;;
+    --export-file|-o)       EXPORT_FILE="$2";         shift 2 ;;
     --env-file|-e)          ENV_FILE="$2";            shift 2 ;;
     --full-report)          USE_FULL_REPORT=true;     shift ;;
     --help)
@@ -180,20 +188,48 @@ fi
 
 # ── Step 4: Invoke Bob CLI with the summary as stdin ─────────────────────────
 print_header "Step 4 — IBM Bob CLI analysis (mode: ${BOB_MODE})"
+
+# Resolve the export file path now that SESSION_DIR is known.
+if [ -z "${EXPORT_FILE}" ]; then
+  EXPORT_FILE="${SESSION_DIR}/BOB_ANALYSIS_REPORT.md"
+fi
+
+# Write a markdown header to the export file before streaming Bob's response.
+# This lets the file stand alone as a readable report.
+RUN_TS=$(date '+%Y-%m-%d %H:%M:%S')
+CONTEXT_LABEL="${CONTEXT_FILE##*/}"
+cat > "${EXPORT_FILE}" <<HEADER
+# watsonx Orchestrate Server Log Analysis Report
+
+| Field | Value |
+|---|---|
+| Session | ${SESSION} |
+| Bob mode | ${BOB_MODE} |
+| Context file | ${CONTEXT_LABEL} |
+| Generated | ${RUN_TS} |
+
+---
+
+HEADER
+
 echo -e "${CYAN}Piping summary → bob -p \"<question>\"${NC}"
+echo -e "${CYAN}Output → terminal + ${EXPORT_FILE}${NC}"
 echo ""
 
 # Pipe only the summary to Bob (≈40 lines, fast).
 # Bob appends the -p prompt to whatever arrives on stdin.
 # --approval-mode yolo prevents interactive prompts blocking the script.
+# tee -a appends Bob's response to the export file while still printing to the
+# terminal so the user sees the analysis live.
 cat "${CONTEXT_FILE}" | bob \
-  --chat-mode   "${BOB_MODE}" \
+  --chat-mode    "${BOB_MODE}" \
   --approval-mode yolo \
-  -p "${QUESTION}"
+  -p "${QUESTION}" | tee -a "${EXPORT_FILE}"
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BLUE}════════════════════════════════════════${NC}"
-echo -e "${GREEN}Session:  ${SESSION}${NC}"
-echo -e "${GREEN}Report:   ${REPORT_FILE}${NC}"
-echo -e "${GREEN}Bob mode: ${BOB_MODE}${NC}"
+echo -e "${GREEN}Session:      ${SESSION}${NC}"
+echo -e "${GREEN}Report:       ${REPORT_FILE}${NC}"
+echo -e "${GREEN}Bob mode:     ${BOB_MODE}${NC}"
+echo -e "${GREEN}Bob analysis: ${EXPORT_FILE}${NC}"

@@ -1,13 +1,16 @@
 # 5. Inspect The `watsonx Orchestrate` Server Logs
 
-Use this guide to capture and analyse the container logs produced by a running
-`watsonx Orchestrate Developer Edition` server. Two automation scripts in
-[`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/) do the work:
+Use this guide to capture, analyse, and inspect the container logs produced by a
+running `watsonx Orchestrate Developer Edition` server. Three automation scripts
+in [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/) plus a Bob skill
+drive the full pipeline:
 
-| Script | Purpose |
+| Artifact | Purpose |
 |---|---|
 | [`wxo_server_log_inspector.sh`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Discovers all running containers and streams their logs in parallel to timestamped files |
-| [`wxo_server_log_analyze.sh`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Reads the captured files and produces a Sessions Overview plus a Markdown report |
+| [`wxo_server_log_analyze.sh`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Reads the captured files, produces a Sessions Overview, and writes `ANALYSIS_REPORT.md` |
+| [`wxo_bob_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_inspect.sh) | Chains analysis + IBM Bob CLI in one command: pipes the report summary to `bob` for a structured verdict |
+| [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — drives the full pipeline interactively from the terminal |
 
 Run all commands from the **`watsonx-orchestrate-adk/`** directory unless a block
 says otherwise. The Developer Edition must be running (see guide `3`) before you
@@ -22,7 +25,7 @@ start the inspector.
 | Running Developer Edition | Start it with guide `3` (`wxo_local_start.sh`) |
 | Python virtual environment | Created in guide `3` — activate with `source .venv/bin/activate` |
 | `jq` | JSON processor used by the analyser — `brew install jq` (macOS) |
-| `orchestrate` CLI | Available after activating the virtual environment |
+| `bob` CLI | IBM Bob CLI used in step 4 — `npm install -g @ibm/bob-cli` |
 
 > **No system Docker required.**
 > The Developer Edition runs inside a Lima VM managed by the ADK. The inspector
@@ -33,8 +36,8 @@ start the inspector.
 > The Developer Edition runs as a set of Docker containers. Inspecting their
 > logs during a test run lets you trace errors, session `thread_id` values,
 > warnings, and model call patterns without needing to attach to each container
-> individually. The captured files can also be fed to a watsonx Orchestrate
-> agent tool for automated analysis.
+> individually. The captured `ANALYSIS_REPORT.md` is then fed directly to IBM
+> Bob CLI for automated structured analysis — no watsonx Orchestrate agent needed.
 
 ---
 
@@ -71,15 +74,18 @@ The script does the following in order:
 1. **Locates the bundled `limactl`** binary inside the Python package — no
    system-level Docker or limactl installation required.
 2. **Discovers containers** by running `docker ps` inside the Lima VM via
-   `limactl shell ibm-watsonx-orchestrate`.
+   `limactl shell ibm-watsonx-orchestrate -- docker ps`.
 3. **Creates the session directory** under `./server-logs/YYYYMMDD_HHMMSS/` and
    writes a `manifest.json` describing the session.
-4. **Starts one `orchestrate server logs --name` stream per container** in the
-   background, writing each to a dedicated `.log` file while printing every line
-   to the terminal prefixed with `[container-name]`.
+4. **Starts one `limactl shell … -- docker logs --follow` stream per container**
+   in a background subshell, writing each to a dedicated `.log` file while
+   printing every line to the terminal prefixed with `[container-name]`.
+   > This bypasses the host Docker context entirely — the stream goes straight
+   > through the Lima VM socket, which is the only socket that sees the
+   > Developer Edition containers.
 5. **Prints a heartbeat line every 5 seconds** showing the current line count
    per container — so you always see that capture is progressing.
-6. **When you press `Ctrl-C`** — stops all background streams, prints a
+6. **When you press `Ctrl-C`** — stops all background subshells, prints a
    per-container line-count summary, and prints the next command to run.
 
 ### What you will see in the terminal
@@ -88,6 +94,9 @@ After startup you will see the container list, then a continuous stream of log
 lines followed by a heartbeat every 5 seconds:
 
 ```
+========================================
+ Activating virtual environment
+
 ========================================
  Locating bundled limactl
 Found limactl: .../.venv/.../developer_edition/resources/lima/bin/limactl
@@ -99,14 +108,33 @@ Found 25 container(s):
   • dev-edition-ui-1
   • dev-edition-wxo-server-worker-1
   • dev-edition-langfuse-web-1
+  • dev-edition-langfuse-worker-1
   • dev-edition-ai-gateway-1
-  • ... (all 25 containers listed)
+  • dev-edition-agent-runtime-1
+  • dev-edition-tools-runtime-1
+  • dev-edition-mcp-gateway-1
+  • dev-edition-wxo-agent-gateway-1
+  • dev-edition-wxo-builder-1
+  • dev-edition-wxo-agentic-memory-1
+  • dev-edition-wxo-tempus-runtime-1
+  • dev-edition-wxo-knowledge-mcp-server-1
+  • dev-edition-socket-handler-1
+  • dev-edition-wxo-server-connection-manager-1
+  • dev-edition-wxo-server-connections-ui-1
+  • dev-edition-wxo-server-db-1
+  • dev-edition-wxo-server-minio-1
+  • dev-edition-wxo-server-redis-1
+  • dev-edition-wxo-milvus-standalone-1
+  • dev-edition-wxo-milvus-etcd-1
+  • dev-edition-opensearch-1
+  • clickhouse
+  • dev-edition-tools-runtime-manager-1
 
 ========================================
  Streaming logs in parallel — press Ctrl-C to stop
 
-[START] dev-edition-wxo-server-1  → ./server-logs/20250707_143022/dev-edition-wxo-server-1.log
-[START] dev-edition-ui-1          → ./server-logs/20250707_143022/dev-edition-ui-1.log
+[START] dev-edition-wxo-server-1 → ./server-logs/20250707_143022/dev-edition-wxo-server-1.log
+[START] dev-edition-ui-1         → ./server-logs/20250707_143022/dev-edition-ui-1.log
 ...
 
 All streams started. Log lines appear below prefixed with [container-name].
@@ -134,8 +162,10 @@ Stopping all log streams...
 
 ========================================
  Session summary
-  dev-edition-wxo-server-1:  312 lines → ./server-logs/20250707_143022/dev-edition-wxo-server-1.log
-  dev-edition-ui-1:           48 lines → ./server-logs/20250707_143022/dev-edition-ui-1.log
+  dev-edition-wxo-server-1:           312 lines → ./server-logs/20250707_143022/dev-edition-wxo-server-1.log
+  dev-edition-ui-1:                    48 lines → ./server-logs/20250707_143022/dev-edition-ui-1.log
+  dev-edition-langfuse-web-1:          21 lines → ./server-logs/20250707_143022/dev-edition-langfuse-web-1.log
+  dev-edition-ai-gateway-1:           104 lines → ./server-logs/20250707_143022/dev-edition-ai-gateway-1.log
   ...
 ========================================
 Session directory: ./server-logs/20250707_143022
@@ -178,10 +208,12 @@ Each run creates a timestamped session directory:
 watsonx-orchestrate-adk/
 └── server-logs/
     └── 20250707_143022/
-        ├── manifest.json        ← session metadata (containers, files, timestamp)
-        ├── wxo-backend.log
-        ├── wxo-ui.log
-        └── langfuse-web.log
+        ├── manifest.json                              ← session metadata
+        ├── dev-edition-wxo-server-1.log
+        ├── dev-edition-ui-1.log
+        ├── dev-edition-langfuse-web-1.log
+        ├── dev-edition-ai-gateway-1.log
+        └── ...  (one .log per container)
 ```
 
 > **Tip:** The session timestamp (`YYYYMMDD_HHMMSS`) is used by the analyser
@@ -282,9 +314,10 @@ session directory:
 server-logs/
 └── 20250707_143022/
     ├── manifest.json
-    ├── wxo-backend.log
-    ├── wxo-ui.log
-    ├── wxo-langfuse.log
+    ├── dev-edition-wxo-server-1.log
+    ├── dev-edition-ui-1.log
+    ├── dev-edition-langfuse-web-1.log
+    ├── ...  (one .log per container)
     └── ANALYSIS_REPORT.md   ← generated by wxo_server_log_analyze.sh
 ```
 
@@ -295,8 +328,9 @@ The report contains:
 - Per-container sections with errors, warnings, session/`thread_id` references,
   top tokens, and a log tail
 
-This file is the handover point for the next step: building a watsonx Orchestrate
-agent tool that reads `ANALYSIS_REPORT.md` and reasons over the results.
+This file is the handover point for **Step 4** (section 5.9): `wxo_bob_inspect.sh`
+extracts the summary section and pipes it to the IBM Bob CLI (`bob`) for a
+structured health verdict — directly from the terminal, no agent deployment needed.
 
 ---
 
@@ -340,12 +374,138 @@ bash wxo_server_log_analyze.sh
 
 ---
 
-## 5.9 All Scripts In This Guide
+## 5.9 Step 4 — Structured Analysis Via IBM Bob CLI
 
-| Script | Location | Purpose |
+After capturing logs and generating `ANALYSIS_REPORT.md`, ask IBM Bob to inspect
+and explain them. Bob reads the bash output and the report directly — no watsonx
+Orchestrate agent deployment required.
+
+### How it works
+
+```
+1. wxo_server_log_inspector.sh   captures logs → server-logs/<SESSION>/*.log
+2. wxo_server_log_analyze.sh     reads logs    → server-logs/<SESSION>/ANALYSIS_REPORT.md
+3. IBM Bob CLI reads the report and reasons over it
+```
+
+Bob handles step 3 through the `wxo-log-inspector` skill installed in `.bob/skills/`.
+The skill tells Bob exactly how to run the bash scripts, read the generated report,
+and present structured findings.
+
+### Install the skill (once)
+
+The skill is already in `.bob/skills/wxo-log-inspector/SKILL.md` in this repository.
+It activates automatically in the next IBM Bob conversation — no install step needed
+beyond having the file present.
+
+### Use it
+
+Open a new IBM Bob conversation and say any of:
+
+```
+inspect the watsonx Orchestrate server logs
+```
+```
+check wxo server log health
+```
+```
+analyse the most recent orchestrate log session
+```
+
+Bob will:
+
+1. Check prerequisites (venv, active environment, `jq`)
+2. List existing sessions or ask you to capture new ones
+3. Run `wxo_server_log_analyze.sh` via `execute_command`
+4. Read `ANALYSIS_REPORT.md` via `read_file`
+5. Present a structured health report:
+
+```
+## wxO Server Log Health — Session 20260729_160447
+
+Overall health: ERRORS
+
+Sessions Overview
+Container                                    Lines  Errors  Warnings  Session Refs
+dev-edition-wxo-server-1                     6075   1714    1697      5688
+dev-edition-wxo-server-worker-1             10429      5      15     10351
+dev-edition-wxo-milvus-standalone-1          1391     75      98        60
+...
+
+Top containers by errors
+1. dev-edition-wxo-server-1 — 1714 (mostly WARNING-level ValueError entries, not true errors)
+2. dev-edition-wxo-milvus-standalone-1 — 75
+3. dev-edition-mcp-gateway-1 — 17
+
+Root cause notes
+dev-edition-wxo-server-1: Secret-read warnings (PGBOUNCER_USER, INTERNAL_REQUEST_TOKEN)
+are expected Developer Edition startup noise. The 5 true ERROR lines are Redis TRM cache
+connection failures at boot — transient, self-resolving once Redis is ready.
+
+Recommendation: server is functionally healthy. No actionable errors found.
+```
+
+### Capture fresh logs first (optional)
+
+If you want Bob to inspect a brand-new run, start the inspector in a dedicated
+terminal before starting the Bob conversation:
+
+```sh
+cd watsonx-orchestrate-adk
+source .venv/bin/activate
+bash wxo_server_log_inspector.sh
+# run your tests or agent interactions, then press Ctrl-C
+```
+
+Then start the Bob conversation — it will find the new session automatically.
+
+### `wxo_bob_inspect.sh` — the primary automated command
+
+This is the **primary approach**: one command chains the full pipeline, invokes
+`bob` directly from the terminal, and exports the result as a markdown file:
+
+```sh
+cd watsonx-orchestrate-adk
+source .venv/bin/activate
+bash wxo_bob_inspect.sh
+```
+
+The script runs the analyser, extracts the summary (≈44 lines), and pipes it to:
+
+```sh
+cat SUMMARY_FOR_BOB.md \
+  | bob --chat-mode ask --approval-mode yolo -p "<question>" \
+  | tee -a BOB_ANALYSIS_REPORT.md
+```
+
+Bob's response is streamed to the terminal live and simultaneously written to
+`<session-dir>/BOB_ANALYSIS_REPORT.md`. The file is prefixed with a metadata
+header (session ID, Bob mode, context file, timestamp) so it stands alone as a
+readable report.
+
+Options:
+
+```
+--capture              Capture fresh logs first (background, stops automatically)
+--capture-seconds N    How long to capture (default: 30s)
+--question  -q         Custom question for Bob
+--mode      -m         Bob chat mode: ask (default), arch-review, etc.
+--export-file -o       Path for the exported Bob analysis markdown
+                       (default: <session-dir>/BOB_ANALYSIS_REPORT.md)
+--full-report          Send complete 1574-line report instead of 44-line summary
+```
+
+---
+
+## 5.10 All Artifacts In This Guide
+
+| Artifact | Location | Purpose |
 |---|---|---|
-| `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all containers |
-| `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview and Markdown report |
+| `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all 25 containers via `limactl` |
+| `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview + `ANALYSIS_REPORT.md` + `SUMMARY_FOR_BOB.md` |
+| `wxo_bob_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_inspect.sh) | **Primary**: chains analyse + pipes summary to `bob` CLI + exports `BOB_ANALYSIS_REPORT.md` |
+| `BOB_ANALYSIS_REPORT.md` | `<session-dir>/` (generated) | Exported Bob analysis — metadata header + Bob's full response |
+| `.bob/skills/wxo-log-inspector/SKILL.md` | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — `wxo_bob_inspect.sh` reference + options |
 
 ---
 
