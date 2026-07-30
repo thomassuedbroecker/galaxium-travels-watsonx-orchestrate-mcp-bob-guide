@@ -36,32 +36,43 @@ rm ~/.cache/orchestrate/merged.env
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Start local Orchestrate server using _watsonx.ai for the models._${NC}"
-orchestrate server start --env-file .env --with-connections-ui --accept-terms-and-conditions --with-langfuse
+echo -e "${YELLOW} NOTE: The 'no supported models from watsonx' warning is expected here.${NC}"
+echo -e "${YELLOW}       Custom models will be imported via 'orchestrate models import' later in this script.${NC}"
+START_LOG=$(mktemp)
+orchestrate server start --env-file .env --with-connections-ui --accept-terms-and-conditions --with-langfuse 2>&1 | tee "$START_LOG"
+START_EXIT=${PIPESTATUS[0]}
+if [[ $START_EXIT -ne 0 ]] || grep -qi "cancelled\|canceled" "$START_LOG"; then
+  rm -f "$START_LOG"
+  echo -e "  ${RED}Server start failed or was cancelled. Exiting.${NC}"
+  exit 1
+fi
+rm -f "$START_LOG"
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Waiting for Orchestrate server to be ready on port 4321...${NC}"
+j=1
+SERVER_READY=0
 until curl -s http://localhost:4321/api/v1/auth/token > /dev/null 2>&1; do
   sleep 5
   CURRENT=$((j++))
   echo -e "  ${YELLOW}... $CURRENT waiting${NC}"
   STOP=5
-  SERVER_READY=1
   if [[ $CURRENT -eq $STOP ]]; then
     echo -e "  ${RED}Server NOT ready!${NC}"
     echo -e "  ${RED}You need to start the bash automation again.${NC}"
-    SERVER_READY=0
     echo -e "  ${RED}Should I delete the VM machine?(Y/N)${NC}"
     read ANSWER
-    if [[ $ANSWER -eq "Y" ]]; then
+    if [[ $ANSWER == "Y" ]]; then
       orchestrate server purge
       echo -e "  ${RED}VM is deleted.${NC}"
     fi
-    if [[ $ANSWER -eq "N" ]]; then
+    if [[ $ANSWER == "N" ]]; then
       echo -e "  ${YELLOW}VM NOT deleted.${NC}"
     fi
     exit 0
   fi
 done
+SERVER_READY=1
 if [[ $SERVER_READY -eq 1 ]]; then
     echo -e "  ${GREEN}Server is ready.${NC}"
 fi
