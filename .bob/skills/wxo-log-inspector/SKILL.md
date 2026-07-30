@@ -27,9 +27,9 @@ Terminal
         │          limactl → docker logs --follow per container → *.log files
         │
         ├─ Step 2  wxo_server_log_analyze.sh
-        │          reads *.log files → ANALYSIS_REPORT.md + SUMMARY_FOR_BOB.md
+        │          reads *.log files → ANALYSIS_REPORT.md + SUMMARY_BY_BOB.md
         │
-        ├─ Step 3  cat SUMMARY_FOR_BOB.md | bob --chat-mode ask \
+        ├─ Step 3  cat SUMMARY_BY_BOB.md | bob --chat-mode ask \
         │              --approval-mode yolo \
         │              -p "<question>" | tee -a BOB_ANALYSIS_REPORT.md
         │

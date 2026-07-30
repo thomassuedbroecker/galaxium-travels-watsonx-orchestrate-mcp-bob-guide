@@ -473,7 +473,7 @@ bash wxo_bob_inspect.sh
 The script runs the analyser, extracts the summary (≈44 lines), and pipes it to:
 
 ```sh
-cat SUMMARY_FOR_BOB.md \
+cat SUMMARY_BY_BOB.md \
   | bob --chat-mode ask --approval-mode yolo -p "<question>" \
   | tee -a BOB_ANALYSIS_REPORT.md
 ```
@@ -502,7 +502,7 @@ Options:
 | Artifact | Location | Purpose |
 |---|---|---|
 | `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all 25 containers via `limactl` |
-| `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview + `ANALYSIS_REPORT.md` + `SUMMARY_FOR_BOB.md` |
+| `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview + `ANALYSIS_REPORT.md` + `SUMMARY_BY_BOB.md` |
 | `wxo_bob_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_inspect.sh) | **Primary**: chains analyse + pipes summary to `bob` CLI + exports `BOB_ANALYSIS_REPORT.md` |
 | `BOB_ANALYSIS_REPORT.md` | `<session-dir>/` (generated) | Exported Bob analysis — metadata header + Bob's full response |
 | `.bob/skills/wxo-log-inspector/SKILL.md` | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — `wxo_bob_inspect.sh` reference + options |

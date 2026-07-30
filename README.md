@@ -147,7 +147,7 @@ The current top-level structure is:
 ├── watsonx-orchestrate-adk
 │   ├── wxo_server_log_inspector.sh ← parallel log capture (limactl / Lima VM)
 │   ├── wxo_server_log_analyze.sh   ← sessions overview + ANALYSIS_REPORT.md
-│   ├── wxo_bob_inspect.sh          ← primary: analyse + pipe summary to bob CLI
+│   ├── wxo_bob_inspect.sh          ← primary: analyse + pipe to bob + export BOB_ANALYSIS_REPORT.md
 │   └── ...                         ← other helper scripts and .venv
 └── watsonx-orchestrate-mcp-server
     └── watsonx_orchestrate_custom_explorer
@@ -164,7 +164,7 @@ The current top-level structure is:
 - `images/` contains the YouTube preview image `youtube-01.jpg` and screenshots/GIFs of the running setup, including `watsonx_orchestrate_custom_explorer_01.gif`.
 - `infrastructure/` is the folder where you can place the external Galaxium Travels infrastructure repository.
 - `prompts/` contains the prepared Bob prompt. The current file is `prepared-initial-prompt-for-bob.md`.
-- `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`, including three log-inspection scripts (`wxo_server_log_inspector.sh`, `wxo_server_log_analyze.sh`, `wxo_bob_inspect.sh`) that capture container logs from the Lima VM, analyse them, and pipe a summary to the IBM Bob CLI for a structured verdict (see guide `5`).
+- `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`, including three log-inspection scripts (`wxo_server_log_inspector.sh`, `wxo_server_log_analyze.sh`, `wxo_bob_inspect.sh`) that capture container logs from the Lima VM, analyse them, pipe a summary to the IBM Bob CLI for a structured verdict, and export the result as `BOB_ANALYSIS_REPORT.md` in the session directory (see guide `5`).
 - `watsonx-orchestrate-mcp-server/` contains the local MCP server helper script and a short README.
 - `watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/` contains a Flask + D3.js single-page application generated with IBM Bob. It connects to the watsonx Orchestrate MCP server and displays agents, tools, toolkits, and connections as an interactive force-directed diagram. See the [explorer README](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) for setup and usage details.
 
@@ -173,7 +173,7 @@ The current top-level structure is:
 - The numbered Markdown files are the main guide.
 - The `architecture/` folder stores the editable Draw.io source for the infrastructure view.
 - The `infrastructure/` folder is used together with the separate Galaxium Travels infrastructure repository.
-- The `watsonx-orchestrate-adk/` folder helps you run local `watsonx Orchestrate Developer Edition` and contains the log-inspection pipeline (`wxo_server_log_inspector.sh` → `wxo_server_log_analyze.sh` → `wxo_bob_inspect.sh`) described in guide `5`.
+- The `watsonx-orchestrate-adk/` folder helps you run local `watsonx Orchestrate Developer Edition` and contains the log-inspection pipeline (`wxo_server_log_inspector.sh` → `wxo_server_log_analyze.sh` → `wxo_bob_inspect.sh`) described in guide `5`. The final step exports Bob's analysis as `BOB_ANALYSIS_REPORT.md` alongside the other session files.
 - The `.bob`, `.bobignore`, `.bobrules`, and `AGENTS.md` files configure how IBM Bob should work in this repository.
 - The `prompts/` folder contains prompt text you can use with Bob when building the Galaxium booking agent.
 - The `watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/` application was generated with IBM Bob using the watsonx Orchestrate MCP server. It provides a diagram-based dashboard to explore dependencies between agents and tools and navigate to them directly. See the [explorer README](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) for full setup instructions.

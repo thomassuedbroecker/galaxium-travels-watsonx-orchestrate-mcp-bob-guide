@@ -163,7 +163,7 @@ echo -e "\n${GREEN}Report written: ${REPORT_FILE}${NC}"
 # We extract only the header metadata + Sessions Overview table (≈40 lines)
 # which is all the LLM needs to answer health/overview questions.
 # Use --full-report to send the complete file instead.
-SUMMARY_FILE="${SESSION_DIR}/SUMMARY_FOR_BOB.md"
+SUMMARY_FILE="${SESSION_DIR}/SUMMARY_BY_BOB.md"
 
 python3 - "${REPORT_FILE}" "${SUMMARY_FILE}" <<'PYEOF'
 import sys, re
