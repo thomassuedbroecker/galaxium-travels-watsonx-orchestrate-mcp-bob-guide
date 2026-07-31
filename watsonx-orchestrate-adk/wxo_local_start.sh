@@ -39,7 +39,7 @@ echo -e "${YELLOW} Start local Orchestrate server using _watsonx.ai for the mode
 echo -e "${YELLOW} NOTE: The 'no supported models from watsonx' warning is expected here.${NC}"
 echo -e "${YELLOW}       Custom models will be imported via 'orchestrate models import' later in this script.${NC}"
 START_LOG=$(mktemp)
-orchestrate server start --env-file .env --with-connections-ui --accept-terms-and-conditions --with-langfuse 2>&1 | tee "$START_LOG"
+orchestrate server start --env-file .env --with-connections-ui --accept-terms-and-conditions --with-ibm-telemetry 2>&1 | tee "$START_LOG"
 START_EXIT=${PIPESTATUS[0]}
 if [[ $START_EXIT -ne 0 ]] || grep -qi "cancelled\|canceled" "$START_LOG"; then
   rm -f "$START_LOG"
