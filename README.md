@@ -229,6 +229,7 @@ Current open-source CLI prerequisites and tools referenced by the repository:
 | `jq` | not pinned | Used with `curl` during verification |
 | `npx` | not pinned | Needed only if you use MCP Inspector |
 | `uvx` | not pinned | Used by `.bob/mcp.json` to launch the local ADK-based MCP integration |
+| `bob` CLI | `npm install -g @ibm/bob-cli` | Required for guides `5` and `6` — headless `bob run` analysis |
 
 This repository also requires IBM service credentials that are not open-source
 library dependencies:
@@ -236,6 +237,7 @@ library dependencies:
 - `WO_ENTITLEMENT_KEY`
 - `WATSONX_APIKEY`
 - `WATSONX_SPACE_ID`
+- `BOB_API_KEY` — required for headless `bob run` (guides `5` and `6`); create at **bob.ibm.com → Account → API Keys** (scope: Inference); set in `watsonx-orchestrate-adk/.env`
 
 This repository does not currently include an automated local license-audit
 script, because it documents an integration workflow rather than shipping a

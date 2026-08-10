@@ -26,6 +26,7 @@ start the inspector.
 | Python virtual environment | Created in guide `3` — activate with `source .venv/bin/activate` |
 | `jq` | JSON processor used by the analyser — `brew install jq` (macOS) |
 | `bob` CLI | IBM Bob CLI used in step 4 — `npm install -g @ibm/bob-cli` |
+| `BOB_API_KEY` | Required for headless `bob run` — set in `.env` (see §5.2) |
 
 > **No system Docker required.**
 > The Developer Edition runs inside a Lima VM managed by the ADK. The inspector
@@ -41,7 +42,7 @@ start the inspector.
 
 ---
 
-## 5.2 Step 1 — Activate The Virtual Environment
+## 5.2 Step 1 — Activate The Virtual Environment And Set BOB_API_KEY
 
 Before running either script, activate the virtual environment so the
 `orchestrate` command is available:
@@ -49,6 +50,17 @@ Before running either script, activate the virtual environment so the
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
+```
+
+`bob run` (used in §5.9) requires `BOB_API_KEY` for headless use. Set it in
+`watsonx-orchestrate-adk/.env` before running `wxo_bob_log_inspect.sh`:
+
+```sh
+# copy the template if .env does not exist yet
+cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
+# edit .env and fill in BOB_API_KEY:
+#   export BOB_API_KEY=<YOUR_BOB_API_KEY>
+# Create the key at bob.ibm.com → Account → API Keys (scope: Inference).
 ```
 
 ---

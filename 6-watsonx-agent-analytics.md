@@ -54,11 +54,31 @@ Reference: [Monitoring your LLMs with Langfuse](https://developer.watson-orchest
 | `orchestrate env activate local` done | `wxo_local_start.sh` activates the local environment |
 | `agent_hello_world` imported | `wxo_local_start.sh` imports the agent |
 | IBM Bob CLI | `npm install -g @ibm/bob-cli` |
+| `BOB_API_KEY` | Required for headless `bob run` — set in `.env` (see §6.3) |
 | `jq` | `brew install jq` |
 
 ---
 
 ## 6.3 Verify The Setup
+
+### BOB_API_KEY
+
+`bob run` requires an API key for headless (non-interactive) use. Set it once in
+`watsonx-orchestrate-adk/.env`:
+
+```sh
+export BOB_API_KEY=<YOUR_BOB_API_KEY>
+```
+
+Create the key at **bob.ibm.com → Account → API Keys** (scope: **Inference**).
+The `.env_template` file already contains the placeholder — copy and fill it:
+
+```sh
+cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
+# then edit .env and set BOB_API_KEY
+```
+
+### Service checks
 
 Run these three checks before the analytics pipeline:
 

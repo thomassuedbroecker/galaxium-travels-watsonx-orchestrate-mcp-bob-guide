@@ -227,6 +227,7 @@ ${QUESTION}"
 
 bob run \
   --mode "${BOB_MODE}" \
+  --accept-license \
   "${FULL_PROMPT}" | tee -a "${EXPORT_FILE}"
 
 # ── Step 4b: Clean the exported file ─────────────────────────────────────────
