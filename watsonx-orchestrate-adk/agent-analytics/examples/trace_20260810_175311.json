@@ -1,0 +1,1520 @@
+{
+  "trace_id": "e585e71777219b7f91a0239a23005f9c",
+  "agent_name": "agent_hello_world",
+  "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+  "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+  "exported_at": "20260810_175311",
+  "final_message": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+  "trace": {
+    "id": "e585e71777219b7f91a0239a23005f9c",
+    "projectId": "orchestrate-lite",
+    "name": "LangGraph",
+    "timestamp": "2026-08-10T15:53:12.284Z",
+    "environment": "default",
+    "tags": [],
+    "bookmarked": false,
+    "release": null,
+    "version": null,
+    "userId": null,
+    "sessionId": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+    "public": false,
+    "input": {
+      "current_agent": "agent_hello_world",
+      "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+      "agent_display_name": "agent_hello_world",
+      "messages": [
+        {
+          "content": "Hello, are you working?",
+          "additional_kwargs": {},
+          "response_metadata": {},
+          "type": "human",
+          "name": null,
+          "id": null
+        }
+      ],
+      "reflection_retry_count": 0,
+      "reflection_retry_limit": 1,
+      "context": {
+        "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+        "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+        "wxo_email_id": "wxo.archer@ibm.com",
+        "wxo_user_name": "wxo.archer@ibm.com",
+        "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+      },
+      "last_reflection": null,
+      "step_count": 0,
+      "context_binary": {},
+      "plan": [],
+      "current_task": -1,
+      "task_results": {},
+      "is_planning": false,
+      "is_collaborator": false,
+      "guideline_prompt": "",
+      "citations": {},
+      "plugin_continue_processing_message": "",
+      "agent_depth": 1,
+      "pending_compaction_task_id": "",
+      "active_skill": null,
+      "skill_params": null,
+      "active_references": null,
+      "paused_pipeline": null,
+      "initial_preinvoke_result": {
+        "plugin_continue_processing": true,
+        "plugin_continue_processing_message": "",
+        "agent_id": ""
+      }
+    },
+    "output": {
+      "context": {
+        "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+        "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+        "wxo_email_id": "wxo.archer@ibm.com",
+        "wxo_user_name": "wxo.archer@ibm.com",
+        "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+      },
+      "messages": [
+        {
+          "content": "Hello, are you working?",
+          "additional_kwargs": {},
+          "response_metadata": {},
+          "type": "human",
+          "name": null,
+          "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+        },
+        {
+          "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+          "additional_kwargs": {},
+          "response_metadata": {
+            "model_provider": "openai",
+            "finish_reason": "stop",
+            "model_name": "meta-llama/llama-3-3-70b-instruct",
+            "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+            "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+          },
+          "type": "ai",
+          "name": "agent_hello_world",
+          "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+          "tool_calls": [],
+          "invalid_tool_calls": [],
+          "usage_metadata": {
+            "input_tokens": 63,
+            "output_tokens": 32,
+            "total_tokens": 95,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        }
+      ],
+      "current_agent": "agent_hello_world",
+      "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+      "reflection_retry_count": 0,
+      "reflection_retry_limit": 1,
+      "last_reflection": null,
+      "step_count": 0,
+      "is_react_response": false,
+      "async_flag": false,
+      "in_async_execution": 0,
+      "flowinstance_id": null,
+      "correlation_id": null,
+      "wxa_assistant_context": {},
+      "is_collaborator": false,
+      "context_binary": {},
+      "active_skill": null,
+      "skill_params": null,
+      "active_references": null,
+      "paused_pipeline": null,
+      "plan": [],
+      "current_task": -1,
+      "task_results": {},
+      "is_planning": false,
+      "guideline_prompt": "",
+      "pending_compaction_task_id": "",
+      "agent_display_name": "agent_hello_world",
+      "citations": {},
+      "initial_preinvoke_result": {
+        "plugin_continue_processing": true,
+        "plugin_continue_processing_message": "",
+        "agent_id": ""
+      },
+      "plugin_continue_processing_message": "",
+      "agent_depth": 1
+    },
+    "metadata": {
+      "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+      "communication_type": "text",
+      "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+      "ls_integration": "langgraph",
+      "resourceAttributes": {
+        "telemetry.sdk.language": "python",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.33.1",
+        "service.name": "unknown_service"
+      },
+      "scope": {
+        "name": "langfuse-sdk",
+        "version": "3.14.6",
+        "attributes": {
+          "public_key": "pk-lf-orchestrate"
+        }
+      }
+    },
+    "createdAt": "2026-08-10T15:53:16.042Z",
+    "updatedAt": "2026-08-10T15:53:16.054Z",
+    "externalId": null,
+    "scores": [],
+    "latency": 2.567,
+    "observations": [
+      {
+        "id": "62247952a8f05f41",
+        "traceId": "e585e71777219b7f91a0239a23005f9c",
+        "startTime": "2026-08-10T15:53:14.812Z",
+        "endTime": "2026-08-10T15:53:14.816Z",
+        "projectId": "orchestrate-lite",
+        "parentObservationId": "97f1fd1448748c3c",
+        "type": "CHAIN",
+        "environment": "default",
+        "name": "answer",
+        "level": "DEFAULT",
+        "statusMessage": null,
+        "version": null,
+        "createdAt": "2026-08-10T15:53:16.039Z",
+        "updatedAt": "2026-08-10T15:53:16.050Z",
+        "input": {
+          "context": {
+            "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+            "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+            "wxo_email_id": "wxo.archer@ibm.com",
+            "wxo_user_name": "wxo.archer@ibm.com",
+            "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+          },
+          "messages": [
+            {
+              "content": "Hello, are you working?",
+              "additional_kwargs": {},
+              "response_metadata": {},
+              "type": "human",
+              "name": null,
+              "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+            },
+            {
+              "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+              "additional_kwargs": {},
+              "response_metadata": {
+                "model_provider": "openai",
+                "finish_reason": "stop",
+                "model_name": "meta-llama/llama-3-3-70b-instruct",
+                "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+                "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+              },
+              "type": "ai",
+              "name": "agent_hello_world",
+              "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+              "tool_calls": [],
+              "invalid_tool_calls": [],
+              "usage_metadata": {
+                "input_tokens": 63,
+                "output_tokens": 32,
+                "total_tokens": 95,
+                "input_token_details": {},
+                "output_token_details": {}
+              }
+            }
+          ],
+          "current_agent": "agent_hello_world",
+          "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+          "reflection_enabled": true,
+          "reflection_retry_count": 0,
+          "reflection_retry_limit": 1,
+          "last_reflection": null,
+          "step_count": 0,
+          "is_react_response": false,
+          "is_wxa_response": false,
+          "async_flag": false,
+          "flow_result_anchor_id": null,
+          "in_async_execution": 0,
+          "flowinstance_id": null,
+          "target_run_id": null,
+          "correlation_id": null,
+          "assistants": [],
+          "wxa_assistant_context": {},
+          "collaborator_data": {},
+          "is_collaborator": false,
+          "context_binary": {},
+          "active_skill": null,
+          "skill_params": null,
+          "active_references": null,
+          "paused_pipeline": null,
+          "plan": [],
+          "current_task": -1,
+          "task_results": {},
+          "is_planning": false,
+          "guideline_prompt": "",
+          "pending_compaction_task_id": "",
+          "agent_display_name": "agent_hello_world",
+          "citations": {},
+          "initial_preinvoke_result": {
+            "plugin_continue_processing": true,
+            "plugin_continue_processing_message": "",
+            "agent_id": ""
+          },
+          "plugin_continue_processing_message": "",
+          "from_collab_node": false,
+          "cca_pending_collab_id": null,
+          "use_supervisor_interrupt_handoff": false,
+          "a2a_info": {},
+          "a2a_server_context": {},
+          "a2a_classified_state": null,
+          "agent_depth": 1,
+          "generated_code": null
+        },
+        "output": {
+          "messages": [
+            {
+              "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+              "additional_kwargs": {},
+              "response_metadata": {
+                "model_provider": "openai",
+                "finish_reason": "stop",
+                "model_name": "meta-llama/llama-3-3-70b-instruct",
+                "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+                "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+              },
+              "type": "ai",
+              "name": "agent_hello_world",
+              "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+              "tool_calls": [],
+              "invalid_tool_calls": [],
+              "usage_metadata": {
+                "input_tokens": 63,
+                "output_tokens": 32,
+                "total_tokens": 95,
+                "input_token_details": {},
+                "output_token_details": {}
+              }
+            }
+          ],
+          "plugin_continue_processing_message": "",
+          "is_react_response": false,
+          "is_collaborator": false,
+          "context_binary": {},
+          "async_flag": false,
+          "flowinstance_id": null,
+          "correlation_id": null,
+          "in_async_execution": 0
+        },
+        "metadata": {
+          "tags": [
+            "graph:step:2"
+          ],
+          "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "communication_type": "text",
+          "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "ls_integration": "langgraph",
+          "langgraph_step": 2,
+          "langgraph_node": "answer",
+          "langgraph_triggers": [
+            "branch:to:answer"
+          ],
+          "langgraph_path": [
+            "__pregel_pull",
+            "answer"
+          ],
+          "langgraph_checkpoint_ns": "answer:27a009d6-9bf9-be44-f5dd-2be17d9de660",
+          "resourceAttributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.33.1",
+            "service.name": "unknown_service"
+          },
+          "scope": {
+            "name": "langfuse-sdk",
+            "version": "3.14.6",
+            "attributes": {
+              "public_key": "pk-lf-orchestrate"
+            }
+          }
+        },
+        "model": null,
+        "modelParameters": {},
+        "completionStartTime": null,
+        "promptId": null,
+        "promptName": null,
+        "promptVersion": null,
+        "latency": 0.004,
+        "timeToFirstToken": null,
+        "usageDetails": {},
+        "costDetails": {},
+        "usagePricingTierId": null,
+        "usagePricingTierName": null,
+        "inputPrice": 0,
+        "outputPrice": 0,
+        "totalPrice": 0,
+        "calculatedInputCost": null,
+        "calculatedOutputCost": null,
+        "calculatedTotalCost": 0,
+        "unit": "TOKENS",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "modelId": null,
+        "usage": {
+          "unit": "TOKENS",
+          "input": 0,
+          "output": 0,
+          "total": 0
+        }
+      },
+      {
+        "id": "97f1fd1448748c3c",
+        "traceId": "e585e71777219b7f91a0239a23005f9c",
+        "startTime": "2026-08-10T15:53:12.284Z",
+        "endTime": "2026-08-10T15:53:14.851Z",
+        "projectId": "orchestrate-lite",
+        "parentObservationId": "2cabbb32f0e961be",
+        "type": "CHAIN",
+        "environment": "default",
+        "name": "LangGraph",
+        "level": "DEFAULT",
+        "statusMessage": null,
+        "version": null,
+        "createdAt": "2026-08-10T15:53:16.039Z",
+        "updatedAt": "2026-08-10T15:53:16.050Z",
+        "input": {
+          "current_agent": "agent_hello_world",
+          "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+          "agent_display_name": "agent_hello_world",
+          "messages": [
+            {
+              "content": "Hello, are you working?",
+              "additional_kwargs": {},
+              "response_metadata": {},
+              "type": "human",
+              "name": null,
+              "id": null
+            }
+          ],
+          "reflection_retry_count": 0,
+          "reflection_retry_limit": 1,
+          "context": {
+            "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+            "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+            "wxo_email_id": "wxo.archer@ibm.com",
+            "wxo_user_name": "wxo.archer@ibm.com",
+            "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+          },
+          "last_reflection": null,
+          "step_count": 0,
+          "context_binary": {},
+          "plan": [],
+          "current_task": -1,
+          "task_results": {},
+          "is_planning": false,
+          "is_collaborator": false,
+          "guideline_prompt": "",
+          "citations": {},
+          "plugin_continue_processing_message": "",
+          "agent_depth": 1,
+          "pending_compaction_task_id": "",
+          "active_skill": null,
+          "skill_params": null,
+          "active_references": null,
+          "paused_pipeline": null,
+          "initial_preinvoke_result": {
+            "plugin_continue_processing": true,
+            "plugin_continue_processing_message": "",
+            "agent_id": ""
+          }
+        },
+        "output": {
+          "context": {
+            "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+            "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+            "wxo_email_id": "wxo.archer@ibm.com",
+            "wxo_user_name": "wxo.archer@ibm.com",
+            "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+          },
+          "messages": [
+            {
+              "content": "Hello, are you working?",
+              "additional_kwargs": {},
+              "response_metadata": {},
+              "type": "human",
+              "name": null,
+              "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+            },
+            {
+              "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+              "additional_kwargs": {},
+              "response_metadata": {
+                "model_provider": "openai",
+                "finish_reason": "stop",
+                "model_name": "meta-llama/llama-3-3-70b-instruct",
+                "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+                "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+              },
+              "type": "ai",
+              "name": "agent_hello_world",
+              "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+              "tool_calls": [],
+              "invalid_tool_calls": [],
+              "usage_metadata": {
+                "input_tokens": 63,
+                "output_tokens": 32,
+                "total_tokens": 95,
+                "input_token_details": {},
+                "output_token_details": {}
+              }
+            }
+          ],
+          "current_agent": "agent_hello_world",
+          "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+          "reflection_retry_count": 0,
+          "reflection_retry_limit": 1,
+          "last_reflection": null,
+          "step_count": 0,
+          "is_react_response": false,
+          "async_flag": false,
+          "in_async_execution": 0,
+          "flowinstance_id": null,
+          "correlation_id": null,
+          "wxa_assistant_context": {},
+          "is_collaborator": false,
+          "context_binary": {},
+          "active_skill": null,
+          "skill_params": null,
+          "active_references": null,
+          "paused_pipeline": null,
+          "plan": [],
+          "current_task": -1,
+          "task_results": {},
+          "is_planning": false,
+          "guideline_prompt": "",
+          "pending_compaction_task_id": "",
+          "agent_display_name": "agent_hello_world",
+          "citations": {},
+          "initial_preinvoke_result": {
+            "plugin_continue_processing": true,
+            "plugin_continue_processing_message": "",
+            "agent_id": ""
+          },
+          "plugin_continue_processing_message": "",
+          "agent_depth": 1
+        },
+        "metadata": {
+          "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "communication_type": "text",
+          "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "ls_integration": "langgraph",
+          "is_langchain_root": true,
+          "resourceAttributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.33.1",
+            "service.name": "unknown_service"
+          },
+          "scope": {
+            "name": "langfuse-sdk",
+            "version": "3.14.6",
+            "attributes": {
+              "public_key": "pk-lf-orchestrate"
+            }
+          }
+        },
+        "model": null,
+        "modelParameters": {},
+        "completionStartTime": null,
+        "promptId": null,
+        "promptName": null,
+        "promptVersion": null,
+        "latency": 2.567,
+        "timeToFirstToken": null,
+        "usageDetails": {},
+        "costDetails": {},
+        "usagePricingTierId": null,
+        "usagePricingTierName": null,
+        "inputPrice": 0,
+        "outputPrice": 0,
+        "totalPrice": 0,
+        "calculatedInputCost": null,
+        "calculatedOutputCost": null,
+        "calculatedTotalCost": 0,
+        "unit": "TOKENS",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "modelId": null,
+        "usage": {
+          "unit": "TOKENS",
+          "input": 0,
+          "output": 0,
+          "total": 0
+        }
+      },
+      {
+        "id": "5e7cbac6be21c312",
+        "traceId": "e585e71777219b7f91a0239a23005f9c",
+        "startTime": "2026-08-10T15:53:12.296Z",
+        "endTime": "2026-08-10T15:53:14.809Z",
+        "projectId": "orchestrate-lite",
+        "parentObservationId": "97f1fd1448748c3c",
+        "type": "AGENT",
+        "environment": "default",
+        "name": "agent",
+        "level": "DEFAULT",
+        "statusMessage": null,
+        "version": null,
+        "createdAt": "2026-08-10T15:53:16.039Z",
+        "updatedAt": "2026-08-10T15:53:16.049Z",
+        "input": {
+          "context": {
+            "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+            "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+            "wxo_email_id": "wxo.archer@ibm.com",
+            "wxo_user_name": "wxo.archer@ibm.com",
+            "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+          },
+          "messages": [
+            {
+              "content": "Hello, are you working?",
+              "additional_kwargs": {},
+              "response_metadata": {},
+              "type": "human",
+              "name": null,
+              "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+            }
+          ],
+          "current_agent": "agent_hello_world",
+          "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+          "reflection_enabled": true,
+          "reflection_retry_count": 0,
+          "reflection_retry_limit": 1,
+          "last_reflection": null,
+          "step_count": 0,
+          "is_react_response": false,
+          "is_wxa_response": false,
+          "async_flag": false,
+          "flow_result_anchor_id": null,
+          "in_async_execution": 0,
+          "flowinstance_id": null,
+          "target_run_id": null,
+          "correlation_id": null,
+          "assistants": [],
+          "wxa_assistant_context": {},
+          "collaborator_data": {},
+          "is_collaborator": false,
+          "context_binary": {},
+          "active_skill": null,
+          "skill_params": null,
+          "active_references": null,
+          "paused_pipeline": null,
+          "plan": [],
+          "current_task": -1,
+          "task_results": {},
+          "is_planning": false,
+          "guideline_prompt": "",
+          "pending_compaction_task_id": "",
+          "agent_display_name": "agent_hello_world",
+          "citations": {},
+          "initial_preinvoke_result": {
+            "plugin_continue_processing": true,
+            "plugin_continue_processing_message": "",
+            "agent_id": ""
+          },
+          "plugin_continue_processing_message": "",
+          "from_collab_node": false,
+          "cca_pending_collab_id": null,
+          "use_supervisor_interrupt_handoff": false,
+          "a2a_info": {},
+          "a2a_server_context": {},
+          "a2a_classified_state": null,
+          "agent_depth": 1,
+          "generated_code": null
+        },
+        "output": {
+          "graph": null,
+          "update": {
+            "messages": [
+              {
+                "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+                "additional_kwargs": {},
+                "response_metadata": {
+                  "model_provider": "openai",
+                  "finish_reason": "stop",
+                  "model_name": "meta-llama/llama-3-3-70b-instruct",
+                  "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+                  "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+                },
+                "type": "AIMessageChunk",
+                "name": "agent_hello_world",
+                "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+                "tool_calls": [],
+                "invalid_tool_calls": [],
+                "usage_metadata": {
+                  "input_tokens": 63,
+                  "output_tokens": 32,
+                  "total_tokens": 95,
+                  "input_token_details": {},
+                  "output_token_details": {}
+                },
+                "tool_call_chunks": [],
+                "chunk_position": "last"
+              }
+            ],
+            "context": {
+              "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+              "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+              "wxo_email_id": "wxo.archer@ibm.com",
+              "wxo_user_name": "wxo.archer@ibm.com",
+              "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+            },
+            "pending_compaction_task_id": ""
+          },
+          "resume": null,
+          "goto": "answer"
+        },
+        "metadata": {
+          "tags": [
+            "graph:step:1"
+          ],
+          "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "communication_type": "text",
+          "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "ls_integration": "langgraph",
+          "langgraph_step": 1,
+          "langgraph_node": "agent",
+          "langgraph_triggers": [
+            "branch:to:agent"
+          ],
+          "langgraph_path": [
+            "__pregel_pull",
+            "agent"
+          ],
+          "langgraph_checkpoint_ns": "agent:f4a82473-375f-fe96-8efb-c0364439be9e",
+          "resourceAttributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.33.1",
+            "service.name": "unknown_service"
+          },
+          "scope": {
+            "name": "langfuse-sdk",
+            "version": "3.14.6",
+            "attributes": {
+              "public_key": "pk-lf-orchestrate"
+            }
+          }
+        },
+        "model": null,
+        "modelParameters": {},
+        "completionStartTime": null,
+        "promptId": null,
+        "promptName": null,
+        "promptVersion": null,
+        "latency": 2.513,
+        "timeToFirstToken": null,
+        "usageDetails": {},
+        "costDetails": {},
+        "usagePricingTierId": null,
+        "usagePricingTierName": null,
+        "inputPrice": 0,
+        "outputPrice": 0,
+        "totalPrice": 0,
+        "calculatedInputCost": null,
+        "calculatedOutputCost": null,
+        "calculatedTotalCost": 0,
+        "unit": "TOKENS",
+        "promptTokens": 0,
+        "completionTokens": 0,
+        "totalTokens": 0,
+        "modelId": null,
+        "usage": {
+          "unit": "TOKENS",
+          "input": 0,
+          "output": 0,
+          "total": 0
+        }
+      },
+      {
+        "id": "b9eac9d77f337173",
+        "traceId": "e585e71777219b7f91a0239a23005f9c",
+        "startTime": "2026-08-10T15:53:12.323Z",
+        "endTime": "2026-08-10T15:53:14.805Z",
+        "projectId": "orchestrate-lite",
+        "parentObservationId": "5e7cbac6be21c312",
+        "type": "GENERATION",
+        "environment": "default",
+        "name": "invoke_agent",
+        "level": "DEFAULT",
+        "statusMessage": null,
+        "version": null,
+        "createdAt": "2026-08-10T15:53:16.039Z",
+        "updatedAt": "2026-08-10T15:53:16.048Z",
+        "input": [
+          {
+            "role": "system",
+            "content": "You are a simple test assistant. When greeted, respond with a friendly hello and confirm you are working correctly.\n"
+          },
+          {
+            "role": "user",
+            "content": "Hello, are you working?"
+          }
+        ],
+        "output": {
+          "role": "assistant",
+          "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?"
+        },
+        "metadata": {
+          "tags": [
+            "seq:step:1"
+          ],
+          "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "communication_type": "text",
+          "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "ls_integration": "langchain_chat_model",
+          "langgraph_step": 1,
+          "langgraph_node": "agent",
+          "langgraph_triggers": [
+            "branch:to:agent"
+          ],
+          "langgraph_path": [
+            "__pregel_pull",
+            "agent"
+          ],
+          "langgraph_checkpoint_ns": "agent:f4a82473-375f-fe96-8efb-c0364439be9e",
+          "agent_name": "agent_hello_world",
+          "is_collaborator": false,
+          "post_plugin_flag": false,
+          "checkpoint_ns": "agent:f4a82473-375f-fe96-8efb-c0364439be9e",
+          "ls_provider": "openai",
+          "ls_model_name": "meta-llama/llama-3-3-70b-instruct",
+          "ls_model_type": "chat",
+          "configured_llm": "watsonx/meta-llama/llama-3-3-70b-instruct",
+          "resourceAttributes": {
+            "telemetry.sdk.language": "python",
+            "telemetry.sdk.name": "opentelemetry",
+            "telemetry.sdk.version": "1.33.1",
+            "service.name": "unknown_service"
+          },
+          "scope": {
+            "name": "langfuse-sdk",
+            "version": "3.14.6",
+            "attributes": {
+              "public_key": "pk-lf-orchestrate"
+            }
+          }
+        },
+        "model": "meta-llama/llama-3-3-70b-instruct",
+        "modelParameters": {},
+        "completionStartTime": "2026-08-10T15:53:14.331Z",
+        "promptId": null,
+        "promptName": null,
+        "promptVersion": null,
+        "latency": 2.482,
+        "timeToFirstToken": 2.008,
+        "usageDetails": {
+          "input": 63,
+          "output": 32,
+          "total": 95
+        },
+        "costDetails": {},
+        "usagePricingTierId": null,
+        "usagePricingTierName": null,
+        "inputPrice": 0,
+        "outputPrice": 0,
+        "totalPrice": 0,
+        "calculatedInputCost": null,
+        "calculatedOutputCost": null,
+        "calculatedTotalCost": 0,
+        "unit": "TOKENS",
+        "promptTokens": 63,
+        "completionTokens": 32,
+        "totalTokens": 95,
+        "modelId": null,
+        "usage": {
+          "unit": "TOKENS",
+          "input": 63,
+          "output": 32,
+          "total": 95
+        }
+      }
+    ],
+    "htmlPath": "/project/orchestrate-lite/traces/e585e71777219b7f91a0239a23005f9c",
+    "totalCost": 0
+  },
+  "observations": [
+    {
+      "id": "62247952a8f05f41",
+      "traceId": "e585e71777219b7f91a0239a23005f9c",
+      "startTime": "2026-08-10T15:53:14.812Z",
+      "endTime": "2026-08-10T15:53:14.816Z",
+      "projectId": "orchestrate-lite",
+      "parentObservationId": "97f1fd1448748c3c",
+      "type": "CHAIN",
+      "environment": "default",
+      "name": "answer",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-10T15:53:16.039Z",
+      "updatedAt": "2026-08-10T15:53:16.050Z",
+      "input": {
+        "context": {
+          "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "wxo_email_id": "wxo.archer@ibm.com",
+          "wxo_user_name": "wxo.archer@ibm.com",
+          "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+        },
+        "messages": [
+          {
+            "content": "Hello, are you working?",
+            "additional_kwargs": {},
+            "response_metadata": {},
+            "type": "human",
+            "name": null,
+            "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+          },
+          {
+            "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+            "additional_kwargs": {},
+            "response_metadata": {
+              "model_provider": "openai",
+              "finish_reason": "stop",
+              "model_name": "meta-llama/llama-3-3-70b-instruct",
+              "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+              "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+            },
+            "type": "ai",
+            "name": "agent_hello_world",
+            "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+            "tool_calls": [],
+            "invalid_tool_calls": [],
+            "usage_metadata": {
+              "input_tokens": 63,
+              "output_tokens": 32,
+              "total_tokens": 95,
+              "input_token_details": {},
+              "output_token_details": {}
+            }
+          }
+        ],
+        "current_agent": "agent_hello_world",
+        "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+        "reflection_enabled": true,
+        "reflection_retry_count": 0,
+        "reflection_retry_limit": 1,
+        "last_reflection": null,
+        "step_count": 0,
+        "is_react_response": false,
+        "is_wxa_response": false,
+        "async_flag": false,
+        "flow_result_anchor_id": null,
+        "in_async_execution": 0,
+        "flowinstance_id": null,
+        "target_run_id": null,
+        "correlation_id": null,
+        "assistants": [],
+        "wxa_assistant_context": {},
+        "collaborator_data": {},
+        "is_collaborator": false,
+        "context_binary": {},
+        "active_skill": null,
+        "skill_params": null,
+        "active_references": null,
+        "paused_pipeline": null,
+        "plan": [],
+        "current_task": -1,
+        "task_results": {},
+        "is_planning": false,
+        "guideline_prompt": "",
+        "pending_compaction_task_id": "",
+        "agent_display_name": "agent_hello_world",
+        "citations": {},
+        "initial_preinvoke_result": {
+          "plugin_continue_processing": true,
+          "plugin_continue_processing_message": "",
+          "agent_id": ""
+        },
+        "plugin_continue_processing_message": "",
+        "from_collab_node": false,
+        "cca_pending_collab_id": null,
+        "use_supervisor_interrupt_handoff": false,
+        "a2a_info": {},
+        "a2a_server_context": {},
+        "a2a_classified_state": null,
+        "agent_depth": 1,
+        "generated_code": null
+      },
+      "output": {
+        "messages": [
+          {
+            "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+            "additional_kwargs": {},
+            "response_metadata": {
+              "model_provider": "openai",
+              "finish_reason": "stop",
+              "model_name": "meta-llama/llama-3-3-70b-instruct",
+              "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+              "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+            },
+            "type": "ai",
+            "name": "agent_hello_world",
+            "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+            "tool_calls": [],
+            "invalid_tool_calls": [],
+            "usage_metadata": {
+              "input_tokens": 63,
+              "output_tokens": 32,
+              "total_tokens": 95,
+              "input_token_details": {},
+              "output_token_details": {}
+            }
+          }
+        ],
+        "plugin_continue_processing_message": "",
+        "is_react_response": false,
+        "is_collaborator": false,
+        "context_binary": {},
+        "async_flag": false,
+        "flowinstance_id": null,
+        "correlation_id": null,
+        "in_async_execution": 0
+      },
+      "metadata": {
+        "tags": [
+          "graph:step:2"
+        ],
+        "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+        "communication_type": "text",
+        "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+        "ls_integration": "langgraph",
+        "langgraph_step": 2,
+        "langgraph_node": "answer",
+        "langgraph_triggers": [
+          "branch:to:answer"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "answer"
+        ],
+        "langgraph_checkpoint_ns": "answer:27a009d6-9bf9-be44-f5dd-2be17d9de660",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.33.1",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.14.6",
+          "attributes": {
+            "public_key": "pk-lf-orchestrate"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 0.004,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "modelId": null,
+      "inputPrice": null,
+      "outputPrice": null,
+      "totalPrice": null,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "b9eac9d77f337173",
+      "traceId": "e585e71777219b7f91a0239a23005f9c",
+      "startTime": "2026-08-10T15:53:12.323Z",
+      "endTime": "2026-08-10T15:53:14.805Z",
+      "projectId": "orchestrate-lite",
+      "parentObservationId": "5e7cbac6be21c312",
+      "type": "GENERATION",
+      "environment": "default",
+      "name": "invoke_agent",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-10T15:53:16.039Z",
+      "updatedAt": "2026-08-10T15:53:16.048Z",
+      "input": [
+        {
+          "role": "system",
+          "content": "You are a simple test assistant. When greeted, respond with a friendly hello and confirm you are working correctly.\n"
+        },
+        {
+          "role": "user",
+          "content": "Hello, are you working?"
+        }
+      ],
+      "output": {
+        "role": "assistant",
+        "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?"
+      },
+      "metadata": {
+        "tags": [
+          "seq:step:1"
+        ],
+        "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+        "communication_type": "text",
+        "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 1,
+        "langgraph_node": "agent",
+        "langgraph_triggers": [
+          "branch:to:agent"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "agent"
+        ],
+        "langgraph_checkpoint_ns": "agent:f4a82473-375f-fe96-8efb-c0364439be9e",
+        "agent_name": "agent_hello_world",
+        "is_collaborator": false,
+        "post_plugin_flag": false,
+        "checkpoint_ns": "agent:f4a82473-375f-fe96-8efb-c0364439be9e",
+        "ls_provider": "openai",
+        "ls_model_name": "meta-llama/llama-3-3-70b-instruct",
+        "ls_model_type": "chat",
+        "configured_llm": "watsonx/meta-llama/llama-3-3-70b-instruct",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.33.1",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.14.6",
+          "attributes": {
+            "public_key": "pk-lf-orchestrate"
+          }
+        }
+      },
+      "model": "meta-llama/llama-3-3-70b-instruct",
+      "modelParameters": {},
+      "completionStartTime": "2026-08-10T15:53:14.331Z",
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 2.482,
+      "timeToFirstToken": 2.008,
+      "usageDetails": {
+        "input": 63,
+        "output": 32,
+        "total": 95
+      },
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "modelId": null,
+      "inputPrice": null,
+      "outputPrice": null,
+      "totalPrice": null,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 63,
+      "completionTokens": 32,
+      "totalTokens": 95,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 63,
+        "output": 32,
+        "total": 95
+      }
+    },
+    {
+      "id": "5e7cbac6be21c312",
+      "traceId": "e585e71777219b7f91a0239a23005f9c",
+      "startTime": "2026-08-10T15:53:12.296Z",
+      "endTime": "2026-08-10T15:53:14.809Z",
+      "projectId": "orchestrate-lite",
+      "parentObservationId": "97f1fd1448748c3c",
+      "type": "AGENT",
+      "environment": "default",
+      "name": "agent",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-10T15:53:16.039Z",
+      "updatedAt": "2026-08-10T15:53:16.049Z",
+      "input": {
+        "context": {
+          "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "wxo_email_id": "wxo.archer@ibm.com",
+          "wxo_user_name": "wxo.archer@ibm.com",
+          "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+        },
+        "messages": [
+          {
+            "content": "Hello, are you working?",
+            "additional_kwargs": {},
+            "response_metadata": {},
+            "type": "human",
+            "name": null,
+            "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+          }
+        ],
+        "current_agent": "agent_hello_world",
+        "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+        "reflection_enabled": true,
+        "reflection_retry_count": 0,
+        "reflection_retry_limit": 1,
+        "last_reflection": null,
+        "step_count": 0,
+        "is_react_response": false,
+        "is_wxa_response": false,
+        "async_flag": false,
+        "flow_result_anchor_id": null,
+        "in_async_execution": 0,
+        "flowinstance_id": null,
+        "target_run_id": null,
+        "correlation_id": null,
+        "assistants": [],
+        "wxa_assistant_context": {},
+        "collaborator_data": {},
+        "is_collaborator": false,
+        "context_binary": {},
+        "active_skill": null,
+        "skill_params": null,
+        "active_references": null,
+        "paused_pipeline": null,
+        "plan": [],
+        "current_task": -1,
+        "task_results": {},
+        "is_planning": false,
+        "guideline_prompt": "",
+        "pending_compaction_task_id": "",
+        "agent_display_name": "agent_hello_world",
+        "citations": {},
+        "initial_preinvoke_result": {
+          "plugin_continue_processing": true,
+          "plugin_continue_processing_message": "",
+          "agent_id": ""
+        },
+        "plugin_continue_processing_message": "",
+        "from_collab_node": false,
+        "cca_pending_collab_id": null,
+        "use_supervisor_interrupt_handoff": false,
+        "a2a_info": {},
+        "a2a_server_context": {},
+        "a2a_classified_state": null,
+        "agent_depth": 1,
+        "generated_code": null
+      },
+      "output": {
+        "graph": null,
+        "update": {
+          "messages": [
+            {
+              "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+              "additional_kwargs": {},
+              "response_metadata": {
+                "model_provider": "openai",
+                "finish_reason": "stop",
+                "model_name": "meta-llama/llama-3-3-70b-instruct",
+                "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+                "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+              },
+              "type": "AIMessageChunk",
+              "name": "agent_hello_world",
+              "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+              "tool_calls": [],
+              "invalid_tool_calls": [],
+              "usage_metadata": {
+                "input_tokens": 63,
+                "output_tokens": 32,
+                "total_tokens": 95,
+                "input_token_details": {},
+                "output_token_details": {}
+              },
+              "tool_call_chunks": [],
+              "chunk_position": "last"
+            }
+          ],
+          "context": {
+            "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+            "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+            "wxo_email_id": "wxo.archer@ibm.com",
+            "wxo_user_name": "wxo.archer@ibm.com",
+            "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+          },
+          "pending_compaction_task_id": ""
+        },
+        "resume": null,
+        "goto": "answer"
+      },
+      "metadata": {
+        "tags": [
+          "graph:step:1"
+        ],
+        "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+        "communication_type": "text",
+        "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+        "ls_integration": "langgraph",
+        "langgraph_step": 1,
+        "langgraph_node": "agent",
+        "langgraph_triggers": [
+          "branch:to:agent"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "agent"
+        ],
+        "langgraph_checkpoint_ns": "agent:f4a82473-375f-fe96-8efb-c0364439be9e",
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.33.1",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.14.6",
+          "attributes": {
+            "public_key": "pk-lf-orchestrate"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 2.513,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "modelId": null,
+      "inputPrice": null,
+      "outputPrice": null,
+      "totalPrice": null,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "97f1fd1448748c3c",
+      "traceId": "e585e71777219b7f91a0239a23005f9c",
+      "startTime": "2026-08-10T15:53:12.284Z",
+      "endTime": "2026-08-10T15:53:14.851Z",
+      "projectId": "orchestrate-lite",
+      "parentObservationId": "2cabbb32f0e961be",
+      "type": "CHAIN",
+      "environment": "default",
+      "name": "LangGraph",
+      "level": "DEFAULT",
+      "statusMessage": null,
+      "version": null,
+      "createdAt": "2026-08-10T15:53:16.039Z",
+      "updatedAt": "2026-08-10T15:53:16.050Z",
+      "input": {
+        "current_agent": "agent_hello_world",
+        "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+        "agent_display_name": "agent_hello_world",
+        "messages": [
+          {
+            "content": "Hello, are you working?",
+            "additional_kwargs": {},
+            "response_metadata": {},
+            "type": "human",
+            "name": null,
+            "id": null
+          }
+        ],
+        "reflection_retry_count": 0,
+        "reflection_retry_limit": 1,
+        "context": {
+          "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "wxo_email_id": "wxo.archer@ibm.com",
+          "wxo_user_name": "wxo.archer@ibm.com",
+          "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+        },
+        "last_reflection": null,
+        "step_count": 0,
+        "context_binary": {},
+        "plan": [],
+        "current_task": -1,
+        "task_results": {},
+        "is_planning": false,
+        "is_collaborator": false,
+        "guideline_prompt": "",
+        "citations": {},
+        "plugin_continue_processing_message": "",
+        "agent_depth": 1,
+        "pending_compaction_task_id": "",
+        "active_skill": null,
+        "skill_params": null,
+        "active_references": null,
+        "paused_pipeline": null,
+        "initial_preinvoke_result": {
+          "plugin_continue_processing": true,
+          "plugin_continue_processing_message": "",
+          "agent_id": ""
+        }
+      },
+      "output": {
+        "context": {
+          "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+          "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+          "wxo_email_id": "wxo.archer@ibm.com",
+          "wxo_user_name": "wxo.archer@ibm.com",
+          "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93"
+        },
+        "messages": [
+          {
+            "content": "Hello, are you working?",
+            "additional_kwargs": {},
+            "response_metadata": {},
+            "type": "human",
+            "name": null,
+            "id": "f4c51131-5a36-4e32-86c0-0635a2251a3f"
+          },
+          {
+            "content": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+            "additional_kwargs": {},
+            "response_metadata": {
+              "model_provider": "openai",
+              "finish_reason": "stop",
+              "model_name": "meta-llama/llama-3-3-70b-instruct",
+              "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct",
+              "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+            },
+            "type": "ai",
+            "name": "agent_hello_world",
+            "id": "lc_run--019fec60-c383-77d2-93db-f40e4f9f950d",
+            "tool_calls": [],
+            "invalid_tool_calls": [],
+            "usage_metadata": {
+              "input_tokens": 63,
+              "output_tokens": 32,
+              "total_tokens": 95,
+              "input_token_details": {},
+              "output_token_details": {}
+            }
+          }
+        ],
+        "current_agent": "agent_hello_world",
+        "current_agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+        "reflection_retry_count": 0,
+        "reflection_retry_limit": 1,
+        "last_reflection": null,
+        "step_count": 0,
+        "is_react_response": false,
+        "async_flag": false,
+        "in_async_execution": 0,
+        "flowinstance_id": null,
+        "correlation_id": null,
+        "wxa_assistant_context": {},
+        "is_collaborator": false,
+        "context_binary": {},
+        "active_skill": null,
+        "skill_params": null,
+        "active_references": null,
+        "paused_pipeline": null,
+        "plan": [],
+        "current_task": -1,
+        "task_results": {},
+        "is_planning": false,
+        "guideline_prompt": "",
+        "pending_compaction_task_id": "",
+        "agent_display_name": "agent_hello_world",
+        "citations": {},
+        "initial_preinvoke_result": {
+          "plugin_continue_processing": true,
+          "plugin_continue_processing_message": "",
+          "agent_id": ""
+        },
+        "plugin_continue_processing_message": "",
+        "agent_depth": 1
+      },
+      "metadata": {
+        "run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+        "communication_type": "text",
+        "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+        "ls_integration": "langgraph",
+        "is_langchain_root": true,
+        "resourceAttributes": {
+          "telemetry.sdk.language": "python",
+          "telemetry.sdk.name": "opentelemetry",
+          "telemetry.sdk.version": "1.33.1",
+          "service.name": "unknown_service"
+        },
+        "scope": {
+          "name": "langfuse-sdk",
+          "version": "3.14.6",
+          "attributes": {
+            "public_key": "pk-lf-orchestrate"
+          }
+        }
+      },
+      "model": null,
+      "modelParameters": {},
+      "completionStartTime": null,
+      "promptId": null,
+      "promptName": null,
+      "promptVersion": null,
+      "latency": 2.567,
+      "timeToFirstToken": null,
+      "usageDetails": {},
+      "costDetails": {},
+      "usagePricingTierId": null,
+      "usagePricingTierName": null,
+      "modelId": null,
+      "inputPrice": null,
+      "outputPrice": null,
+      "totalPrice": null,
+      "calculatedInputCost": null,
+      "calculatedOutputCost": null,
+      "calculatedTotalCost": 0,
+      "unit": "TOKENS",
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "totalTokens": 0,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      }
+    }
+  ],
+  "totalCount": 4
+}

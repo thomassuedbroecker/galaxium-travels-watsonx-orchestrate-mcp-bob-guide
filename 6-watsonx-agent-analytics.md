@@ -165,14 +165,14 @@ Langfuse    : reachable (HTTP 200)
 ════════════════════════════════════════
   Step 1 — Resolving agent 'agent_hello_world'
 ════════════════════════════════════════
-Agent ID: 3bae183b-8f03-43b6-818e-fc2bddf4f2ba
+Agent ID: bf2945ff-bc00-4956-8222-70186097a025
 
 ════════════════════════════════════════
   Step 2 — Sending test message
 ════════════════════════════════════════
 Message: Hello, are you working?
-Run ID   : 538f2102-65aa-4ef5-b67b-6d3548d43895
-Thread ID: 594019c5-d704-4dbc-85e6-f70993e43f91
+Run ID   : 35f3ede4-d455-45ae-8804-eb6df89e95ed
+Thread ID: 1e93c306-8aa9-41e1-9fb8-2f36223d9f1a
 ```
 
 #### Step 3 — Run is polled until completion
@@ -183,7 +183,7 @@ Thread ID: 594019c5-d704-4dbc-85e6-f70993e43f91
 ════════════════════════════════════════
   ... 3s — status: running
 Run status: completed
-Trace ID : a86f7ef0f35d7169dddab662259778ff
+Trace ID : e585e71777219b7f91a0239a23005f9c
 Response : Hello! Yes, I'm working correctly. I'm ready to assist you with
            any questions or tasks you may have. How can I help you today?
 ```
@@ -195,8 +195,8 @@ Response : Hello! Yes, I'm working correctly. I'm ready to assist you with
   Step 4 — Exporting trace from Langfuse (http://localhost:3010)
 ════════════════════════════════════════
 Waiting 5s for Langfuse ingestion...
-Exported: 4 observations → ./agent-analytics/trace_20260731_170044.json
-Trace file: ./agent-analytics/trace_20260731_170044.json
+Exported: 4 observations → ./agent-analytics/trace_20260810_175311.json
+Trace file: ./agent-analytics/trace_20260810_175311.json
 Context: 212 lines (4 observations)
 ```
 
@@ -204,21 +204,21 @@ The context document now opens with a **Production-Hardening Signals** table com
 directly from the trace JSON before anything is sent to Bob:
 
 ```
-| Signal        | Value         | Note                                                         |
+| Signal       | Value   | Note                                                                    |
 |---|---|---|
-| service.name  | NOT SET       | ⚠ Recommend setting to meaningful value (e.g. wxo-agent-runtime) |
-| ls_provider   | openai        | ⚠ watsonx-via-OpenAI-adapter label — account for this in dashboard/alert filters |
-| LLM latency   | 2400 ms       | ✓                                                            |
-| Total trace   | 3800 ms       | ✓                                                            |
+| service.name | NOT SET | ⚠ Recommend setting to meaningful value (e.g. wxo-agent-runtime)       |
+| ls_provider  | openai  | ⚠ watsonx-via-OpenAI-adapter label — account for this in dashboard/alert filters |
+| LLM latency  | 2482 ms | ✓                                                                       |
+| Total trace  | 2567 ms | ✓                                                                       |
 ```
 
 The four observations represent the LangGraph execution tree:
 
 ```
-LangGraph (CHAIN, 1 644 ms)                    ← root span
-└── agent (AGENT, 1 577 ms)                    ← LangGraph agent node
-    └── invoke_agent (GENERATION, 1 558 ms)    ← LLM call
-└── answer (CHAIN, 5 ms)                       ← final routing node
+LangGraph (CHAIN, 2 567 ms)                    ← root span
+└── agent (AGENT, 2 513 ms)                    ← LangGraph agent node
+    └── invoke_agent (GENERATION, 2 482 ms)    ← LLM call
+└── answer (CHAIN, 4 ms)                       ← final routing node
 ```
 
 #### Step 5 — Bob analyses the trace
@@ -228,18 +228,18 @@ LangGraph (CHAIN, 1 644 ms)                    ← root span
   Step 5 — IBM Bob CLI analysis (mode: ask)
 ════════════════════════════════════════
 Building prompt → bob run --mode "ask" "<context+question>"
-Output → terminal + ./agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md
+Output → terminal + ./agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260810_175311.md
 
 [Bob analysis streams here...]
 
 ════════════════════════════════════════
 Agent    : agent_hello_world
-Trace ID : a86f7ef0f35d7169dddab662259778ff
-Trace    : ./agent-analytics/trace_20260731_170044.json
+Trace ID : e585e71777219b7f91a0239a23005f9c
+Trace    : ./agent-analytics/trace_20260810_175311.json
 Langfuse : http://localhost:3010
 Bob mode : ask
-Bob time : 18 s
-Report   : ./agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md
+Bob time : 30 s
+Report   : ./agent-analytics/examples/BOB_AGENT_ANALYTICS_REPORT_20260810_175311.md
 ```
 
 ### The report
@@ -252,14 +252,14 @@ Every report begins with a metadata header written before Bob's analysis:
 | Field | Value |
 |---|---|
 | Agent | agent_hello_world |
-| Trace ID | a86f7ef0f35d7169dddab662259778ff |
-| Run ID | 538f2102-65aa-4ef5-b67b-6d3548d43895 |
-| Thread ID | 594019c5-d704-4dbc-85e6-f70993e43f91 |
+| Trace ID | e585e71777219b7f91a0239a23005f9c |
+| Run ID | 35f3ede4-d455-45ae-8804-eb6df89e95ed |
+| Thread ID | 1e93c306-8aa9-41e1-9fb8-2f36223d9f1a |
 | Bob mode | ask |
-| Generated | 2026-07-31 17:00:44 |
-| Trace file | ./agent-analytics/trace_20260731_170044.json |
+| Generated | 2026-08-10 17:53:20 |
+| Trace file | ./agent-analytics/trace_20260810_175311.json |
 | Langfuse | http://localhost:3010 |
-| Langfuse UI | http://localhost:3010/project/orchestrate-lite/traces/a86f7ef0f35d7169dddab662259778ff |
+| Langfuse UI | http://localhost:3010/project/orchestrate-lite/traces/e585e71777219b7f91a0239a23005f9c |
 ```
 
 The **Langfuse UI** link opens the trace directly in the browser so you can
@@ -284,36 +284,56 @@ in the context document. Verified output from a real run:
 ```markdown
 ### 5. Production-Hardening Checks
 
-#### a. service.name — ⚠️ NOT SET
+#### a. service.name — NOT SET ⚠️
 
-The resourceAttributes block shows telemetry.sdk.* entries but service.name is absent.
-This means all traces from this deployment appear as an unnamed service in Langfuse /
-OpenTelemetry backends, making it impossible to filter or alert by service in a
-multi-agent environment.
+The resourceAttributes block does not contain a service.name value. This means traces
+will appear under a generic or empty service identifier in Langfuse / OpenTelemetry
+dashboards, making it impossible to filter by service in multi-agent or
+multi-environment deployments.
 
-Recommendation: Set service.name at the OpenTelemetry SDK init level, e.g.:
+Recommendation: Set service.name at the OpenTelemetry SDK initialisation point, e.g.:
 
   from opentelemetry.sdk.resources import Resource, SERVICE_NAME
   resource = Resource.create({SERVICE_NAME: "wxo-agent-runtime"})
 
-#### b. ls_provider = "openai" — ⚠️ Adapter Label Mismatch
+This applies to all agents in the runtime — set it once in the tracer provider setup.
 
-The response_metadata shows:
+#### b. ls_provider = "openai" — watsonx-via-OpenAI-adapter label ⚠️
+
+The response_metadata confirms:
 
   "model_provider": "openai",
-  "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+  "actual_model":   "watsonx/meta-llama/llama-3-3-70b-instruct",
+  "configured_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
 
-The LangSmith/Langfuse ls_provider tag resolves to openai because the watsonx endpoint
-is accessed via the OpenAI-compatible adapter. Any dashboard widgets or alerts filtering
-on ls_provider = "watsonx" will silently miss these traces.
+The LangSmith/Langfuse integration labels the provider as openai because watsonx exposes
+an OpenAI-compatible endpoint. Dashboards, cost attribution, and alert rules that filter
+on ls_provider == "openai" will conflate this with actual OpenAI traffic.
 
-Recommendation: Add a custom tag (e.g. actual_provider: watsonx) at trace creation time
-so dashboards can correctly segment cost, latency, and error-rate metrics by the true
-provider.
+Recommendation:
+- Add a custom tag or metadata field (e.g. "actual_provider": "watsonx") at trace
+  creation time.
+- Adjust dashboard filters to use actual_model (which contains the watsonx/ prefix)
+  rather than model_provider for vendor-specific views.
+
+#### c. Latency Baseline ✅
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| LLM latency (invoke_agent) | 2,482 ms | 10,000 ms | ✅ Well within bounds |
+| Total trace duration | 2,567 ms | 15,000 ms (no tool calls) | ✅ Well within bounds |
+| Overhead (non-LLM) | 85 ms | — | ✅ Negligible |
 ```
 
-A real example report from a verified run is in the project:
-[`agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md`](./watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md)
+The verified example files for this run are in the project under
+[`agent-analytics/examples/`](./watsonx-orchestrate-adk/agent-analytics/examples/):
+
+| File | Description |
+|---|---|
+| [`BOB_AGENT_ANALYTICS_REPORT_20260810_175311.md`](./watsonx-orchestrate-adk/agent-analytics/examples/BOB_AGENT_ANALYTICS_REPORT_20260810_175311.md) | Clean GFM report — metadata header + Bob's full analysis + IBM Bob CLI Usage |
+| [`analytics_context_20260810_175311.md`](./watsonx-orchestrate-adk/agent-analytics/examples/analytics_context_20260810_175311.md) | Context document sent to Bob — Production-Hardening Signals + trace table + JSON |
+| [`trace_20260810_175311.json`](./watsonx-orchestrate-adk/agent-analytics/examples/trace_20260810_175311.json) | Full Langfuse trace export (observations + metadata) |
+| [`run_status_20260810_175311.json`](./watsonx-orchestrate-adk/agent-analytics/examples/run_status_20260810_175311.json) | Raw run status from `/v1/orchestrate/runs/{id}` |
 
 ### Generated files
 

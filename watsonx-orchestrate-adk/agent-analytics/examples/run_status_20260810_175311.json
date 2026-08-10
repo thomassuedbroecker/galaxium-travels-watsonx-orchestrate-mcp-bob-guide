@@ -1,0 +1,71 @@
+{
+    "id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+    "tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93",
+    "assistant_id": null,
+    "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+    "status": "completed",
+    "started_at": "2026-08-10T15:53:12.268896Z",
+    "completed_at": "2026-08-10T15:53:14.840653Z",
+    "failed_at": null,
+    "cancelled_at": null,
+    "llm_params": null,
+    "usage": null,
+    "last_error": null,
+    "result": {
+        "data": {
+            "message": {
+                "id": "4342693c-17bc-4ac0-a66d-76fb23bd67c3",
+                "role": "assistant",
+                "_meta": null,
+                "log_id": null,
+                "content": [
+                    {
+                        "id": "1",
+                        "text": "Hello! Yes, I'm working correctly. I'm ready to assist you with any questions or tasks you may have. How can I help you today?",
+                        "response_type": "text"
+                    }
+                ],
+                "context": {
+                    "wxo_run_id": "35f3ede4-d455-45ae-8804-eb6df89e95ed",
+                    "wxo_email_id": "wxo.archer@ibm.com",
+                    "wxo_tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93",
+                    "wxo_thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+                    "wxo_user_name": "wxo.archer@ibm.com"
+                },
+                "mentions": null,
+                "trace_id": "e585e71777219b7f91a0239a23005f9c",
+                "assistant": {
+                    "is_default": true
+                },
+                "tenant_id": "4a5bd03e-b0c6-46fc-8f82-a6f314096e93",
+                "thread_id": "1e93c306-8aa9-41e1-9fb8-2f36223d9f1a",
+                "created_by": "f242eadf-0dc9-4eae-b2d7-65b09b4b4b16",
+                "created_on": "2026-08-10T15:53:14.830144Z",
+                "session_id": "3c5f6089-92a4-4359-b86c-c83b0a942dfa",
+                "updated_at": "2026-08-10T15:53:14.830144Z",
+                "document_ids": null,
+                "step_history": [],
+                "user_defined": null,
+                "message_state": null,
+                "parent_message_id": "d0f1a171-b476-4f16-b49a-b46458ec81b1",
+                "created_by_username": "wxo.archer@ibm.com",
+                "additional_properties": {
+                    "is_interrupt": false,
+                    "display_properties": {
+                        "is_async": false,
+                        "skip_render": false
+                    }
+                }
+            },
+            "message_id": "4342693c-17bc-4ac0-a66d-76fb23bd67c3",
+            "target_run_id": null,
+            "correlation_id": null,
+            "flowinstance_id": null
+        },
+        "type": "message_created"
+    },
+    "guardrails": null,
+    "agent_id": "bf2945ff-bc00-4956-8222-70186097a025",
+    "additional_parameters": null,
+    "trace_id": "e585e71777219b7f91a0239a23005f9c"
+}
