@@ -123,7 +123,8 @@ The current top-level structure is:
 │   ├── mcp.json
 │   └── skills/
 │       ├── watsonx-orchestrate/    ← ADK skill
-│       └── wxo-log-inspector/      ← log-inspection skill (SKILL.md)
+│       ├── wxo-log-inspector/      ← log-inspection skill (guide 5)
+│       └── wxo-agent-analytics/    ← agent analytics skill (guide 6)
 ├── .bobignore
 ├── .bobrules
 ├── 1-galaxium_setup.md
@@ -153,7 +154,7 @@ The current top-level structure is:
 
 ## Important Folders And Files
 
-- `.bob/` contains the Bob MCP server configuration (`mcp.json`), custom mode (`custom_modes.yaml`), and two skills: `watsonx-orchestrate` (ADK reference) and `wxo-log-inspector` (log-inspection pipeline documented in guide `5`).
+- `.bob/` contains the Bob MCP server configuration (`mcp.json`), custom mode (`custom_modes.yaml`), and three skills: `watsonx-orchestrate` (ADK reference), `wxo-log-inspector` (log-inspection pipeline, guide `5`), and `wxo-agent-analytics` (Langfuse trace analysis for single runs and session windows, guide `6`).
 - `.bobrules/` contains Bob project rules.
 - `.bobignore` exists in the repository and is currently empty.
 - `AGENTS.md` contains repository-level team standards for agent work.

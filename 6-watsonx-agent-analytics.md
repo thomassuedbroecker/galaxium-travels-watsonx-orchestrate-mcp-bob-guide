@@ -300,23 +300,42 @@ Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/
 
 ### Usage examples
 
-```sh
-# Run with a different agent and message:
-bash wxo_bob_agent_analytics.sh -n my_agent -m "What can you do?"
+Each example states its **objective** — what you are trying to find out — so you
+can pick the right combination of flags for your situation.
 
-# Export trace only — no Bob analysis:
+```sh
+# Objective: verify the default agent responds correctly right now.
+# Sends the default greeting message and asks Bob to confirm the
+# agent completed successfully and the LLM answered as expected.
+bash wxo_bob_agent_analytics.sh
+
+# Objective: test a specific agent with a targeted question and inspect
+# whether it understands its own capabilities before a demo.
+bash wxo_bob_agent_analytics.sh \
+  -n my_agent \
+  -m "What can you do?" \
+  -q "Did the agent correctly describe its capabilities? Were all tool descriptions returned?"
+
+# Objective: capture the raw execution trace for offline review or to
+# attach to a bug report, without triggering a Bob analysis run.
 bash wxo_bob_agent_analytics.sh --trace-only
 
-# Deeper analysis with architecture review mode:
-bash wxo_bob_agent_analytics.sh --bob-mode arch-review
+# Objective: diagnose why a known-slow agent times out under default
+# settings — extend the poll window and reduce log noise.
+bash wxo_bob_agent_analytics.sh \
+  --poll-timeout 300 \
+  --poll-interval 10 \
+  -q "Which span accounted for the most latency, and is that expected?"
 
-# Inspect a slow agent — extend timeout and reduce poll noise:
-bash wxo_bob_agent_analytics.sh --poll-timeout 300 --poll-interval 10
+# Objective: inspect every step of a multi-tool agent in full detail —
+# increase observation and context limits so no span is truncated.
+bash wxo_bob_agent_analytics.sh \
+  --obs-limit 200 \
+  --ctx-lines 400 \
+  -q "List every tool call made, its input, output, and whether it succeeded."
 
-# Fetch more observations (complex multi-tool agents):
-bash wxo_bob_agent_analytics.sh --obs-limit 200 --ctx-lines 400
-
-# Save report to a specific path:
+# Objective: save the Bob report to a dated archive path for a
+# nightly CI job or scheduled health check.
 bash wxo_bob_agent_analytics.sh \
   --export-file ./temp/analytics_$(date +%Y%m%d).md
 ```
@@ -488,31 +507,44 @@ Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/
 
 ### Usage examples
 
-```sh
-# Inspect agent_hello_world on a specific day:
-bash wxo_bob_session_analytics.sh \
-  --from 2026-08-10 --to 2026-08-11
+Each example states its **objective** — what you are trying to find out — so you
+can pick the right combination of flags for your situation.
 
-# Inspect a different agent over a two-hour window:
+```sh
+# Objective: review all runs of the default agent across a full working day
+# to confirm it behaved consistently and completed without errors.
+bash wxo_bob_session_analytics.sh \
+  --from 2026-08-10 \
+  --to   2026-08-10
+
+# Objective: investigate whether a specific agent produced inconsistent
+# answers during a two-hour window after a prompt change was deployed.
 bash wxo_bob_session_analytics.sh \
   -n my_agent \
   --from 2026-08-10T08:00:00Z \
-  --to   2026-08-10T10:00:00Z
+  --to   2026-08-10T10:00:00Z \
+  -q "Did the agent give consistent answers across all runs? If not, which runs differed and why?"
 
-# Export traces only — no Bob analysis:
-bash wxo_bob_session_analytics.sh --from 2026-08-10 --trace-only
-
-# Deeper cross-run architecture review:
+# Objective: collect the raw session traces for a date range to attach
+# to a support ticket or share with another team, without a Bob analysis.
 bash wxo_bob_session_analytics.sh \
   --from 2026-08-10 \
-  --bob-mode arch-review
+  --trace-only
 
-# Large agent with many observations — increase limits:
+# Objective: identify latency outliers across runs on a given day —
+# find which runs were slowest and which span caused the delay.
+bash wxo_bob_session_analytics.sh \
+  --from 2026-08-10 \
+  -q "Which runs had the highest total latency? Which observation span was the bottleneck in each case?"
+
+# Objective: perform a full inspection of a complex multi-tool agent
+# with many observations per run — raise all limits to avoid truncation.
 bash wxo_bob_session_analytics.sh \
   --from 2026-08-10 \
   --obs-limit 200 \
   --ctx-lines 200 \
-  --trace-limit 200
+  --trace-limit 200 \
+  -q "List every tool call across all runs, its success status, and any errors in the output field."
 ```
 
 ---
