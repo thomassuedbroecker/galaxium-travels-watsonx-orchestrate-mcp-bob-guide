@@ -26,6 +26,10 @@
 #   --langfuse-url    Langfuse API base URL. Default: http://localhost:3010
 #   --langfuse-pk     Langfuse public key.  Default: pk-lf-orchestrate
 #   --langfuse-sk     Langfuse secret key.  Default: sk-lf-orchestrate
+#   --poll-timeout N  Seconds before giving up on a running run. Default: 120
+#   --poll-interval N Seconds between status polls. Default: 3
+#   --obs-limit N     Max observations fetched from Langfuse. Default: 50
+#   --ctx-lines N     Max JSON lines included in the Bob context. Default: 150
 #   --trace-only      Export trace only; skip the Bob analysis.
 #   --help            Show this message and exit.
 #
@@ -68,6 +72,9 @@ LANGFUSE_URL="http://localhost:3010"
 LANGFUSE_PK="pk-lf-orchestrate"
 LANGFUSE_SK="sk-lf-orchestrate"
 POLL_TIMEOUT=120
+POLL_INTERVAL=3
+OBS_LIMIT=50
+CTX_LINES=150
 QUESTION="You are analysing a watsonx Orchestrate Agent Analytics (Langfuse observability) JSON export.
 Provide a concise structured report with:
 1. Run summary — agent name, trace ID, overall status, total duration.
@@ -89,6 +96,10 @@ while [ $# -gt 0 ]; do
     --langfuse-url)     LANGFUSE_URL="$2";  shift 2 ;;
     --langfuse-pk)      LANGFUSE_PK="$2";   shift 2 ;;
     --langfuse-sk)      LANGFUSE_SK="$2";   shift 2 ;;
+    --poll-timeout)     POLL_TIMEOUT="$2";  shift 2 ;;
+    --poll-interval)    POLL_INTERVAL="$2"; shift 2 ;;
+    --obs-limit)        OBS_LIMIT="$2";     shift 2 ;;
+    --ctx-lines)        CTX_LINES="$2";     shift 2 ;;
     --trace-only)       TRACE_ONLY=true;    shift ;;
     --help)
       sed -n -e '/^#!/d' -e '/^#/!q' -e 's/^# \{0,2\}//p' "$0"
@@ -241,7 +252,7 @@ echo -e "${GREEN}Run ID   : ${RUN_ID}${NC}"
 echo -e "${GREEN}Thread ID: ${THREAD_ID}${NC}"
 
 # ── Step 3: Poll for completion and capture trace_id ──────────────────────────
-print_header "Step 3 — Polling run for completion (timeout: ${POLL_TIMEOUT}s)"
+print_header "Step 3 — Polling run for completion (timeout: ${POLL_TIMEOUT}s, interval: ${POLL_INTERVAL}s)"
 
 ELAPSED=0
 RUN_STATUS_FILE="${OUTPUT_DIR}/run_status_${RUN_TS}.json"
@@ -254,12 +265,12 @@ while true; do
   STATUS=$(python3 -c "import sys,json; d=json.load(open(sys.argv[1])); print(d.get('status','').lower())" "${RUN_STATUS_FILE}")
   case "${STATUS}" in completed|failed|cancelled) break ;; esac
 
-  ELAPSED=$(( ELAPSED + 3 ))
+  ELAPSED=$(( ELAPSED + POLL_INTERVAL ))
   if [ "${ELAPSED}" -ge "${POLL_TIMEOUT}" ]; then
     echo -e "${RED}ERROR: Timed out after ${POLL_TIMEOUT}s (status: ${STATUS})${NC}" >&2; exit 1
   fi
   echo -e "  ${YELLOW}... ${ELAPSED}s — status: ${STATUS}${NC}"
-  sleep 3
+  sleep "${POLL_INTERVAL}"
 done
 
 echo -e "${GREEN}Run status: ${STATUS}${NC}"
@@ -292,11 +303,12 @@ sleep 5
 # Fetch trace metadata + observations in one pass
 python3 - "${LANGFUSE_URL}" "${LANGFUSE_PK}" "${LANGFUSE_SK}" \
           "${TRACE_ID}" "${TRACE_FILE}" "${AGENT_NAME}" "${RUN_TS}" \
-          "${THREAD_ID}" "${RUN_ID}" "${FINAL_MESSAGE}" <<'PYEOF'
+          "${THREAD_ID}" "${RUN_ID}" "${FINAL_MESSAGE}" "${OBS_LIMIT}" <<'PYEOF'
 import sys, json, urllib.request, urllib.error, base64
 
 lf_url, pk, sk, trace_id, out_file = sys.argv[1:6]
 agent_name, ts, thread_id, run_id, final_msg = sys.argv[6:11]
+obs_limit = int(sys.argv[11]) if len(sys.argv) > 11 else 50
 
 creds = base64.b64encode(f"{pk}:{sk}".encode()).decode()
 headers = {"Authorization": f"Basic {creds}"}
@@ -312,7 +324,7 @@ def fetch(path):
         return {"error": str(e)}
 
 trace = fetch(f"/api/public/traces/{trace_id}")
-obs   = fetch(f"/api/public/observations?traceId={trace_id}&limit=50")
+obs   = fetch(f"/api/public/observations?traceId={trace_id}&limit={obs_limit}")
 
 export = {
     "trace_id":    trace_id,
@@ -339,11 +351,12 @@ echo -e "${GREEN}Trace file: ${TRACE_FILE}${NC}"
 CONTEXT_FILE="${OUTPUT_DIR}/analytics_context_${RUN_TS}.md"
 
 python3 - "${TRACE_FILE}" "${CONTEXT_FILE}" "${AGENT_NAME}" "${TRACE_ID}" \
-          "${RUN_TS}" "${THREAD_ID}" "${FINAL_MESSAGE}" <<'PYEOF'
+          "${RUN_TS}" "${THREAD_ID}" "${FINAL_MESSAGE}" "${CTX_LINES}" <<'PYEOF'
 import sys, json
 
 trace_file, ctx_file = sys.argv[1:3]
 agent_name, trace_id, ts, thread_id, final_msg = sys.argv[3:8]
+ctx_lines = int(sys.argv[8]) if len(sys.argv) > 8 else 150
 
 with open(trace_file) as f:
     data = json.load(f)
@@ -390,15 +403,15 @@ for i, o in enumerate(obs_all, 1):
 
 lines += [
     "",
-    "## Full Trace JSON (truncated to 150 lines)",
+    f"## Full Trace JSON (truncated to {ctx_lines} lines)",
     "",
     "```json",
 ]
 
 trace_lines = json.dumps(data, indent=2).splitlines()
-lines += trace_lines[:150]
-if len(trace_lines) > 150:
-    lines.append(f"... ({len(trace_lines) - 150} more lines — see full file)")
+lines += trace_lines[:ctx_lines]
+if len(trace_lines) > ctx_lines:
+    lines.append(f"... ({len(trace_lines) - ctx_lines} more lines — see full file)")
 lines += ["```", "", f"_Full trace: {trace_file}_"]
 
 with open(ctx_file, "w") as f:

@@ -108,14 +108,10 @@ cd <your-repo-name>
 3. [Set Up The `watsonx Orchestrate` ADK](./3-watsonx-orchestrate-adk-setup.md)
 4. [Add The Basic Auth MCP Server To `watsonx Orchestrate`](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md)
 5. [Inspect The `watsonx Orchestrate` Server Logs](./5-watsonx-server-inspection.md)
-6. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
-7. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build a watsonx Orchestrate agent and more, using IBM Bob.
-8. [Inspect The watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) — a Flask + D3.js dashboard generated with IBM Bob that visualizes agent and tool dependencies as an interactive force-directed diagram.
-
-> **File numbering:** the guide files are prefixed `1`–`5`, `9`, `10`. Numbers
-> `6`–`8` are intentionally reserved for future guides, so the Bob configuration
-> (`9-bob-configuration.md`) and prompts (`10-bob-prompts.md`) guides keep those
-> prefixes even though they appear as steps 6 and 7 in the flow above.
+6. [Inspect Agent Analytics With IBM Bob](./6-watsonx-agent-analytics.md) — single-run and session-window trace analysis using `wxo_bob_agent_analytics.sh` and `wxo_bob_session_analytics.sh`
+7. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
+8. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build a watsonx Orchestrate agent and more, using IBM Bob.
+9. [Inspect The watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) — a Flask + D3.js dashboard generated with IBM Bob that visualizes agent and tool dependencies as an interactive force-directed diagram.
 
 ## Repository Layout
 
@@ -146,9 +142,11 @@ The current top-level structure is:
 ├── prompts
 ├── watsonx-orchestrate-adk
 │   ├── wxo_server_log_inspector.sh ← parallel log capture (limactl / Lima VM)
-│   ├── wxo_server_log_analyze.sh   ← sessions overview + ANALYSIS_REPORT.md
-│   ├── wxo_bob_log_inspect.sh      ← primary: analyse + pass to bob run + export BOB_ANALYSIS_REPORT.md
-│   └── ...                         ← other helper scripts and .venv
+│   ├── wxo_server_log_analyze.sh        ← sessions overview + ANALYSIS_REPORT.md
+│   ├── wxo_bob_log_inspect.sh           ← server log analysis: pipe summary to bob run
+│   ├── wxo_bob_agent_analytics.sh       ← single-run agent trace analysis via bob run
+│   ├── wxo_bob_session_analytics.sh     ← time-window session analysis via bob run
+│   └── ...                              ← other helper scripts and .venv
 └── watsonx-orchestrate-mcp-server
     └── watsonx_orchestrate_custom_explorer
 ```
@@ -164,7 +162,7 @@ The current top-level structure is:
 - `images/` contains the YouTube preview image `youtube-01.jpg` and screenshots/GIFs of the running setup, including `watsonx_orchestrate_custom_explorer_01.gif`.
 - `infrastructure/` is the folder where you can place the external Galaxium Travels infrastructure repository.
 - `prompts/` contains the prepared Bob prompt. The current file is `prepared-initial-prompt-for-bob.md`.
-- `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`, including three log-inspection scripts (`wxo_server_log_inspector.sh`, `wxo_server_log_analyze.sh`, `wxo_bob_log_inspect.sh`) that capture container logs from the Lima VM, analyse them, pass a summary to `bob run` for a structured verdict, and export the result as `BOB_ANALYSIS_REPORT.md` in the session directory (see guide `5`).
+- `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`. Key scripts: `wxo_bob_log_inspect.sh` (server log analysis, guide `5`), `wxo_bob_agent_analytics.sh` (single-run agent trace analysis, guide `6`), and `wxo_bob_session_analytics.sh` (time-window session analysis across multiple runs, guide `6`). All three pass a context document to `bob run` for AI analysis and export a Markdown report.
 - `watsonx-orchestrate-mcp-server/` contains the local MCP server helper script and a short README.
 - `watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/` contains a Flask + D3.js single-page application generated with IBM Bob. It connects to the watsonx Orchestrate MCP server and displays agents, tools, toolkits, and connections as an interactive force-directed diagram. See the [explorer README](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) for setup and usage details.
 
@@ -186,9 +184,10 @@ The current top-level structure is:
 4. Follow [3-watsonx-orchestrate-adk-setup.md](./3-watsonx-orchestrate-adk-setup.md) to start the local `watsonx Orchestrate` environment.
 5. Follow [4-watsonx-orchestrate-adk-add-basic-auth-mcp.md](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) to import the Basic Auth MCP server.
 6. Follow [5-watsonx-server-inspection.md](./5-watsonx-server-inspection.md) to capture and analyse server logs during a test run.
-7. Follow [9-bob-configuration.md](./9-bob-configuration.md) to use the IBM Bob configuration in this repository.
-8. Use [Bob prompts](./10-bob-prompts.md) when you want Bob to start building the Galaxium booking agent.
-9. Inspect the [watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) to visualize your agents, tools, toolkits, and connections as an interactive diagram.
+7. Follow [6-watsonx-agent-analytics.md](./6-watsonx-agent-analytics.md) to inspect agent behaviour via Langfuse traces and IBM Bob analysis.
+8. Follow [9-bob-configuration.md](./9-bob-configuration.md) to use the IBM Bob configuration in this repository.
+9. Use [Bob prompts](./10-bob-prompts.md) when you want Bob to start building the Galaxium booking agent.
+10. Inspect the [watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) to visualize your agents, tools, toolkits, and connections as an interactive diagram.
 
 ## Open-Source Dependencies
 
