@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# wxo_bob_inspect.sh
+# wxo_bob_log_inspect.sh
 # Automated watsonx Orchestrate server-log inspection driven entirely from the
 # terminal using the IBM Bob CLI.
 #
 # Pipeline:
 #   1. Resolve / optionally run wxo_server_log_inspector.sh  (log capture)
 #   2. Run wxo_server_log_analyze.sh                          (pre-analysis)
-#   3. Pipe ANALYSIS_REPORT.md into bob -p "<question>"       (Bob CLI analysis)
+#   3. Build a combined prompt and pass it to: bob run --mode <mode> "<prompt>"
 #   4. Export Bob's response to BOB_ANALYSIS_REPORT.md        (markdown export)
 #
 # Usage:
-#   bash wxo_bob_inspect.sh [OPTIONS]
+#   bash wxo_bob_log_inspect.sh [OPTIONS]
 #
 # Options:
 #   --capture            Run wxo_server_log_inspector.sh first for <seconds> then
@@ -21,7 +21,7 @@
 #                        Defaults to the most-recent session in --log-dir.
 #   --log-dir   -d       Root directory of session folders. Default: ./server-logs
 #   --question  -q       Question for Bob. Default: standard health question.
-#   --mode      -m       Bob chat mode. Default: ask
+#   --mode      -m       Bob run mode. Default: ask
 #   --export-file -o     Path for the exported Bob analysis markdown.
 #                        Default: <session-dir>/BOB_ANALYSIS_REPORT.md
 #   --env-file  -e       Path to a .env file. Default: .env
@@ -31,19 +31,19 @@
 #
 # Examples:
 #   # Analyse the most-recent session and ask Bob about health:
-#   bash wxo_bob_inspect.sh
+#   bash wxo_bob_log_inspect.sh
 #
 #   # Capture 60 s of logs, then analyse and ask Bob:
-#   bash wxo_bob_inspect.sh --capture --capture-seconds 60
+#   bash wxo_bob_log_inspect.sh --capture --capture-seconds 60
 #
 #   # Custom question:
-#   bash wxo_bob_inspect.sh -q "Which containers had Redis connection errors?"
+#   bash wxo_bob_log_inspect.sh -q "Which containers had Redis connection errors?"
 #
 #   # Use arch-review mode for a deeper analysis:
-#   bash wxo_bob_inspect.sh --mode arch-review
+#   bash wxo_bob_log_inspect.sh --mode arch-review
 #
 #   # Write Bob's response to a specific file:
-#   bash wxo_bob_inspect.sh -o ./my-report.md
+#   bash wxo_bob_log_inspect.sh -o ./my-report.md
 
 # ── Colours ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -136,7 +136,7 @@ fi
 if [ -z "${SESSION}" ]; then
   echo -e "${RED}No sessions found in ${LOG_DIR}.${NC}"
   echo -e "${YELLOW}Run:  bash wxo_server_log_inspector.sh${NC}"
-  echo -e "${YELLOW}  or: bash wxo_bob_inspect.sh --capture --capture-seconds 30${NC}"
+  echo -e "${YELLOW}  or: bash wxo_bob_log_inspect.sh --capture --capture-seconds 30${NC}"
   exit 1
 fi
 
@@ -214,19 +214,20 @@ cat > "${EXPORT_FILE}" <<HEADER
 
 HEADER
 
-echo -e "${CYAN}Piping summary → bob -p \"<question>\"${NC}"
+echo -e "${CYAN}Building prompt → bob run --mode \"${BOB_MODE}\" \"<context+question>\"${NC}"
 echo -e "${CYAN}Output → terminal + ${EXPORT_FILE}${NC}"
 echo ""
 
-# Pipe only the summary to Bob (≈40 lines, fast).
-# Bob appends the -p prompt to whatever arrives on stdin.
-# --approval-mode yolo prevents interactive prompts blocking the script.
-# tee -a appends Bob's response to the export file while still printing to the
-# terminal so the user sees the analysis live.
-cat "${CONTEXT_FILE}" | bob \
-  --chat-mode    "${BOB_MODE}" \
-  --approval-mode yolo \
-  -p "${QUESTION}" | tee -a "${EXPORT_FILE}"
+# Build a single prompt string: context file content + question.
+# bob run takes the prompt as a positional argument and runs non-interactively.
+CONTEXT_CONTENT=$(cat "${CONTEXT_FILE}")
+FULL_PROMPT="${CONTEXT_CONTENT}
+
+${QUESTION}"
+
+bob run \
+  --mode "${BOB_MODE}" \
+  "${FULL_PROMPT}" | tee -a "${EXPORT_FILE}"
 
 # ── Step 4b: Clean the exported file ─────────────────────────────────────────
 # Bob's raw stdout contains <thinking> blocks, [using tool …] scaffolding, and

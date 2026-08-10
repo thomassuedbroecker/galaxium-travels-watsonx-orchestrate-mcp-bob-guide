@@ -5,7 +5,7 @@ the **Agent Analytics** observability trace from the local **Langfuse** backend,
 let **IBM Bob** analyse it — all from a single shell command.
 
 The complete pipeline is in
-[`watsonx-orchestrate-adk/wxo_agent_analytics.sh`](./watsonx-orchestrate-adk/wxo_agent_analytics.sh).
+[`watsonx-orchestrate-adk/wxo_bob_agent_analytics.sh`](./watsonx-orchestrate-adk/wxo_bob_agent_analytics.sh).
 
 A real example report from a live run is saved in the project:
 [`watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md`](./watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md)
@@ -15,13 +15,13 @@ A real example report from a live run is saved in the project:
 ## 6.1 How It Works
 
 ```
-wxo_agent_analytics.sh
+wxo_bob_agent_analytics.sh
 │
 ├─ Step 1 ── Resolve agent ID from the local orchestrate API
 ├─ Step 2 ── Send a test message → POST /v1/orchestrate/runs
 ├─ Step 3 ── Poll the run until completed → capture trace_id
 ├─ Step 4 ── Export trace observations from Langfuse (http://localhost:3010)
-└─ Step 5 ── Pipe trace to Bob CLI → save BOB_AGENT_ANALYTICS_REPORT_<ts>.md
+└─ Step 5 ── Pass trace to bob run → save BOB_AGENT_ANALYTICS_REPORT_<ts>.md
 ```
 
 ### What is Agent Analytics?
@@ -37,7 +37,7 @@ Two local URLs are available after server startup:
 | URL | What it is |
 |---|---|
 | `https://localhost:8765/` | Main watsonx Orchestrate UI (page title: "Agent Analytics") |
-| `http://localhost:3010/` | Langfuse API and UI — queried directly by `wxo_agent_analytics.sh` |
+| `http://localhost:3010/` | Langfuse API and UI — queried directly by `wxo_bob_agent_analytics.sh` |
 
 Reference: [Monitoring your LLMs with Langfuse](https://developer.watson-orchestrate.ibm.com/llm/observability)
 
@@ -111,7 +111,7 @@ style: react_intrinsic
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
-bash wxo_agent_analytics.sh
+bash wxo_bob_agent_analytics.sh
 ```
 
 ### Live terminal output (verified run 2026-07-31)
@@ -154,7 +154,7 @@ Context: 180 lines (4 observations)
 ════════════════════════════════════════
   Step 5 — IBM Bob CLI analysis (mode: ask)
 ════════════════════════════════════════
-Piping context → bob -p "<question>"
+Building prompt → bob run --mode "ask" "<context+question>"
 Output → terminal + ./agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md
 
 [Bob analysis streams here...]
@@ -212,7 +212,29 @@ The report is saved to:
 A real example from a live run is in the project:
 [`agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md`](./watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md)
 
-It contains:
+Every report begins with a metadata header written by the script **before** Bob's
+analysis is appended:
+
+```markdown
+## Run Metadata
+
+| Field | Value |
+|---|---|
+| Agent | agent_hello_world |
+| Trace ID | a86f7ef0f35d7169dddab662259778ff |
+| Run ID | 538f2102-65aa-4ef5-b67b-6d3548d43895 |
+| Thread ID | 594019c5-d704-4dbc-85e6-f70993e43f91 |
+| Bob mode | ask |
+| Generated | 2026-07-31 17:00:44 |
+| Trace file | ./agent-analytics/trace_20260731_170044.json |
+| Langfuse | http://localhost:3010 |
+| Langfuse UI | http://localhost:3010/project/orchestrate-lite/traces/a86f7ef0f35d7169dddab662259778ff |
+```
+
+The **Langfuse UI** link opens the trace directly in the local Langfuse browser UI
+so you can visually inspect spans alongside Bob's written analysis.
+
+Bob's analysis follows the metadata header and contains:
 
 | Section | What Bob reports |
 |---|---|
@@ -232,7 +254,7 @@ It contains:
 --message    -m   Test message to send.       Default: "Hello, are you working?"
 --output-dir -o   Directory for all output.   Default: ./agent-analytics
 --question   -q   Custom question for Bob.
---bob-mode        Bob chat mode.              Default: ask
+--bob-mode        Bob run mode.               Default: ask
 --export-file     Custom path for Bob report.
 --env-file   -e   Path to .env file.          Default: .env
 --langfuse-url    Langfuse base URL.          Default: http://localhost:3010
@@ -246,20 +268,20 @@ It contains:
 
 ```sh
 # Run with a different agent and message:
-bash wxo_agent_analytics.sh -n my_agent -m "What can you do?"
+bash wxo_bob_agent_analytics.sh -n my_agent -m "What can you do?"
 
 # Export trace only — no Bob analysis:
-bash wxo_agent_analytics.sh --trace-only
+bash wxo_bob_agent_analytics.sh --trace-only
 
 # Deeper analysis with architecture review mode:
-bash wxo_agent_analytics.sh --bob-mode arch-review
+bash wxo_bob_agent_analytics.sh --bob-mode arch-review
 
 # Custom Bob question focused on latency:
-bash wxo_agent_analytics.sh \
+bash wxo_bob_agent_analytics.sh \
   -q "Which step took the longest and why?"
 
 # Save report to a specific path:
-bash wxo_agent_analytics.sh \
+bash wxo_bob_agent_analytics.sh \
   --export-file ./temp/analytics_$(date +%Y%m%d).md
 ```
 
@@ -282,7 +304,7 @@ Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/
 
 | Artifact | Location | Purpose |
 |---|---|---|
-| `wxo_agent_analytics.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_agent_analytics.sh) | The automation script |
+| `wxo_bob_agent_analytics.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_agent_analytics.sh) | The automation script |
 | `agent_hello_world.yaml` | [`watsonx-orchestrate-adk/agents/`](./watsonx-orchestrate-adk/agents/agent_hello_world.yaml) | Agent under test |
 | `trace_20260731_170044.json` | [`agent-analytics/`](./watsonx-orchestrate-adk/agent-analytics/trace_20260731_170044.json) | Real example trace (52 KB, 4 observations) |
 | `BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md` | [`agent-analytics/`](./watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md) | Real example Bob report |

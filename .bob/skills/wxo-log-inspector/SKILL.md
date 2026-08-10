@@ -6,7 +6,7 @@ description: >
   capture logs, pre-analyse with bash, then invoke the Bob CLI directly to reason
   over the generated report. Trigger phrases: "inspect server logs",
   "check wxo logs", "analyse orchestrate logs", "server log health",
-  "what errors are in the logs", "run wxo_bob_inspect.sh".
+  "what errors are in the logs", "run wxo_bob_log_inspect.sh".
 metadata:
   disable-model-invocation: false
 ---
@@ -21,7 +21,7 @@ pipeline that ends with the **Bob CLI invoked from the terminal**.
 ```
 Terminal
   │
-  └─ bash wxo_bob_inspect.sh
+  └─ bash wxo_bob_log_inspect.sh
         │
         ├─ Step 1  (optional) wxo_server_log_inspector.sh
         │          limactl → docker logs --follow per container → *.log files
@@ -29,16 +29,16 @@ Terminal
         ├─ Step 2  wxo_server_log_analyze.sh
         │          reads *.log files → ANALYSIS_REPORT.md + SUMMARY_BY_BOB.md
         │
-        ├─ Step 3  cat SUMMARY_BY_BOB.md | bob --chat-mode ask \
-        │              --approval-mode yolo \
-        │              -p "<question>" | tee -a BOB_ANALYSIS_REPORT.md
+        ├─ Step 3  bob run --mode ask \
+        │              "<SUMMARY_BY_BOB.md content + question>" \
+        │              | tee -a BOB_ANALYSIS_REPORT.md
         │
         └─ Step 4  BOB_ANALYSIS_REPORT.md written to <session-dir>/
                    (header with session metadata + Bob's full response)
 ```
 
-Bob CLI receives the pre-built Markdown report on **stdin** via the pipe and
-reasons over it. Its response is simultaneously printed to the terminal (via
+`bob run` receives the pre-built Markdown report embedded in the prompt argument
+and reasons over it. Its response is simultaneously printed to the terminal (via
 `tee`) and appended to `BOB_ANALYSIS_REPORT.md`. No watsonx Orchestrate agent.
 No tool imports. No Lima VM access from Bob's side.
 
@@ -72,7 +72,7 @@ Ask the user with `ask_followup_question`:
 
 ```bash
 cd watsonx-orchestrate-adk && source .venv/bin/activate && \
-  bash wxo_bob_inspect.sh --capture --capture-seconds 30
+  bash wxo_bob_log_inspect.sh --capture --capture-seconds 30
 ```
 
 This starts `wxo_server_log_inspector.sh` in the background, waits 30 seconds,
@@ -82,7 +82,7 @@ kills it, then continues automatically to Steps 3 and 4.
 
 ```bash
 cd watsonx-orchestrate-adk && source .venv/bin/activate && \
-  bash wxo_bob_inspect.sh
+  bash wxo_bob_log_inspect.sh
 ```
 
 ---
@@ -93,19 +93,19 @@ Use `execute_command` to run the script. It executes all three steps and ends
 with Bob CLI producing the analysis in the terminal:
 
 ```bash
-cd watsonx-orchestrate-adk && source .venv/bin/activate && bash wxo_bob_inspect.sh
+cd watsonx-orchestrate-adk && source .venv/bin/activate && bash wxo_bob_log_inspect.sh
 ```
 
 To change the Bob mode:
 
 ```bash
-bash wxo_bob_inspect.sh --mode arch-review
+bash wxo_bob_log_inspect.sh --mode arch-review
 ```
 
 To ask a specific question:
 
 ```bash
-bash wxo_bob_inspect.sh -q "Which containers had Redis or database connection errors?"
+bash wxo_bob_log_inspect.sh -q "Which containers had Redis or database connection errors?"
 ```
 
 ---
@@ -141,7 +141,7 @@ No further scripts needed — Bob reads log files directly.
 
 ---
 
-## Key options for wxo_bob_inspect.sh
+## Key options for wxo_bob_log_inspect.sh
 
 | Option | Default | Purpose |
 |---|---|---|
@@ -149,7 +149,7 @@ No further scripts needed — Bob reads log files directly.
 | `--capture-seconds N` | 30 | How long to capture before stopping (only with `--capture`) |
 | `--session YYYYMMDD_HHMMSS` | most-recent | Specific session to analyse |
 | `--log-dir DIR` | `./server-logs` | Root directory of sessions |
-| `--mode MODE` | `ask` | Bob chat mode (`ask`, `arch-review`, etc.) |
+| `--mode MODE` | `ask` | Bob run mode (`ask`, `arch-review`, etc.) |
 | `--question TEXT` | health prompt | Custom question for Bob |
 | `--export-file FILE` | `<session-dir>/BOB_ANALYSIS_REPORT.md` | Override the path for the exported Bob analysis markdown |
 | `--full-report` | off | Send entire `ANALYSIS_REPORT.md` to Bob (slower, ~291 KB) instead of the summary extract (~1.8 KB) |

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wxo_agent_analytics.sh
+# wxo_bob_agent_analytics.sh
 # Run a test against a watsonx Orchestrate agent, export the Agent Analytics
 # (observability trace from local Langfuse), and pipe the trace JSON to the
 # IBM Bob CLI for structured analysis. The Bob report is saved as a Markdown file.
@@ -8,18 +8,18 @@
 #   1. Send a test message via the runs API → captures run_id + trace_id
 #   2. Poll until the run completes
 #   3. Export trace observations from local Langfuse (http://localhost:3010)
-#   4. bob --chat-mode ask -p "<question>"  → AI analysis
+#   4. bob run --mode ask "<context+question>"  → AI analysis
 #   5. Save report to <output-dir>/BOB_AGENT_ANALYTICS_REPORT_<ts>.md
 #
 # Usage:
-#   bash wxo_agent_analytics.sh [OPTIONS]
+#   bash wxo_bob_agent_analytics.sh [OPTIONS]
 #
 # Options:
 #   --agent      -n   Agent name (snake_case). Default: agent_hello_world
 #   --message    -m   Test message to send. Default: "Hello, are you working?"
 #   --output-dir -o   Directory for generated files. Default: ./agent-analytics
 #   --question   -q   Question for Bob. Default: standard trace analysis question.
-#   --bob-mode        Bob chat mode. Default: ask
+#   --bob-mode        Bob run mode. Default: ask
 #   --export-file     Path for the Bob analysis markdown.
 #                     Default: <output-dir>/BOB_AGENT_ANALYTICS_REPORT_<ts>.md
 #   --env-file   -e   Path to a .env file. Default: .env
@@ -38,19 +38,19 @@
 #
 # Examples:
 #   # Run test + export trace + Bob analysis (defaults):
-#   bash wxo_agent_analytics.sh
+#   bash wxo_bob_agent_analytics.sh
 #
 #   # Custom agent and message:
-#   bash wxo_agent_analytics.sh -n my_agent -m "What can you do?"
+#   bash wxo_bob_agent_analytics.sh -n my_agent -m "What can you do?"
 #
 #   # Export trace only, no Bob:
-#   bash wxo_agent_analytics.sh --trace-only
+#   bash wxo_bob_agent_analytics.sh --trace-only
 #
 #   # Use arch-review mode for deeper analysis:
-#   bash wxo_agent_analytics.sh --bob-mode arch-review
+#   bash wxo_bob_agent_analytics.sh --bob-mode arch-review
 #
 #   # Write Bob's report to a specific file:
-#   bash wxo_agent_analytics.sh --export-file ./reports/analytics_$(date +%Y%m%d).md
+#   bash wxo_bob_agent_analytics.sh --export-file ./reports/analytics_$(date +%Y%m%d).md
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -437,14 +437,20 @@ cat > "${EXPORT_FILE}" <<HEADER
 
 HEADER
 
-echo -e "${CYAN}Piping context → bob -p \"<question>\"${NC}"
+echo -e "${CYAN}Building prompt → bob run --mode \"${BOB_MODE}\" \"<context+question>\"${NC}"
 echo -e "${CYAN}Output → terminal + ${EXPORT_FILE}${NC}"
 echo ""
 
-cat "${CONTEXT_FILE}" | bob \
-  --chat-mode     "${BOB_MODE}" \
-  --approval-mode yolo \
-  -p "${QUESTION}" | tee -a "${EXPORT_FILE}"
+# Build a single prompt string: context file content + question.
+# bob run takes the prompt as a positional argument and runs non-interactively.
+CONTEXT_CONTENT=$(cat "${CONTEXT_FILE}")
+FULL_PROMPT="${CONTEXT_CONTENT}
+
+${QUESTION}"
+
+bob run \
+  --mode "${BOB_MODE}" \
+  "${FULL_PROMPT}" | tee -a "${EXPORT_FILE}"
 
 # ── Step 5b: Clean the exported file ──────────────────────────────────────────
 python3 - "${EXPORT_FILE}" <<'PYEOF'

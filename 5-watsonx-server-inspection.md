@@ -9,7 +9,7 @@ drive the full pipeline:
 |---|---|
 | [`wxo_server_log_inspector.sh`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Discovers all running containers and streams their logs in parallel to timestamped files |
 | [`wxo_server_log_analyze.sh`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Reads the captured files, produces a Sessions Overview, and writes `ANALYSIS_REPORT.md` |
-| [`wxo_bob_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_inspect.sh) | Chains analysis + IBM Bob CLI in one command: pipes the report summary to `bob` for a structured verdict |
+| [`wxo_bob_log_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | Chains analysis + IBM Bob CLI in one command: passes the report summary to `bob run` for a structured verdict |
 | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — drives the full pipeline interactively from the terminal |
 
 Run all commands from the **`watsonx-orchestrate-adk/`** directory unless a block
@@ -328,9 +328,9 @@ The report contains:
 - Per-container sections with errors, warnings, session/`thread_id` references,
   top tokens, and a log tail
 
-This file is the handover point for **Step 4** (section 5.9): `wxo_bob_inspect.sh`
-extracts the summary section and pipes it to the IBM Bob CLI (`bob`) for a
-structured health verdict — directly from the terminal, no agent deployment needed.
+This file is the handover point for **Step 4** (section 5.9): `wxo_bob_log_inspect.sh`
+extracts the summary section and passes it to `bob run` for a structured health
+verdict — directly from the terminal, no agent deployment needed.
 
 ---
 
@@ -459,7 +459,7 @@ bash wxo_server_log_inspector.sh
 
 Then start the Bob conversation — it will find the new session automatically.
 
-### `wxo_bob_inspect.sh` — the primary automated command
+### `wxo_bob_log_inspect.sh` — the primary automated command
 
 This is the **primary approach**: one command chains the full pipeline, invokes
 `bob` directly from the terminal, and exports the result as a markdown file:
@@ -467,15 +467,15 @@ This is the **primary approach**: one command chains the full pipeline, invokes
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
-bash wxo_bob_inspect.sh
+bash wxo_bob_log_inspect.sh
 ```
 
-The script runs the analyser, extracts the summary (≈44 lines), and pipes it to:
+The script runs the analyser, extracts the summary (≈44 lines), and passes it to:
 
 ```sh
-cat SUMMARY_BY_BOB.md \
-  | bob --chat-mode ask --approval-mode yolo -p "<question>" \
-  | tee -a BOB_ANALYSIS_REPORT.md
+bob run --mode ask "${SUMMARY_CONTENT}
+
+${QUESTION}" | tee -a BOB_ANALYSIS_REPORT.md
 ```
 
 Bob's response is streamed to the terminal live and simultaneously written to
@@ -489,7 +489,7 @@ Options:
 --capture              Capture fresh logs first (background, stops automatically)
 --capture-seconds N    How long to capture (default: 30s)
 --question  -q         Custom question for Bob
---mode      -m         Bob chat mode: ask (default), arch-review, etc.
+--mode      -m         Bob run mode: ask (default), arch-review, etc.
 --export-file -o       Path for the exported Bob analysis markdown
                        (default: <session-dir>/BOB_ANALYSIS_REPORT.md)
 --full-report          Send complete 1574-line report instead of 44-line summary
@@ -503,9 +503,9 @@ Options:
 |---|---|---|
 | `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all 25 containers via `limactl` |
 | `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview + `ANALYSIS_REPORT.md` + `SUMMARY_BY_BOB.md` |
-| `wxo_bob_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_inspect.sh) | **Primary**: chains analyse + pipes summary to `bob` CLI + exports `BOB_ANALYSIS_REPORT.md` |
+| `wxo_bob_log_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary**: chains analyse + passes summary to `bob run` + exports `BOB_ANALYSIS_REPORT.md` |
 | `BOB_ANALYSIS_REPORT.md` | `<session-dir>/` (generated) | Exported Bob analysis — metadata header + Bob's full response |
-| `.bob/skills/wxo-log-inspector/SKILL.md` | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — `wxo_bob_inspect.sh` reference + options |
+| `.bob/skills/wxo-log-inspector/SKILL.md` | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — `wxo_bob_log_inspect.sh` reference + options |
 
 ---
 
