@@ -42,6 +42,12 @@ and reasons over it. Its response is simultaneously printed to the terminal (via
 `tee`) and appended to `BOB_ANALYSIS_REPORT.md`. No watsonx Orchestrate agent.
 No tool imports. No Lima VM access from Bob's side.
 
+A post-processing step runs automatically after `bob run` and converts the raw
+terminal output to clean GFM: box-drawing tables → pipe tables, `────` lines →
+`---`, bare titles → `### headings`, terminal padding stripped, Bob's conversation
+frame and echoed prompt removed. The file ends with an **IBM Bob CLI Usage**
+section (wall-clock time, prompt size, cost note).
+
 ---
 
 ## Step 1 — Verify prerequisites
@@ -115,8 +121,9 @@ bash wxo_bob_log_inspect.sh -q "Which containers had Redis or database connectio
 After `execute_command` completes:
 
 1. The terminal shows Bob's live response (streamed via `tee`).
-2. `BOB_ANALYSIS_REPORT.md` has been written to the session directory, containing a
-   metadata header followed by Bob's full response.
+2. `BOB_ANALYSIS_REPORT.md` has been written to the session directory as clean,
+   valid Markdown — metadata header, Bob's analysis, and an **IBM Bob CLI Usage**
+   section (wall-clock time, prompt size in chars, cost note).
 
 Present the analysis clearly, noting:
 

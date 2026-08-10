@@ -225,44 +225,162 @@ FULL_PROMPT="${CONTEXT_CONTENT}
 
 ${QUESTION}"
 
+BOB_START=$(date +%s)
 bob run \
   --mode "${BOB_MODE}" \
   --accept-license \
   "${FULL_PROMPT}" | tee -a "${EXPORT_FILE}"
+BOB_END=$(date +%s)
+BOB_ELAPSED=$(( BOB_END - BOB_START ))
 
 # ── Step 4b: Clean the exported file ─────────────────────────────────────────
-# Bob's raw stdout contains <thinking> blocks, [using tool …] scaffolding, and
-# ---output--- markers. When the analysis body is repeated (intermediate + final
-# output), only the last occurrence is kept. Strip all noise in-place.
 python3 - "${EXPORT_FILE}" <<'PYEOF'
 import sys, re
 
 with open(sys.argv[1]) as f:
     raw = f.read()
 
-# 1. Remove <thinking>…</thinking> blocks (including multiline)
+# ── 1. Remove <thinking> blocks ───────────────────────────────────────────────
 clean = re.sub(r'<thinking>.*?</thinking>\n?', '', raw, flags=re.DOTALL)
 
-# 2. Remove [using tool …] lines and the ---output--- fences around them
+# ── 2. Remove [using tool …] lines and ---output--- fences ────────────────────
 clean = re.sub(r'\[using tool [^\]]+\]\n?', '', clean)
 clean = re.sub(r'---output---\n?', '', clean)
 
-# 3. If the analysis heading appears more than once (duplicate from intermediate
-#    + final output), keep only the content after the last occurrence.
+# ── 3. Strip Bob's conversation-frame wrapper lines ───────────────────────────
+clean = re.sub(r'^[─\-]{10,}\n', '', clean, flags=re.MULTILINE)
+clean = re.sub(r'^(?:User|Assistant)\s*\(\d+\)[^\n]*\n', '', clean, flags=re.MULTILINE)
+
+# ── 4. Strip trailing whitespace on every line (terminal padding) ─────────────
+clean = re.sub(r'[ \t]+$', '', clean, flags=re.MULTILINE)
+
+# ── 5. Convert Unicode box-drawing tables to GFM pipe tables ──────────────────
+BOX_CHARS = '┌┬┐├┼┤└┴┘─'
+
+def is_box_border(line):
+    stripped = line.strip()
+    return bool(stripped) and all(c in BOX_CHARS for c in stripped)
+
+def box_row_to_gfm(line):
+    parts = line.split('│')
+    cells = [p.strip() for p in parts[1:-1]]
+    return '| ' + ' | '.join(cells) + ' |'
+
+lines = clean.splitlines()
+out = []
+i = 0
+while i < len(lines):
+    line = lines[i]
+    stripped = line.strip()
+
+    if is_box_border(stripped):
+        i += 1
+        continue
+
+    if stripped.startswith('│'):
+        raw_rows = []
+        while i < len(lines) and (lines[i].strip().startswith('│') or is_box_border(lines[i].strip())):
+            if not is_box_border(lines[i].strip()):
+                raw_rows.append(lines[i])
+            i += 1
+        def col_count_of(row):
+            return len(row.split('│')) - 2
+        if raw_rows and all(col_count_of(r) == 1 for r in raw_rows):
+            for r in raw_rows:
+                cell = r.split('│')[1].strip()
+                if cell:
+                    out.append('> ' + cell)
+        else:
+            table_rows = [box_row_to_gfm(r) for r in raw_rows]
+            if len(table_rows) >= 2:
+                n_cols = table_rows[0].count('|') - 1
+                separator = '|' + '---|' * n_cols
+                table_rows.insert(1, separator)
+            out.extend(table_rows)
+        continue
+
+    out.append(line)
+    i += 1
+
+clean = '\n'.join(out)
+
+# ── 6. Convert ────… horizontal rules to Markdown --- ────────────────────────
+clean = re.sub(r'^[─]{4,}\s*$', '---', clean, flags=re.MULTILINE)
+
+# ── 7. Promote bare section titles to ### headings ────────────────────────────
+def promote_bare_headings(text):
+    result = []
+    lines = text.splitlines()
+    n = len(lines)
+    for idx, line in enumerate(lines):
+        prev_blank = (idx == 0) or (lines[idx-1].strip() == '')
+        next_blank = (idx == n-1) or (lines[idx+1].strip() == '')
+        s = line.strip()
+        is_candidate = (
+            s
+            and not line.startswith('#')
+            and not line.startswith('|')
+            and not line.startswith('-')
+            and not line.startswith('*')
+            and not line.startswith('`')
+            and not line.startswith('>')
+            and not line.startswith('  ')
+            and prev_blank
+            and next_blank
+            and not s.endswith('.')
+            and not s.endswith(',')
+            and not s.endswith(':')
+            and s not in ('---', '–––', '===')
+            and any(c.isalpha() for c in s)
+            and len(s) <= 60
+        )
+        if is_candidate:
+            result.append('### ' + s)
+        else:
+            result.append(line)
+    return '\n'.join(result)
+
+clean = promote_bare_headings(clean)
+
+# ── 8. Remove echoed prompt context block before Bob's answer ────────────────
+clean = re.sub(
+    r'(---\n)\n.*?(?=(?:###\s*1\.|# watsonx Orchestrate Server Log Analysis Report))',
+    r'\1\n',
+    clean,
+    count=1,
+    flags=re.DOTALL,
+)
+
+# ── 9. De-duplicate repeated report body ─────────────────────────────────────
 marker = '# watsonx Orchestrate Server Log Analysis Report'
 parts = clean.split(marker)
 if len(parts) > 2:
-    # re-attach: header block (parts[0]) + last analysis body
     clean = parts[0].rstrip() + '\n\n' + marker + parts[-1]
 
-# 4. Collapse runs of 3+ blank lines to 2
+# ── 10. Collapse runs of 3+ blank lines to 2 ─────────────────────────────────
 clean = re.sub(r'\n{3,}', '\n\n', clean)
 
 with open(sys.argv[1], 'w') as f:
     f.write(clean.strip() + '\n')
 
-print(f"Cleaned export: {sys.argv[1]}")
+print(f"Cleaned: {sys.argv[1]}")
 PYEOF
+
+# ── Append Bob CLI cost section ────────────────────────────────────────────────
+cat >> "${EXPORT_FILE}" <<COST_SECTION
+
+---
+
+## IBM Bob CLI Usage
+
+| Field | Value |
+|---|---|
+| Bob mode | ${BOB_MODE} |
+| Bob CLI wall-clock time | ${BOB_ELAPSED} s |
+| Prompt size (chars) | $(echo -n "${FULL_PROMPT}" | wc -c | tr -d ' ') |
+| Note | Token cost depends on the LLM backing the Bob CLI. Set \`BOB_API_KEY\` to your IBM Cloud API key. Monitor actual token spend in your IBM Cloud account under the watsonx model you configured. |
+
+COST_SECTION
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 echo ""
@@ -270,4 +388,5 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${GREEN}Session:      ${SESSION}${NC}"
 echo -e "${GREEN}Report:       ${REPORT_FILE}${NC}"
 echo -e "${GREEN}Bob mode:     ${BOB_MODE}${NC}"
+echo -e "${GREEN}Bob time:     ${BOB_ELAPSED} s${NC}"
 echo -e "${GREEN}Bob analysis: ${EXPORT_FILE}${NC}"

@@ -134,9 +134,9 @@ wxo_bob_agent_analytics.sh
 │            → captures run_id, thread_id, trace_id, final response
 ├─ Step 4 ── Wait 5s, export trace          (Langfuse /api/public/traces + observations)
 │            → trace_<ts>.json
-│            → analytics_context_<ts>.md   (compact: summary table + JSON excerpt)
+│            → analytics_context_<ts>.md   (Production-Hardening Signals + trace table + JSON excerpt)
 └─ Step 5 ── bob run --mode ask "<context+question>"
-             → BOB_AGENT_ANALYTICS_REPORT_<ts>.md
+             → BOB_AGENT_ANALYTICS_REPORT_<ts>.md  (includes IBM Bob CLI Usage section)
 ```
 
 ### Step-by-step walkthrough
@@ -197,7 +197,19 @@ Response : Hello! Yes, I'm working correctly. I'm ready to assist you with
 Waiting 5s for Langfuse ingestion...
 Exported: 4 observations → ./agent-analytics/trace_20260731_170044.json
 Trace file: ./agent-analytics/trace_20260731_170044.json
-Context: 180 lines (4 observations)
+Context: 212 lines (4 observations)
+```
+
+The context document now opens with a **Production-Hardening Signals** table computed
+directly from the trace JSON before anything is sent to Bob:
+
+```
+| Signal        | Value         | Note                                                         |
+|---|---|---|
+| service.name  | NOT SET       | ⚠ Recommend setting to meaningful value (e.g. wxo-agent-runtime) |
+| ls_provider   | openai        | ⚠ watsonx-via-OpenAI-adapter label — account for this in dashboard/alert filters |
+| LLM latency   | 2400 ms       | ✓                                                            |
+| Total trace   | 3800 ms       | ✓                                                            |
 ```
 
 The four observations represent the LangGraph execution tree:
@@ -226,6 +238,7 @@ Trace ID : a86f7ef0f35d7169dddab662259778ff
 Trace    : ./agent-analytics/trace_20260731_170044.json
 Langfuse : http://localhost:3010
 Bob mode : ask
+Bob time : 18 s
 Report   : ./agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md
 ```
 
@@ -261,7 +274,43 @@ Bob's analysis contains:
 | **LLM Call Details** | Model, system prompt, input/output tokens, time to first token |
 | **Tool Calls** | Lists any tools invoked (none for `agent_hello_world`) |
 | **LangGraph Flow** | Exact node sequence from the trace metadata |
+| **Production-Hardening Checks** | `service.name` presence, `ls_provider` adapter label, LLM and total latency vs thresholds (verified output below) |
 | **Verdict** | Health check table — pass/fail per criterion |
+| **IBM Bob CLI Usage** | Bob mode, wall-clock time, prompt size (chars), cost note |
+
+The **Production-Hardening Checks** section is produced by Bob from the signals table
+in the context document. Verified output from a real run:
+
+```markdown
+### 5. Production-Hardening Checks
+
+#### a. service.name — ⚠️ NOT SET
+
+The resourceAttributes block shows telemetry.sdk.* entries but service.name is absent.
+This means all traces from this deployment appear as an unnamed service in Langfuse /
+OpenTelemetry backends, making it impossible to filter or alert by service in a
+multi-agent environment.
+
+Recommendation: Set service.name at the OpenTelemetry SDK init level, e.g.:
+
+  from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+  resource = Resource.create({SERVICE_NAME: "wxo-agent-runtime"})
+
+#### b. ls_provider = "openai" — ⚠️ Adapter Label Mismatch
+
+The response_metadata shows:
+
+  "model_provider": "openai",
+  "actual_model": "watsonx/meta-llama/llama-3-3-70b-instruct"
+
+The LangSmith/Langfuse ls_provider tag resolves to openai because the watsonx endpoint
+is accessed via the OpenAI-compatible adapter. Any dashboard widgets or alerts filtering
+on ls_provider = "watsonx" will silently miss these traces.
+
+Recommendation: Add a custom tag (e.g. actual_provider: watsonx) at trace creation time
+so dashboards can correctly segment cost, latency, and error-rate metrics by the true
+provider.
+```
 
 A real example report from a verified run is in the project:
 [`agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md`](./watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md)
@@ -274,8 +323,8 @@ Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/
 |---|---|
 | `trace_<ts>.json` | Full Langfuse trace — all observations with input/output JSON |
 | `run_status_<ts>.json` | Raw response from `/v1/orchestrate/runs/{id}` |
-| `analytics_context_<ts>.md` | Compact context sent to Bob (trace table + JSON excerpt) |
-| `BOB_AGENT_ANALYTICS_REPORT_<ts>.md` | Bob's structured analysis report |
+| `analytics_context_<ts>.md` | Compact context sent to Bob — includes Production-Hardening Signals table, trace table, JSON excerpt |
+| `BOB_AGENT_ANALYTICS_REPORT_<ts>.md` | Bob's structured analysis report, including IBM Bob CLI Usage section |
 
 ### Options
 
@@ -472,7 +521,9 @@ Bob's analysis contains:
 | **Run-by-run Table** | Trace ID, timestamp, duration, status, response snippet per run |
 | **Behaviour Patterns** | Consistency of responses, tool usage variation, latency trends |
 | **Errors or Anomalies** | Failed runs, unexpected observations, latency outliers |
+| **Production-Hardening Checks** | `service.name` presence, `ls_provider` label discrepancy, min/avg/max LLM and total latency across all runs, flags for threshold breaches |
 | **Recommendation** | Is the agent behaving correctly and consistently? |
+| **IBM Bob CLI Usage** | Bob mode, wall-clock time, prompt size (chars), cost note |
 
 ### Generated files
 
@@ -481,8 +532,8 @@ Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/
 | File | What it contains |
 |---|---|
 | `session_traces_<ts>.json` | All matched traces with observations |
-| `session_context_<ts>.md` | Consolidated context sent to Bob |
-| `BOB_SESSION_ANALYTICS_REPORT_<ts>.md` | Bob's cross-run analysis report |
+| `session_context_<ts>.md` | Consolidated context — includes Production-Hardening Signals table (min/avg/max latency across all runs) |
+| `BOB_SESSION_ANALYTICS_REPORT_<ts>.md` | Bob's cross-run analysis report, including IBM Bob CLI Usage section |
 
 ### Options
 

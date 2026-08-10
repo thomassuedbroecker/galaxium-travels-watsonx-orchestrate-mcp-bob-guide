@@ -80,7 +80,11 @@ Provide a structured analysis with:
 2. Run-by-run table — trace ID, timestamp, duration, status, final response snippet.
 3. Behaviour patterns — are responses consistent? Any variation in tool usage or latency?
 4. Errors or anomalies — failed runs, unexpected observations, latency outliers.
-5. Recommendation — is the agent behaving correctly and consistently across the session?"
+5. Production-hardening checks (evaluate across all runs):
+   a. service.name — is it set to a meaningful value (e.g. wxo-agent-runtime) or still default/missing? Recommend fixing if not set.
+   b. ls_provider label — if ls_provider is 'openai', note that this is the watsonx-via-OpenAI-adapter label; advise ensuring dashboards/alerts account for this discrepancy.
+   c. Latency baseline — identify average/min/max LLM latency and total trace duration across all runs. Flag any run where LLM latency exceeds 10 s or total trace exceeds 15 s with no tool calls.
+6. Recommendation — is the agent behaving correctly and consistently across the session?"
 
 # ── Argument parsing ───────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -293,6 +297,54 @@ def fmt_ms(start, end):
     except Exception:
         return "?"
 
+# ── Extract production-hardening signals across all traces ────────────────────
+all_obs_flat = [o for entry in traces for o in entry.get("observations", [])]
+
+service_name = "NOT SET"
+for o in all_obs_flat:
+    meta = o.get("metadata") or {}
+    if isinstance(meta, dict) and meta.get("service.name"):
+        service_name = meta["service.name"]
+        break
+
+ls_provider = "unknown"
+for o in all_obs_flat:
+    meta = o.get("metadata") or {}
+    if isinstance(meta, dict) and meta.get("ls_provider"):
+        ls_provider = meta["ls_provider"]
+        break
+
+# Latency stats across all runs
+def get_durations(entry):
+    obs = entry.get("observations", [])
+    spans = []
+    for o in obs:
+        s, e = o.get("startTime", ""), o.get("endTime", "")
+        if s and e:
+            try:
+                fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
+                dt_s = datetime.strptime(s, fmt)
+                dt_e = datetime.strptime(e, fmt)
+                spans.append((dt_s, dt_e, o.get("type", "")))
+            except Exception:
+                pass
+    return spans
+
+llm_latencies = []
+total_durations = []
+for entry in traces:
+    spans = get_durations(entry)
+    if spans:
+        total_durations.append(int((max(d[1] for d in spans) - min(d[0] for d in spans)).total_seconds() * 1000))
+    for s, e, otype in spans:
+        if otype in ("GENERATION", "generation"):
+            llm_latencies.append(int((e - s).total_seconds() * 1000))
+
+def _stat(vals):
+    if not vals:
+        return "? ms"
+    return f"min {min(vals)} ms / avg {sum(vals)//len(vals)} ms / max {max(vals)} ms"
+
 lines = [
     "# Agent Session Analytics Context",
     "",
@@ -302,6 +354,15 @@ lines = [
     f"| From  | {from_ts} |",
     f"| To    | {to_ts} |",
     f"| Total runs | {len(traces)} |",
+    "",
+    "## Production-Hardening Signals",
+    "",
+    "| Signal | Value | Note |",
+    "|---|---|---|",
+    f"| service.name | `{service_name}` | {'⚠ Recommend setting to meaningful value (e.g. wxo-agent-runtime)' if service_name == 'NOT SET' else '✓'} |",
+    f"| ls_provider | `{ls_provider}` | {'⚠ watsonx-via-OpenAI-adapter label — account for this in dashboard/alert filters' if ls_provider == 'openai' else '✓'} |",
+    f"| LLM latency (all runs) | {_stat(llm_latencies)} | {'⚠ Max exceeds 10 s' if llm_latencies and max(llm_latencies) > 10000 else '✓'} |",
+    f"| Total trace (all runs) | {_stat(total_durations)} | {'⚠ Max exceeds 15 s' if total_durations and max(total_durations) > 15000 else '✓'} |",
     "",
     "## Run Summary Table",
     "",
@@ -408,10 +469,13 @@ FULL_PROMPT="${CONTEXT_CONTENT}
 
 ${QUESTION}"
 
+BOB_START=$(date +%s)
 bob run \
   --mode "${BOB_MODE}" \
   --accept-license \
   "${FULL_PROMPT}" | tee -a "${EXPORT_FILE}"
+BOB_END=$(date +%s)
+BOB_ELAPSED=$(( BOB_END - BOB_START ))
 
 # ── Step 3b: Clean the exported file ──────────────────────────────────────────
 python3 - "${EXPORT_FILE}" <<'PYEOF'
@@ -420,15 +484,124 @@ import sys, re
 with open(sys.argv[1]) as f:
     raw = f.read()
 
+# ── 1. Remove <thinking> blocks ───────────────────────────────────────────────
 clean = re.sub(r'<thinking>.*?</thinking>\n?', '', raw, flags=re.DOTALL)
+
+# ── 2. Remove [using tool …] lines and ---output--- fences ────────────────────
 clean = re.sub(r'\[using tool [^\]]+\]\n?', '', clean)
 clean = re.sub(r'---output---\n?', '', clean)
 
+# ── 3. Strip Bob's conversation-frame wrapper lines ───────────────────────────
+clean = re.sub(r'^[─\-]{10,}\n', '', clean, flags=re.MULTILINE)
+clean = re.sub(r'^(?:User|Assistant)\s*\(\d+\)[^\n]*\n', '', clean, flags=re.MULTILINE)
+
+# ── 4. Strip trailing whitespace on every line (terminal padding) ─────────────
+clean = re.sub(r'[ \t]+$', '', clean, flags=re.MULTILINE)
+
+# ── 5. Convert Unicode box-drawing tables to GFM pipe tables ──────────────────
+BOX_CHARS = '┌┬┐├┼┤└┴┘─'
+
+def is_box_border(line):
+    stripped = line.strip()
+    return bool(stripped) and all(c in BOX_CHARS for c in stripped)
+
+def box_row_to_gfm(line):
+    parts = line.split('│')
+    cells = [p.strip() for p in parts[1:-1]]
+    return '| ' + ' | '.join(cells) + ' |'
+
+lines = clean.splitlines()
+out = []
+i = 0
+while i < len(lines):
+    line = lines[i]
+    stripped = line.strip()
+
+    if is_box_border(stripped):
+        i += 1
+        continue
+
+    if stripped.startswith('│'):
+        raw_rows = []
+        while i < len(lines) and (lines[i].strip().startswith('│') or is_box_border(lines[i].strip())):
+            if not is_box_border(lines[i].strip()):
+                raw_rows.append(lines[i])
+            i += 1
+        def col_count_of(row):
+            return len(row.split('│')) - 2
+        if raw_rows and all(col_count_of(r) == 1 for r in raw_rows):
+            for r in raw_rows:
+                cell = r.split('│')[1].strip()
+                if cell:
+                    out.append('> ' + cell)
+        else:
+            table_rows = [box_row_to_gfm(r) for r in raw_rows]
+            if len(table_rows) >= 2:
+                n_cols = table_rows[0].count('|') - 1
+                separator = '|' + '---|' * n_cols
+                table_rows.insert(1, separator)
+            out.extend(table_rows)
+        continue
+
+    out.append(line)
+    i += 1
+
+clean = '\n'.join(out)
+
+# ── 6. Convert ────… horizontal rules to Markdown --- ────────────────────────
+clean = re.sub(r'^[─]{4,}\s*$', '---', clean, flags=re.MULTILINE)
+
+# ── 7. Promote bare section titles to ### headings ────────────────────────────
+def promote_bare_headings(text):
+    result = []
+    lines = text.splitlines()
+    n = len(lines)
+    for idx, line in enumerate(lines):
+        prev_blank = (idx == 0) or (lines[idx-1].strip() == '')
+        next_blank = (idx == n-1) or (lines[idx+1].strip() == '')
+        s = line.strip()
+        is_candidate = (
+            s
+            and not line.startswith('#')
+            and not line.startswith('|')
+            and not line.startswith('-')
+            and not line.startswith('*')
+            and not line.startswith('`')
+            and not line.startswith('>')
+            and not line.startswith('  ')
+            and prev_blank
+            and next_blank
+            and not s.endswith('.')
+            and not s.endswith(',')
+            and not s.endswith(':')
+            and s not in ('---', '–––', '===')
+            and any(c.isalpha() for c in s)
+            and len(s) <= 60
+        )
+        if is_candidate:
+            result.append('### ' + s)
+        else:
+            result.append(line)
+    return '\n'.join(result)
+
+clean = promote_bare_headings(clean)
+
+# ── 8. Remove echoed prompt context block before Bob's answer ────────────────
+clean = re.sub(
+    r'(---\n)\n.*?(?=(?:###\s*1\.|# Agent Session Analytics Report))',
+    r'\1\n',
+    clean,
+    count=1,
+    flags=re.DOTALL,
+)
+
+# ── 9. De-duplicate repeated report body ─────────────────────────────────────
 marker = '# Agent Session Analytics Report'
 parts = clean.split(marker)
 if len(parts) > 2:
     clean = parts[0].rstrip() + '\n\n' + marker + parts[-1]
 
+# ── 10. Collapse runs of 3+ blank lines to 2 ─────────────────────────────────
 clean = re.sub(r'\n{3,}', '\n\n', clean)
 
 with open(sys.argv[1], 'w') as f:
@@ -436,6 +609,22 @@ with open(sys.argv[1], 'w') as f:
 
 print(f"Cleaned: {sys.argv[1]}")
 PYEOF
+
+# ── Append Bob CLI cost section ────────────────────────────────────────────────
+cat >> "${EXPORT_FILE}" <<COST_SECTION
+
+---
+
+## IBM Bob CLI Usage
+
+| Field | Value |
+|---|---|
+| Bob mode | ${BOB_MODE} |
+| Bob CLI wall-clock time | ${BOB_ELAPSED} s |
+| Prompt size (chars) | $(echo -n "${FULL_PROMPT}" | wc -c | tr -d ' ') |
+| Note | Token cost depends on the LLM backing the Bob CLI. Set \`BOB_API_KEY\` to your IBM Cloud API key. Monitor actual token spend in your IBM Cloud account under the watsonx model you configured. |
+
+COST_SECTION
 
 # ── Footer ─────────────────────────────────────────────────────────────────────
 echo ""
@@ -446,4 +635,5 @@ echo -e "${GREEN}Runs         : ${TRACE_COUNT}${NC}"
 echo -e "${GREEN}Traces file  : ${TRACES_FILE}${NC}"
 echo -e "${GREEN}Langfuse     : ${LANGFUSE_URL}${NC}"
 echo -e "${GREEN}Bob mode     : ${BOB_MODE}${NC}"
+echo -e "${GREEN}Bob time     : ${BOB_ELAPSED} s${NC}"
 echo -e "${GREEN}Report       : ${EXPORT_FILE}${NC}"

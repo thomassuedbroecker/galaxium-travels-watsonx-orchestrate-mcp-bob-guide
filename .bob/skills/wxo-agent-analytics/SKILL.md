@@ -104,9 +104,10 @@ wxo_bob_agent_analytics.sh
 │            → captures run_id, thread_id, trace_id, final response
 ├─ Step 4 ── Wait 5s, export trace           (Langfuse /api/public/traces + observations)
 │            → trace_<ts>.json
-│            → analytics_context_<ts>.md
+│            → analytics_context_<ts>.md     (Production-Hardening Signals table
+│                                             + trace table + JSON excerpt)
 └─ Step 5 ── bob run --mode ask "<context+question>"
-             → BOB_AGENT_ANALYTICS_REPORT_<ts>.md
+             → BOB_AGENT_ANALYTICS_REPORT_<ts>.md  (clean GFM + IBM Bob CLI Usage)
 ```
 
 Outputs land in `watsonx-orchestrate-adk/agent-analytics/`.
@@ -158,10 +159,11 @@ wxo_bob_session_analytics.sh
 │            Fetch observations for each matched trace
 │            → session_traces_<ts>.json
 ├─ Step 2 ── Build consolidated context document
-│            Run summary table + per-run observation tables + JSON excerpts
+│            Production-Hardening Signals (min/avg/max latency across all runs)
+│            + run summary table + per-run observation tables + JSON excerpts
 │            → session_context_<ts>.md
 └─ Step 3 ── bob run --mode ask "<context+question>"
-             → BOB_SESSION_ANALYTICS_REPORT_<ts>.md
+             → BOB_SESSION_ANALYTICS_REPORT_<ts>.md  (clean GFM + IBM Bob CLI Usage)
 ```
 
 ---
@@ -179,7 +181,9 @@ After `execute_command` completes, read and summarise the report with `read_file
 | LLM Call Details | Model, token counts, system prompt in use |
 | Tool Calls | Any tools invoked (names, latency, success/failure) |
 | LangGraph Flow | Node sequence from trace metadata |
+| Production-Hardening Checks | `service.name` set?, `ls_provider` adapter label, LLM/total latency vs thresholds |
 | Verdict | Pass/fail per health criterion |
+| IBM Bob CLI Usage | Wall-clock time, prompt size, cost note |
 
 **Session report (`BOB_SESSION_ANALYTICS_REPORT_<ts>.md`):**
 
@@ -189,7 +193,9 @@ After `execute_command` completes, read and summarise the report with `read_file
 | Run-by-run Table | Trace ID, duration, status, response snippet per run |
 | Behaviour Patterns | Consistency, tool usage variation, latency trends |
 | Errors or Anomalies | Failed runs, latency outliers, unexpected observations |
+| Production-Hardening Checks | `service.name`, `ls_provider`, min/avg/max LLM and total latency across all runs |
 | Recommendation | Is the agent behaving correctly and consistently? |
+| IBM Bob CLI Usage | Wall-clock time, prompt size, cost note |
 
 Always surface the **Langfuse UI deep-link** from the report header so the user
 can click through to inspect raw spans:
@@ -216,6 +222,12 @@ After presenting the report, offer concrete next actions based on findings:
   against the system prompt captured in the trace.
 - **Regression after a config change** → run Script B with `--from <before-change>`
   and `--to <after-change>` spanning the change window.
+- **`service.name` NOT SET** → advise setting it in the OpenTelemetry SDK resource
+  config: `Resource.create({SERVICE_NAME: "wxo-agent-runtime"})`. Without it,
+  traces cannot be filtered by service in multi-agent Langfuse dashboards.
+- **`ls_provider = openai`** → this is the watsonx-via-OpenAI-adapter label.
+  Advise adding a custom `actual_provider: watsonx` span attribute so dashboards
+  and cost/reliability alerts correctly attribute traces to watsonx, not OpenAI.
 
 ---
 

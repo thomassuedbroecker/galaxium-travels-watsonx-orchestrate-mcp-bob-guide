@@ -491,9 +491,25 @@ ${QUESTION}" | tee -a BOB_ANALYSIS_REPORT.md
 ```
 
 Bob's response is streamed to the terminal live and simultaneously written to
-`<session-dir>/BOB_ANALYSIS_REPORT.md`. The file is prefixed with a metadata
-header (session ID, Bob mode, context file, timestamp) so it stands alone as a
-readable report.
+`<session-dir>/BOB_ANALYSIS_REPORT.md`.
+
+The exported file is clean, valid Markdown — suitable for Typora or any other
+Markdown reader. A post-processing step runs automatically after `bob run`
+completes and converts the raw terminal output into proper GFM:
+
+| Transform | What it does |
+|---|---|
+| Bob conversation frame | Strips `User (N) …` / `Assistant (N) …` timestamp lines and `────…` separator lines |
+| Terminal padding | Removes trailing whitespace from every line |
+| Box-drawing tables | Converts Unicode `┌─┬─┐ │ ├─┼─┤ └─┴─┘` tables to GFM `\| col \| col \|` pipe tables |
+| Single-column blocks | Converts `│ prose │` blocks to `> blockquote` |
+| Horizontal rules | Converts `────…` lines to `---` |
+| Bare section titles | Promotes standalone short lines to `### heading` |
+| Echoed prompt | Strips the prompt echo that Bob prefixes before its answer |
+
+The file is prefixed with a metadata header (session ID, Bob mode, context file,
+timestamp) and ends with an **IBM Bob CLI Usage** section (wall-clock time, prompt
+size, cost note).
 
 Options:
 
@@ -515,8 +531,8 @@ Options:
 |---|---|---|
 | `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all 25 containers via `limactl` |
 | `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview + `ANALYSIS_REPORT.md` + `SUMMARY_BY_BOB.md` |
-| `wxo_bob_log_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary**: chains analyse + passes summary to `bob run` + exports `BOB_ANALYSIS_REPORT.md` |
-| `BOB_ANALYSIS_REPORT.md` | `<session-dir>/` (generated) | Exported Bob analysis — metadata header + Bob's full response |
+| `wxo_bob_log_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary**: chains analyse + passes summary to `bob run` + exports clean GFM `BOB_ANALYSIS_REPORT.md` |
+| `BOB_ANALYSIS_REPORT.md` | `<session-dir>/` (generated) | Clean GFM report — metadata header + Bob's analysis + IBM Bob CLI Usage section |
 | `.bob/skills/wxo-log-inspector/SKILL.md` | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — `wxo_bob_log_inspect.sh` reference + options |
 
 ---
