@@ -1,4 +1,4 @@
-# 6. Inspect Agent Analytics With IBM Bob
+# 7. Inspect Agent Analytics With IBM Bob
 
 This guide shows two ways to analyse `watsonx Orchestrate` agent behaviour using
 the local **Langfuse** observability backend and **IBM Bob**:
@@ -14,7 +14,7 @@ is saved as a Markdown file you can read, share, or commit.
 
 ---
 
-## 6.1 What Is Agent Analytics?
+## 7.1 What Is Agent Analytics?
 
 `watsonx Orchestrate` provides LLM observability through a native integration with
 [**Langfuse**](https://langfuse.com/) — an open-source analytics platform.
@@ -33,7 +33,7 @@ Reference: [Monitoring your LLMs with Langfuse](https://developer.watson-orchest
 
 ---
 
-## 6.2 Prerequisites
+## 7.2 Prerequisites
 
 > **If you already ran `wxo_local_start.sh`, all prerequisites are satisfied — skip to §6.3.**
 
@@ -49,7 +49,7 @@ Reference: [Monitoring your LLMs with Langfuse](https://developer.watson-orchest
 
 ---
 
-## 6.3 One-Time Setup
+## 7.3 One-Time Setup
 
 ### Step 1 — Copy the env template
 
@@ -99,7 +99,7 @@ bash wxo_local_start.sh
 
 ---
 
-## 6.4 The Agent Under Test
+## 7.4 The Agent Under Test
 
 [`agents/agent_hello_world.yaml`](./watsonx-orchestrate-adk/agents/agent_hello_world.yaml)
 is the minimal smoke-test agent imported by `wxo_local_start.sh`:
@@ -118,7 +118,7 @@ style: react_intrinsic
 
 ---
 
-## 6.5 Script A — Single-Run Analytics (`wxo_bob_agent_analytics.sh`)
+## 7.5 Script A — Single-Run Analytics (`wxo_bob_agent_analytics.sh`)
 
 Use this script when you want to **trigger a new test message** against the agent,
 capture the resulting trace, and immediately ask Bob to analyse it.
@@ -411,7 +411,7 @@ bash wxo_bob_agent_analytics.sh \
 
 ---
 
-## 6.6 Script B — Session Analytics (`wxo_bob_session_analytics.sh`)
+## 7.6 Script B — Session Analytics (`wxo_bob_session_analytics.sh`)
 
 Use this script when you want to **inspect how an agent behaved across multiple
 past runs** within a time window — without triggering any new run. It queries
@@ -620,7 +620,7 @@ bash wxo_bob_session_analytics.sh \
 
 ---
 
-## 6.7 Choosing The Right Script
+## 7.7 Choosing The Right Script
 
 | Situation | Use |
 |---|---|
@@ -632,7 +632,7 @@ bash wxo_bob_session_analytics.sh \
 
 ---
 
-## 6.8 All Artifacts In This Guide
+## 7.8 All Artifacts In This Guide
 
 | Artifact | Location | Purpose |
 |---|---|---|

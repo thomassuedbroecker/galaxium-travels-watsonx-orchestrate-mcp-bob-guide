@@ -107,10 +107,10 @@ cd <your-repo-name>
 2. [Manually Verify The Basic Auth MCP Server](./2-galaxium_manual_basic_auth_mcp_verification.md)
 3. [Set Up The `watsonx Orchestrate` ADK](./3-watsonx-orchestrate-adk-setup.md)
 4. [Add The Basic Auth MCP Server To `watsonx Orchestrate`](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md)
-5. [Inspect The `watsonx Orchestrate` Server Logs](./5-watsonx-server-inspection.md)
-6. [Inspect Agent Analytics With IBM Bob](./6-watsonx-agent-analytics.md) — single-run and session-window trace analysis using `wxo_bob_agent_analytics.sh` and `wxo_bob_session_analytics.sh`
-7. [Configure IBM Bob For This Repository](./9-bob-configuration.md)
-8. [Prompts for using IBM Bob](./10-bob-prompts.md) to start to build a watsonx Orchestrate agent and more, using IBM Bob.
+5. [Configure IBM Bob For This Repository](./5-bob-configuration.md)
+6. [Inspect The `watsonx Orchestrate` Server Logs](./6-watsonx-server-inspection.md)
+7. [Inspect Agent Analytics With IBM Bob](./7-watsonx-agent-analytics.md) — single-run and session-window trace analysis using `wxo_bob_agent_analytics.sh` and `wxo_bob_session_analytics.sh`
+8. [Prompts for using IBM Bob](./8-bob-prompts.md) to start to build a watsonx Orchestrate agent and more, using IBM Bob.
 9. [Inspect The watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) — a Flask + D3.js dashboard generated with IBM Bob that visualizes agent and tool dependencies as an interactive force-directed diagram.
 
 ## Repository Layout
@@ -123,17 +123,18 @@ The current top-level structure is:
 │   ├── mcp.json
 │   └── skills/
 │       ├── watsonx-orchestrate/    ← ADK skill
-│       ├── wxo-log-inspector/      ← log-inspection skill (guide 5)
-│       └── wxo-agent-analytics/    ← agent analytics skill (guide 6)
+│       ├── wxo-log-inspector/      ← log-inspection skill (guide 6)
+│       └── wxo-agent-analytics/    ← agent analytics skill (guide 7)
 ├── .bobignore
 ├── .bobrules
 ├── 1-galaxium_setup.md
 ├── 2-galaxium_manual_basic_auth_mcp_verification.md
 ├── 3-watsonx-orchestrate-adk-setup.md
 ├── 4-watsonx-orchestrate-adk-add-basic-auth-mcp.md
-├── 5-watsonx-server-inspection.md
-├── 9-bob-configuration.md
-├── 10-bob-prompts.md
+├── 5-bob-configuration.md
+├── 6-watsonx-server-inspection.md
+├── 7-watsonx-agent-analytics.md
+├── 8-bob-prompts.md
 ├── AGENTS.md
 ├── README.md
 ├── architecture
@@ -154,7 +155,7 @@ The current top-level structure is:
 
 ## Important Folders And Files
 
-- `.bob/` contains the Bob MCP server configuration (`mcp.json`), custom mode (`custom_modes.yaml`), and three skills: `watsonx-orchestrate` (ADK reference), `wxo-log-inspector` (log-inspection pipeline, guide `5`), and `wxo-agent-analytics` (Langfuse trace analysis for single runs and session windows, guide `6`).
+- `.bob/` contains the Bob MCP server configuration (`mcp.json`), custom mode (`custom_modes.yaml`), and three skills: `watsonx-orchestrate` (ADK reference), `wxo-log-inspector` (log-inspection pipeline, guide `6`), and `wxo-agent-analytics` (Langfuse trace analysis for single runs and session windows, guide `7`).
 - `.bobrules/` contains Bob project rules.
 - `.bobignore` exists in the repository and is currently empty.
 - `AGENTS.md` contains repository-level team standards for agent work.
@@ -163,7 +164,7 @@ The current top-level structure is:
 - `images/` contains the YouTube preview image `youtube-01.jpg` and screenshots/GIFs of the running setup, including `watsonx_orchestrate_custom_explorer_01.gif`.
 - `infrastructure/` is the folder where you can place the external Galaxium Travels infrastructure repository.
 - `prompts/` contains the prepared Bob prompt. The current file is `prepared-initial-prompt-for-bob.md`.
-- `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`. Key scripts: `wxo_bob_log_inspect.sh` (server log analysis, guide `5`), `wxo_bob_agent_analytics.sh` (single-run agent trace analysis, guide `6`), and `wxo_bob_session_analytics.sh` (time-window session analysis across multiple runs, guide `6`). All three pass a context document to `bob run` for AI analysis and export a Markdown report.
+- `watsonx-orchestrate-adk/` contains the local environment template and helper scripts for `watsonx Orchestrate`. Key scripts: `wxo_bob_log_inspect.sh` (server log analysis, guide `6`), `wxo_bob_agent_analytics.sh` (single-run agent trace analysis, guide `7`), and `wxo_bob_session_analytics.sh` (time-window session analysis across multiple runs, guide `7`). All three pass a context document to `bob run` for AI analysis and export a Markdown report.
 - `watsonx-orchestrate-mcp-server/` contains the local MCP server helper script and a short README.
 - `watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/` contains a Flask + D3.js single-page application generated with IBM Bob. It connects to the watsonx Orchestrate MCP server and displays agents, tools, toolkits, and connections as an interactive force-directed diagram. See the [explorer README](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) for setup and usage details.
 
@@ -172,7 +173,7 @@ The current top-level structure is:
 - The numbered Markdown files are the main guide.
 - The `architecture/` folder stores the editable Draw.io source for the infrastructure view.
 - The `infrastructure/` folder is used together with the separate Galaxium Travels infrastructure repository.
-- The `watsonx-orchestrate-adk/` folder helps you run local `watsonx Orchestrate Developer Edition` and contains the log-inspection pipeline (`wxo_server_log_inspector.sh` → `wxo_server_log_analyze.sh` → `wxo_bob_log_inspect.sh`) described in guide `5`. The final step exports Bob's analysis as `BOB_ANALYSIS_REPORT.md` alongside the other session files.
+- The `watsonx-orchestrate-adk/` folder helps you run local `watsonx Orchestrate Developer Edition` and contains the log-inspection pipeline (`wxo_server_log_inspector.sh` → `wxo_server_log_analyze.sh` → `wxo_bob_log_inspect.sh`) described in guide `6`. The final step exports Bob's analysis as `BOB_ANALYSIS_REPORT.md` alongside the other session files.
 - The `.bob`, `.bobignore`, `.bobrules`, and `AGENTS.md` files configure how IBM Bob should work in this repository.
 - The `prompts/` folder contains prompt text you can use with Bob when building the Galaxium booking agent.
 - The `watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/` application was generated with IBM Bob using the watsonx Orchestrate MCP server. It provides a diagram-based dashboard to explore dependencies between agents and tools and navigate to them directly. See the [explorer README](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) for full setup instructions.
@@ -184,10 +185,10 @@ The current top-level structure is:
 3. If you want to test the Basic Auth MCP server directly, follow [2-galaxium_manual_basic_auth_mcp_verification.md](./2-galaxium_manual_basic_auth_mcp_verification.md).
 4. Follow [3-watsonx-orchestrate-adk-setup.md](./3-watsonx-orchestrate-adk-setup.md) to start the local `watsonx Orchestrate` environment.
 5. Follow [4-watsonx-orchestrate-adk-add-basic-auth-mcp.md](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) to import the Basic Auth MCP server.
-6. Follow [5-watsonx-server-inspection.md](./5-watsonx-server-inspection.md) to capture and analyse server logs during a test run.
-7. Follow [6-watsonx-agent-analytics.md](./6-watsonx-agent-analytics.md) to inspect agent behaviour via Langfuse traces and IBM Bob analysis.
-8. Follow [9-bob-configuration.md](./9-bob-configuration.md) to use the IBM Bob configuration in this repository.
-9. Use [Bob prompts](./10-bob-prompts.md) when you want Bob to start building the Galaxium booking agent.
+6. Follow [5-bob-configuration.md](./5-bob-configuration.md) to use the IBM Bob configuration in this repository.
+7. Follow [6-watsonx-server-inspection.md](./6-watsonx-server-inspection.md) to capture and analyse server logs during a test run.
+8. Follow [7-watsonx-agent-analytics.md](./7-watsonx-agent-analytics.md) to inspect agent behaviour via Langfuse traces and IBM Bob analysis.
+9. Use [Bob prompts](./8-bob-prompts.md) when you want Bob to start building the Galaxium booking agent.
 10. Inspect the [watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) to visualize your agents, tools, toolkits, and connections as an interactive diagram.
 
 ## Open-Source Dependencies

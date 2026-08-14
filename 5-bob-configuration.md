@@ -1,4 +1,4 @@
-# 9. Configure IBM Bob For This Repository
+# 5. Configure IBM Bob For This Repository
 
 This repository already contains the Bob-related project files needed for the
 local workflow.
@@ -14,7 +14,7 @@ The repository also contains one Bob support folder:
 
 - `bob-modes-exports/`
 
-## 9.1 Current Bob-Related Structure
+## 5.1 Current Bob-Related Structure
 
 The current Bob-related files in this repository are:
 
@@ -51,7 +51,7 @@ bob-modes-exports/
 └── README.md
 ```
 
-## 9.2 Active Bob Configuration Files
+## 5.2 Active Bob Configuration Files
 
 For day-to-day Bob usage in this repository, the active files are:
 
@@ -67,7 +67,7 @@ The `bob-modes-exports/` folder is only support material in the repository. It
 is not part of the main active Bob configuration used by the project-local Bob
 setup.
 
-## 9.3 The `.bob/mcp.json` File
+## 5.3 The `.bob/mcp.json` File
 
 The file `.bob/mcp.json` currently configures four MCP server entries:
 
@@ -140,7 +140,7 @@ On macOS you can inspect the Wi-Fi IP with:
 ipconfig getifaddr en0
 ```
 
-## 9.4 The `.bob/custom_modes.yaml` File
+## 5.4 The `.bob/custom_modes.yaml` File
 
 The file `.bob/custom_modes.yaml` defines one custom Bob mode:
 
@@ -179,10 +179,13 @@ The current custom instructions tell Bob to:
 - align recommendations with real development tasks in the Galaxium Travels repository
 - use the `Galaxium Travels watsonx Orchestrate Customization Developer` skill when relevant
 
-## 9.5 The Skill In `.bob/skills`
+## 5.5 The Skills In `.bob/skills`
 
-The folder `.bob/skills` currently contains the **`watsonx-orchestrate`** skill
-in `.bob/skills/watsonx-orchestrate/`:
+The folder `.bob/skills` currently contains three skills:
+
+### `watsonx-orchestrate`
+
+Location: `.bob/skills/watsonx-orchestrate/`
 
 - `SKILL.md` — the main skill definition activated when watsonx Orchestrate
   topics are relevant
@@ -206,7 +209,27 @@ The skill covers: building, importing, testing, debugging, and publishing IBM
 watsonx Orchestrate agents, tools, flows, toolkits (MCP), connections, models,
 and knowledge bases using the ADK and the `orchestrate` CLI.
 
-## 9.6 The `.bobrules` Folder
+### `wxo-log-inspector`
+
+Location: `.bob/skills/wxo-log-inspector/`
+
+- `SKILL.md` — the skill definition for the server log inspection pipeline
+
+Used in guide `6` to run the structured log analysis via `bob run`. The skill
+provides Bob with instructions for interpreting captured container logs and
+producing the `BOB_ANALYSIS_REPORT.md`.
+
+### `wxo-agent-analytics`
+
+Location: `.bob/skills/wxo-agent-analytics/`
+
+- `SKILL.md` — the skill definition for Langfuse trace analysis
+
+Used in guide `7` to analyse single-run and session-window Langfuse traces via
+`bob run`. The skill guides Bob through evaluating agent trace data exported by
+`wxo_bob_agent_analytics.sh` and `wxo_bob_session_analytics.sh`.
+
+## 5.6 The `.bobrules` Folder
 
 The `.bobrules` folder currently contains two rule areas:
 
@@ -233,11 +256,11 @@ currently contains two rules:
 > `llm: watsonx/meta-llama/llama-3-3-70b-instruct` for the agent
 > configuration.
 
-## 9.7 The `.bobignore` File
+## 5.7 The `.bobignore` File
 
 The file `.bobignore` exists in the repository, but it is currently empty.
 
-## 9.8 The `AGENTS.md` File
+## 5.8 The `AGENTS.md` File
 
 The file `AGENTS.md` adds repository-level team standards for agent-based work.
 
@@ -250,7 +273,7 @@ The current file states these main rules:
 
 These instructions complement the `.bob` and `.bobrules` files.
 
-## 9.9 Export Support Files
+## 5.9 Export Support Files
 
 The repository also contains Bob-related support material outside the main
 active configuration.
@@ -264,7 +287,7 @@ This folder currently contains:
 At the moment this folder is only a placeholder location for Bob mode exports.
 No exported mode YAML file is currently checked into the repository.
 
-## 9.10 Basic Auth Header Used In The Repository
+## 5.10 Basic Auth Header Used In The Repository
 
 The current `booking-mcp` entry uses this Basic Auth value:
 
@@ -286,7 +309,7 @@ BASIC_TOKEN="$(printf '%s' "${BASIC_AUTH_USERNAME}:${BASIC_AUTH_PASSWORD}" | bas
 echo "${BASIC_TOKEN}"
 ```
 
-## 9.11 Summary
+## 5.11 Summary
 
 The Bob-related repository content is currently organized like this:
 

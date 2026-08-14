@@ -1,4 +1,4 @@
-# 5. Inspect The `watsonx Orchestrate` Server Logs
+# 6. Inspect The `watsonx Orchestrate` Server Logs
 
 Use this guide to capture, analyse, and inspect the container logs produced by a
 running `watsonx Orchestrate Developer Edition` server. Three automation scripts
@@ -18,7 +18,7 @@ start the inspector.
 
 ---
 
-## 5.1 Prerequisites
+## 6.1 Prerequisites
 
 | Requirement | Notes |
 |---|---|
@@ -42,7 +42,7 @@ start the inspector.
 
 ---
 
-## 5.2 Step 1 — Activate The Virtual Environment And Set BOB_API_KEY
+## 6.2 Step 1 — Activate The Virtual Environment And Set BOB_API_KEY
 
 Before running either script, activate the virtual environment so the
 `orchestrate` command is available:
@@ -65,7 +65,7 @@ cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
 
 ---
 
-## 5.3 Step 2 — Start The Log Inspector
+## 6.3 Step 2 — Start The Log Inspector
 
 > **This script runs continuously until you press `Ctrl-C`.**
 > Open it in a **dedicated terminal** and leave it running while you use the
@@ -234,7 +234,7 @@ watsonx-orchestrate-adk/
 
 ---
 
-## 5.4 Step 3 — Analyse The Captured Logs
+## 6.4 Step 3 — Analyse The Captured Logs
 
 Run the analyser in any terminal after the inspector has stopped (or even
 while it is still running — the files are valid at any point):
@@ -280,7 +280,7 @@ Options:
 
 ---
 
-## 5.5 Sessions Overview — Reading The Output
+## 6.5 Sessions Overview — Reading The Output
 
 The analyser prints a colour-coded summary table to the terminal:
 
@@ -317,7 +317,7 @@ After the table, each container's detail section shows:
 
 ---
 
-## 5.6 The Markdown Report
+## 6.6 The Markdown Report
 
 After the terminal output, the analyser writes `ANALYSIS_REPORT.md` into the
 session directory:
@@ -340,13 +340,13 @@ The report contains:
 - Per-container sections with errors, warnings, session/`thread_id` references,
   top tokens, and a log tail
 
-This file is the handover point for **Step 4** (section 5.9): `wxo_bob_log_inspect.sh`
+This file is the handover point for **Step 4** (section 6.9): `wxo_bob_log_inspect.sh`
 extracts the summary section and passes it to `bob run` for a structured health
 verdict — directly from the terminal, no agent deployment needed.
 
 ---
 
-## 5.7 Exit Codes
+## 6.7 Exit Codes
 
 The analyser exits with a code that reflects the overall log health — useful
 when running it inside a CI pipeline or as part of a test suite:
@@ -359,7 +359,7 @@ when running it inside a CI pipeline or as part of a test suite:
 
 ---
 
-## 5.8 Running Both Scripts Together During A Test Run
+## 6.8 Running Both Scripts Together During A Test Run
 
 The recommended workflow is two terminals side by side:
 
@@ -386,7 +386,7 @@ bash wxo_server_log_analyze.sh
 
 ---
 
-## 5.9 Step 4 — Structured Analysis Via IBM Bob CLI
+## 6.9 Step 4 — Structured Analysis Via IBM Bob CLI
 
 After capturing logs and generating `ANALYSIS_REPORT.md`, ask IBM Bob to inspect
 and explain them. Bob reads the bash output and the report directly — no watsonx
@@ -525,7 +525,7 @@ Options:
 
 ---
 
-## 5.10 All Artifacts In This Guide
+## 6.10 All Artifacts In This Guide
 
 | Artifact | Location | Purpose |
 |---|---|---|
