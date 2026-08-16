@@ -9,12 +9,12 @@ drive the full pipeline:
 |---|---|
 | [`wxo_server_log_inspector.sh`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Discovers all running containers and streams their logs in parallel to timestamped files |
 | [`wxo_server_log_analyze.sh`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Reads the captured files, produces a Sessions Overview, and writes `ANALYSIS_REPORT.md` |
-| [`wxo_bob_log_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | Chains analysis + IBM Bob CLI in one command: passes the report summary to `bob run` for a structured verdict |
-| [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — drives the full pipeline interactively from the terminal |
+| [`wxo_bob_log_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary command** — chains capture + analysis + IBM Bob CLI in one command |
+| [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — drives the full pipeline interactively from IBM Bob |
 
 Run all commands from the **`watsonx-orchestrate-adk/`** directory unless a block
 says otherwise. The Developer Edition must be running (see guide `3`) before you
-start the inspector.
+start.
 
 ---
 
@@ -52,7 +52,7 @@ cd watsonx-orchestrate-adk
 source .venv/bin/activate
 ```
 
-`bob run` (used in §5.9) requires `BOB_API_KEY` for headless use. Set it in
+`bob run` requires `BOB_API_KEY` for headless use. Set it in
 `watsonx-orchestrate-adk/.env` before running `wxo_bob_log_inspect.sh`:
 
 ```sh
@@ -65,124 +65,114 @@ cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
 
 ---
 
-## 6.3 Step 2 — Start The Log Inspector
+## 6.3 Step 2 — Capture The Logs
 
-> **This script runs continuously until you press `Ctrl-C`.**
-> Open it in a **dedicated terminal** and leave it running while you use the
-> server. When you are done with your session, switch back to this terminal
-> and press `Ctrl-C` to stop the capture and see the summary.
+> **Choose the right capture mode before running anything.**
+>
+> `wxo_server_log_inspector.sh` is a continuous `--follow` stream — it does **not**
+> stop by itself. It must be stopped with `Ctrl-C` or killed externally.
+> For exercises and scripted pipelines use `wxo_bob_log_inspect.sh --capture`
+> instead — it wraps the inspector with an automatic timeout so you never need to
+> manage a second terminal or press `Ctrl-C`.
 
-### Capture all containers (default)
+| Mode | Command | Stops itself? | Use when |
+|---|---|---|---|
+| **Timed capture** ✅ recommended | `bash wxo_bob_log_inspect.sh --capture --capture-seconds 60` | Yes — after N seconds | Exercises, scripted pipelines, one-shot health checks |
+| **Open-ended capture** | `bash wxo_server_log_inspector.sh` (dedicated terminal) | No — press `Ctrl-C` | You want logs from an entire interactive session of unknown length |
+
+### Timed capture — stops automatically (recommended)
+
+This single command captures logs for 60 seconds, stops the capture automatically,
+runs the analyser, and passes the result directly to IBM Bob:
+
+```sh
+cd watsonx-orchestrate-adk
+source .venv/bin/activate
+bash wxo_bob_log_inspect.sh \
+  --capture \
+  --capture-seconds 60
+```
+
+Internally the script:
+1. Starts `wxo_server_log_inspector.sh` as a background process
+2. Waits exactly `--capture-seconds` seconds
+3. Kills the background process — log files are now written to `./server-logs/YYYYMMDD_HHMMSS/`
+4. Runs `wxo_server_log_analyze.sh` over the new session
+5. Passes the summary to `bob run`
+
+A new timestamped session directory is created every time — nothing from a
+previous run is reused.
+
+### What you will see in the terminal
+
+```
+════════════════════════════════════════
+  Step 1 — Capturing logs for 60s
+════════════════════════════════════════
+Starting wxo_server_log_inspector.sh in background...
+Capturing... (60s)
+[dev-edition-wxo-server-1] {"time": "...", "level": "INFO", ...}
+[dev-edition-ui-1]         {"time": "...", ...}
+...
+Stopping capture (PID 12345)...
+Capture complete.
+
+════════════════════════════════════════
+  Step 2 — Resolving session
+════════════════════════════════════════
+Session:   20260816_162515
+Directory: ./server-logs/20260816_162515
+
+════════════════════════════════════════
+  Step 3 — Pre-analysis (wxo_server_log_analyze.sh)
+════════════════════════════════════════
+...
+
+════════════════════════════════════════
+  Step 4 — IBM Bob CLI analysis (mode: ask)
+════════════════════════════════════════
+Building prompt → bob run --mode "ask" "<context+question>"
+Output → terminal + ./server-logs/20260816_162515/BOB_ANALYSIS_REPORT.md
+
+[Bob streams analysis here...]
+```
+
+### Open-ended capture — dedicated terminal (interactive sessions)
+
+Use this mode when you want to capture logs across an entire interactive session
+of unknown length — for example while you manually test an agent through the UI.
+
+Open a **dedicated terminal** and leave it running while you work:
 
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
 bash wxo_server_log_inspector.sh
-# ↑ this runs until you press Ctrl-C in this terminal
+# ↑ keep this running — press Ctrl-C once when tests are done
 ```
 
-The script does the following in order:
-
-1. **Locates the bundled `limactl`** binary inside the Python package — no
-   system-level Docker or limactl installation required.
-2. **Discovers containers** by running `docker ps` inside the Lima VM via
-   `limactl shell ibm-watsonx-orchestrate -- docker ps`.
-3. **Creates the session directory** under `./server-logs/YYYYMMDD_HHMMSS/` and
-   writes a `manifest.json` describing the session.
-4. **Starts one `limactl shell … -- docker logs --follow` stream per container**
-   in a background subshell, writing each to a dedicated `.log` file while
-   printing every line to the terminal prefixed with `[container-name]`.
-   > This bypasses the host Docker context entirely — the stream goes straight
-   > through the Lima VM socket, which is the only socket that sees the
-   > Developer Edition containers.
-5. **Prints a heartbeat line every 5 seconds** showing the current line count
-   per container — so you always see that capture is progressing.
-6. **When you press `Ctrl-C`** — stops all background subshells, prints a
-   per-container line-count summary, and prints the next command to run.
-
-### What you will see in the terminal
-
-After startup you will see the container list, then a continuous stream of log
-lines followed by a heartbeat every 5 seconds:
-
-```
-========================================
- Activating virtual environment
-
-========================================
- Locating bundled limactl
-Found limactl: .../.venv/.../developer_edition/resources/lima/bin/limactl
-
-========================================
- Discovering running watsonx Orchestrate containers
-Found 25 container(s):
-  • dev-edition-wxo-server-1
-  • dev-edition-ui-1
-  • dev-edition-wxo-server-worker-1
-  • dev-edition-langfuse-web-1
-  • dev-edition-langfuse-worker-1
-  • dev-edition-ai-gateway-1
-  • dev-edition-agent-runtime-1
-  • dev-edition-tools-runtime-1
-  • dev-edition-mcp-gateway-1
-  • dev-edition-wxo-agent-gateway-1
-  • dev-edition-wxo-builder-1
-  • dev-edition-wxo-agentic-memory-1
-  • dev-edition-wxo-tempus-runtime-1
-  • dev-edition-wxo-knowledge-mcp-server-1
-  • dev-edition-socket-handler-1
-  • dev-edition-wxo-server-connection-manager-1
-  • dev-edition-wxo-server-connections-ui-1
-  • dev-edition-wxo-server-db-1
-  • dev-edition-wxo-server-minio-1
-  • dev-edition-wxo-server-redis-1
-  • dev-edition-wxo-milvus-standalone-1
-  • dev-edition-wxo-milvus-etcd-1
-  • dev-edition-opensearch-1
-  • clickhouse
-  • dev-edition-tools-runtime-manager-1
-
-========================================
- Streaming logs in parallel — press Ctrl-C to stop
-
-[START] dev-edition-wxo-server-1 → ./server-logs/20250707_143022/dev-edition-wxo-server-1.log
-[START] dev-edition-ui-1         → ./server-logs/20250707_143022/dev-edition-ui-1.log
-...
-
-All streams started. Log lines appear below prefixed with [container-name].
-Press Ctrl-C to stop all streams and finalise the session.
-
-[dev-edition-wxo-server-1] 2025-07-07 14:30:23 INFO  server ready on :4321
-[dev-edition-ui-1]         2025-07-07 14:30:24 INFO  UI started on :3000
-[5s]  dev-edition-wxo-server-1:12  dev-edition-ui-1:4  dev-edition-ai-gateway-1:5
-[10s] dev-edition-wxo-server-1:24  dev-edition-ui-1:6  dev-edition-ai-gateway-1:9
-...
-```
-
-> **The heartbeat line** (`[5s]`, `[10s]`, …) tells you the script is alive and
-> shows how many lines have been written to each log file. If a container
-> produces no logs the count stays at zero — that is normal for quiet services.
-
-### Stop the inspector
-
-The script does **not stop by itself** — it keeps streaming as long as the server
-is running. When you have finished your tests or interactions, switch to this
-terminal and press **`Ctrl-C`**. The script stops all streams and prints a summary:
+The script discovers all containers, creates a session directory, and streams
+logs until you press `Ctrl-C`. A single press stops all streams cleanly and
+prints a per-container line-count summary:
 
 ```
 Stopping all log streams...
 
 ========================================
  Session summary
-  dev-edition-wxo-server-1:           312 lines → ./server-logs/20250707_143022/dev-edition-wxo-server-1.log
-  dev-edition-ui-1:                    48 lines → ./server-logs/20250707_143022/dev-edition-ui-1.log
-  dev-edition-langfuse-web-1:          21 lines → ./server-logs/20250707_143022/dev-edition-langfuse-web-1.log
-  dev-edition-ai-gateway-1:           104 lines → ./server-logs/20250707_143022/dev-edition-ai-gateway-1.log
+  dev-edition-wxo-server-1:  312 lines → ./server-logs/20260816_162515/dev-edition-wxo-server-1.log
+  dev-edition-ui-1:           48 lines → ./server-logs/20260816_162515/dev-edition-ui-1.log
   ...
 ========================================
-Session directory: ./server-logs/20250707_143022
-Manifest:          ./server-logs/20250707_143022/manifest.json
+Session directory: ./server-logs/20260816_162515
+Manifest:          ./server-logs/20260816_162515/manifest.json
 To analyse:        bash wxo_server_log_analyze.sh
+```
+
+When capture is done, run the analyser in a second terminal:
+
+```sh
+bash wxo_server_log_analyze.sh
 ```
 
 ### Capture a single container by name
@@ -191,21 +181,11 @@ To analyse:        bash wxo_server_log_analyze.sh
 bash wxo_server_log_inspector.sh --name dev-edition-wxo-server-1
 ```
 
-The named container must be currently running. If it is not, the script prints
-the list of running containers and exits.
-
-### Use a custom output directory
-
-```sh
-bash wxo_server_log_inspector.sh --log-dir /tmp/my-logs
-```
-
-### All options
+### All options for `wxo_server_log_inspector.sh`
 
 ```
 Options:
-  --env-file  -e   Path to a .env file (passed to orchestrate commands).
-                   Defaults to .env if present.
+  --env-file  -e   Path to a .env file. Defaults to .env if present.
   --log-dir   -d   Directory where captured log files are written.
                    Defaults to ./server-logs
   --name      -n   Capture a specific container by name instead of all.
@@ -214,12 +194,12 @@ Options:
 
 ### Output layout
 
-Each run creates a timestamped session directory:
+Each run creates a new timestamped session directory:
 
 ```
 watsonx-orchestrate-adk/
 └── server-logs/
-    └── 20250707_143022/
+    └── 20260816_162515/
         ├── manifest.json                              ← session metadata
         ├── dev-edition-wxo-server-1.log
         ├── dev-edition-ui-1.log
@@ -228,16 +208,12 @@ watsonx-orchestrate-adk/
         └── ...  (one .log per container)
 ```
 
-> **Tip:** The session timestamp (`YYYYMMDD_HHMMSS`) is used by the analyser
-> to locate the correct session. The most-recent session is selected automatically
-> if you do not pass `--session`.
-
 ---
 
 ## 6.4 Step 3 — Analyse The Captured Logs
 
-Run the analyser in any terminal after the inspector has stopped (or even
-while it is still running — the files are valid at any point):
+Run the analyser after capture has stopped (or while it is still running — the
+log files are valid at any point):
 
 ### Analyse the most recent session (default)
 
@@ -249,7 +225,7 @@ bash wxo_server_log_analyze.sh
 ### Analyse a specific session
 
 ```sh
-bash wxo_server_log_analyze.sh --session 20250707_143022
+bash wxo_server_log_analyze.sh --session 20260816_162515
 ```
 
 ### Change the number of tail lines shown per container
@@ -309,11 +285,13 @@ Row colour:
 | Yellow | Warnings only — no errors |
 | Green | Clean — no errors or warnings |
 
-After the table, each container's detail section shows:
-- **Errors** — first 20 matching lines
-- **Warnings** — first 10 matching lines
-- **Top log-level tokens** — most frequent all-caps words (e.g. `ERROR`, `INFO`, `WARN`)
-- **Tail** — the last N lines (default 50, controlled by `--tail`)
+> **The "Errors" count is broad by design.** It counts all lines matching
+> error-related patterns — including lines with uppercase `ERROR` tokens inside
+> INFO-level messages, stack-trace lines, and WARNING entries formatted as errors.
+> A large Errors count in the Sessions Overview does not necessarily mean the
+> server is broken. Always verify with `grep '"level": "ERROR"'` against the
+> specific log file to count true `ERROR`-level JSON entries. See §6.8 for the
+> worked example.
 
 ---
 
@@ -324,7 +302,7 @@ session directory:
 
 ```
 server-logs/
-└── 20250707_143022/
+└── 20260816_162515/
     ├── manifest.json
     ├── dev-edition-wxo-server-1.log
     ├── dev-edition-ui-1.log
@@ -359,30 +337,95 @@ when running it inside a CI pipeline or as part of a test suite:
 
 ---
 
-## 6.8 Running Both Scripts Together During A Test Run
+## 6.8 Worked Example — How Many Real Errors Are in `dev-edition-wxo-server-1.log`?
 
-The recommended workflow is two terminals side by side:
+**Objective:** Capture a fresh log snapshot while the Developer Edition is running,
+then use IBM Bob to determine how many real `ERROR`-level entries exist in
+`dev-edition-wxo-server-1.log` and whether they are actionable.
 
-**Terminal 1 — capture logs throughout the test run:**
+**What you need before starting:**
+- Developer Edition running (`bash wxo_local_start.sh` from guide 3)
+- `BOB_API_KEY` set in `watsonx-orchestrate-adk/.env`
+- `jq` installed (`brew install jq`)
 
-```sh
-cd watsonx-orchestrate-adk
-source .venv/bin/activate
-bash wxo_server_log_inspector.sh
-# keep this running — press Ctrl-C when tests are done
-```
-
-**Terminal 2 — run your tests, then analyse:**
+### Step 1 — Navigate to the working directory
 
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
-
-# run your tests or agent interactions here ...
-
-# when done, analyse the session
-bash wxo_server_log_analyze.sh
 ```
+
+### Step 2 — Run the full pipeline with timed capture
+
+This single command captures fresh logs for 60 seconds, stops the capture
+automatically, runs the analyser, and passes the result to IBM Bob with a
+focused question about `dev-edition-wxo-server-1`:
+
+```sh
+bash wxo_bob_log_inspect.sh \
+  --capture \
+  --capture-seconds 60 \
+  -q "Focus on dev-edition-wxo-server-1 only. How many lines have level ERROR? \
+List each distinct error message and state whether it is actionable or startup noise."
+```
+
+> **What happens step by step:**
+> 1. `wxo_server_log_inspector.sh` starts in the background and begins streaming
+>    all container logs to a new `./server-logs/YYYYMMDD_HHMMSS/` directory.
+> 2. After 60 seconds the background process is killed automatically — fresh log
+>    files are now on disk.
+> 3. `wxo_server_log_analyze.sh` reads the new session and writes `ANALYSIS_REPORT.md`.
+> 4. The 44-line summary (metadata table + Sessions Overview) is extracted and
+>    passed to `bob run --mode ask` together with your question.
+> 5. Bob's response streams to the terminal and is written to `BOB_ANALYSIS_REPORT.md`.
+
+You will see the capture phase, then the analysis phase, then Bob's live response —
+all in one terminal, no `Ctrl-C` required.
+
+### Step 3 — Read the exported report
+
+```sh
+cat server-logs/$(ls server-logs/ | sort | tail -1)/BOB_ANALYSIS_REPORT.md
+```
+
+The Sessions Overview in the report will show `dev-edition-wxo-server-1` as the
+dominant container — likely with a large "Errors" count (hundreds). Bob's answer
+to your question will explain what that count actually means.
+
+### Step 4 — Verify the raw ERROR count yourself
+
+Bob's analysis identifies the true `ERROR`-level entries. Confirm with `grep`:
+
+```sh
+grep '"level": "ERROR"' \
+  server-logs/$(ls server-logs/ | sort | tail -1)/dev-edition-wxo-server-1.log
+```
+
+During a normal Developer Edition startup you will see exactly two distinct error
+messages, both repeated once per worker process:
+
+| Error message | Source | Actionable? |
+|---|---|---|
+| `Failed to connect to Redis for TRM cache: Error 111 connecting to localhost:6379. Connection refused.` | `trm_response_cache.py` | ❌ No — Redis starts after the server workers; connection retries automatically |
+| `Could not create /gitops: [Errno 13] Permission denied: '/gitops'` | `gitops.py` | ❌ No — GitOps directory creation is skipped in the Developer Edition; expected |
+
+**Answer to the objective:** Both error types are **startup noise**. The server is
+healthy once these pass. No action is required.
+
+### Step 5 — Understand the count difference
+
+Bob's report will show a large "Errors" count (e.g. 891) in the Sessions Overview
+next to `dev-edition-wxo-server-1`. The `grep` above returns only ~10 lines.
+The difference is:
+
+| Count source | What it counts |
+|---|---|
+| Sessions Overview "Errors" | Lines matching a **broad error-pattern regex** — includes WARNING-formatted lines, stack traces, lines containing the word "error" inside an INFO message |
+| `grep '"level": "ERROR"'` | Lines where the JSON field `"level"` is **exactly** `"ERROR"` |
+
+The Sessions Overview count is intentionally broad — it is designed to surface all
+anomalies, not only `ERROR`-level JSON. Always run `grep '"level": "ERROR"'` when
+the Sessions Overview number looks alarming.
 
 ---
 
@@ -430,46 +473,7 @@ Bob will:
 2. List existing sessions or ask you to capture new ones
 3. Run `wxo_server_log_analyze.sh` via `execute_command`
 4. Read `ANALYSIS_REPORT.md` via `read_file`
-5. Present a structured health report:
-
-```
-## wxO Server Log Health — Session 20260729_160447
-
-Overall health: ERRORS
-
-Sessions Overview
-Container                                    Lines  Errors  Warnings  Session Refs
-dev-edition-wxo-server-1                     6075   1714    1697      5688
-dev-edition-wxo-server-worker-1             10429      5      15     10351
-dev-edition-wxo-milvus-standalone-1          1391     75      98        60
-...
-
-Top containers by errors
-1. dev-edition-wxo-server-1 — 1714 (mostly WARNING-level ValueError entries, not true errors)
-2. dev-edition-wxo-milvus-standalone-1 — 75
-3. dev-edition-mcp-gateway-1 — 17
-
-Root cause notes
-dev-edition-wxo-server-1: Secret-read warnings (PGBOUNCER_USER, INTERNAL_REQUEST_TOKEN)
-are expected Developer Edition startup noise. The 5 true ERROR lines are Redis TRM cache
-connection failures at boot — transient, self-resolving once Redis is ready.
-
-Recommendation: server is functionally healthy. No actionable errors found.
-```
-
-### Capture fresh logs first (optional)
-
-If you want Bob to inspect a brand-new run, start the inspector in a dedicated
-terminal before starting the Bob conversation:
-
-```sh
-cd watsonx-orchestrate-adk
-source .venv/bin/activate
-bash wxo_server_log_inspector.sh
-# run your tests or agent interactions, then press Ctrl-C
-```
-
-Then start the Bob conversation — it will find the new session automatically.
+5. Present a structured health report
 
 ### `wxo_bob_log_inspect.sh` — the primary automated command
 
@@ -493,9 +497,8 @@ ${QUESTION}" | tee -a BOB_ANALYSIS_REPORT.md
 Bob's response is streamed to the terminal live and simultaneously written to
 `<session-dir>/BOB_ANALYSIS_REPORT.md`.
 
-The exported file is clean, valid Markdown — suitable for Typora or any other
-Markdown reader. A post-processing step runs automatically after `bob run`
-completes and converts the raw terminal output into proper GFM:
+The exported file is clean, valid Markdown. A post-processing step runs automatically
+after `bob run` completes and converts the raw terminal output into proper GFM:
 
 | Transform | What it does |
 |---|---|
@@ -511,27 +514,147 @@ The file is prefixed with a metadata header (session ID, Bob mode, context file,
 timestamp) and ends with an **IBM Bob CLI Usage** section (wall-clock time, prompt
 size, cost note).
 
-Options:
+### All options for `wxo_bob_log_inspect.sh`
 
 ```
---capture              Capture fresh logs first (background, stops automatically)
---capture-seconds N    How long to capture (default: 30s)
---question  -q         Custom question for Bob
---mode      -m         Bob run mode: ask (default), arch-review, etc.
---export-file -o       Path for the exported Bob analysis markdown
-                       (default: <session-dir>/BOB_ANALYSIS_REPORT.md)
---full-report          Send complete 1574-line report instead of 44-line summary
+Options:
+  --capture              Capture fresh logs first (background, stops automatically)
+  --capture-seconds N    How long to capture in seconds (default: 30)
+  --session   -s         Specific session timestamp (YYYYMMDD_HHMMSS) to analyse
+                         Defaults to the most-recent session
+  --log-dir   -d         Root directory of session folders. Default: ./server-logs
+  --question  -q         Custom question for Bob
+  --mode      -m         Bob run mode: ask (default), arch-review, etc.
+  --export-file -o       Path for the exported Bob analysis markdown
+                         Default: <session-dir>/BOB_ANALYSIS_REPORT.md
+  --env-file  -e         Path to a .env file. Default: .env
+  --full-report          Send the complete ANALYSIS_REPORT.md to Bob instead of
+                         the 44-line summary. Slower but gives Bob full log detail.
+  --help                 Show this message and exit.
+```
+
+### Usage examples
+
+```sh
+# Capture 60 s of fresh logs, then run full analysis + Bob health check:
+bash wxo_bob_log_inspect.sh --capture --capture-seconds 60
+
+# Custom question focused on a specific container:
+bash wxo_bob_log_inspect.sh \
+  --capture --capture-seconds 60 \
+  -q "Focus on dev-edition-wxo-server-1. How many ERROR-level lines are there \
+and are they actionable?"
+
+# Use arch-review mode for a deeper analysis:
+bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 --mode arch-review
+
+# Send the full 1500-line report to Bob (slower, more detail):
+bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 --full-report
+
+# Write Bob's response to a custom path:
+bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 \
+  -o ./reports/health_$(date +%Y%m%d).md
 ```
 
 ---
 
-## 6.10 All Artifacts In This Guide
+## 6.10 Running Both Scripts Together During An Interactive Session
+
+For an interactive test session where you control the start and end manually,
+use two terminals side by side:
+
+**Terminal 1 — capture logs throughout the session:**
+
+```sh
+cd watsonx-orchestrate-adk
+source .venv/bin/activate
+bash wxo_server_log_inspector.sh
+# keep this running — press Ctrl-C once when your session is done
+```
+
+**Terminal 2 — run your tests, then analyse:**
+
+```sh
+cd watsonx-orchestrate-adk
+source .venv/bin/activate
+
+# run your tests or agent interactions here ...
+
+# when done, analyse the session and ask Bob
+bash wxo_bob_log_inspect.sh
+```
+
+---
+
+## 6.11 Known Issues
+
+### `Ctrl-C` restarts the inspector instead of stopping it
+
+**Status:** Fixed in this repository (commit: `wxo_server_log_inspector.sh` — fix Ctrl-C trap re-entry and heartbeat loop).
+
+**Symptom:** Pressing `Ctrl-C` while `wxo_server_log_inspector.sh` is running causes
+the script to briefly print "Stopping all log streams..." and then immediately resume
+outputting log lines as if nothing happened. A second or third `Ctrl-C` has the same
+effect.
+
+**Root cause — two bugs in the original script:**
+
+1. **`trap` registered before function defined** (minor, benign in most shells):
+   `trap '_inspector_stop' INT TERM` was placed before `_inspector_stop()` was declared.
+
+2. **`sleep 5` in the heartbeat loop intercepted `SIGINT` before the trap:**
+   ```bash
+   while true; do
+     sleep 5        # ← Ctrl-C kills this sleep, loop restarts immediately
+     ...
+   done
+   ```
+   When `Ctrl-C` is pressed, `SIGINT` is delivered to the entire foreground process
+   group. The `sleep 5` subprocess receives it, exits, and the `while true` loop
+   restarts the next `sleep 5` before the trap handler can run its `exit 0`. A second
+   `Ctrl-C` during the `wait "${PIDS[@]}"` call in `_inspector_stop` aborted cleanup
+   before `exit 0` was reached — leaving the loop running.
+
+**Fix applied:**
+
+```bash
+# 1. Function defined BEFORE trap registration
+_inspector_stop() {
+  trap '' INT TERM   # block re-entry — second Ctrl-C during cleanup is ignored
+  echo "Stopping..."
+  kill "${PIDS[@]}" 2>/dev/null
+  wait "${PIDS[@]}" 2>/dev/null
+  # ... summary ...
+  exit 0
+}
+trap '_inspector_stop' INT TERM
+
+# 2. sleep as a background job — wait is interruptible, loop is not
+while true; do
+  sleep 5 &
+  SLEEP_PID=$!
+  wait ${SLEEP_PID}
+  [ $? -ne 0 ] && break   # Ctrl-C makes wait return non-zero → clean exit
+  ...
+done
+```
+
+With the fix, a single `Ctrl-C` stops all streams, prints the summary, and exits.
+
+**Workaround (if running an older version):** Use `wxo_bob_log_inspect.sh --capture`
+instead of running `wxo_server_log_inspector.sh` directly. The `--capture` path kills
+the inspector via `kill $INSPECTOR_PID` from the parent shell, bypassing the broken
+trap entirely.
+
+---
+
+## 6.12 All Artifacts In This Guide
 
 | Artifact | Location | Purpose |
 |---|---|---|
-| `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all 25 containers via `limactl` |
+| `wxo_server_log_inspector.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Parallel log capture from all containers via `limactl` |
 | `wxo_server_log_analyze.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Sessions Overview + `ANALYSIS_REPORT.md` + `SUMMARY_BY_BOB.md` |
-| `wxo_bob_log_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary**: chains analyse + passes summary to `bob run` + exports clean GFM `BOB_ANALYSIS_REPORT.md` |
+| `wxo_bob_log_inspect.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary**: chains capture + analyse + `bob run` + exports clean GFM `BOB_ANALYSIS_REPORT.md` |
 | `BOB_ANALYSIS_REPORT.md` | `<session-dir>/` (generated) | Clean GFM report — metadata header + Bob's analysis + IBM Bob CLI Usage section |
 | `.bob/skills/wxo-log-inspector/SKILL.md` | [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — `wxo_bob_log_inspect.sh` reference + options |
 

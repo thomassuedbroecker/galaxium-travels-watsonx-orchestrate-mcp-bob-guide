@@ -213,9 +213,11 @@ echo -e "${YELLOW}Press Ctrl-C to stop all streams and finalise the session.${NC
 echo ""
 
 # ── Trap Ctrl-C / SIGTERM ─────────────────────────────────────────────────────
-trap '_inspector_stop' INT TERM
-
+# Function is defined BEFORE trap so the name is already resolved at trap time.
 _inspector_stop() {
+  # Block re-entry: a second Ctrl-C during cleanup is ignored.
+  trap '' INT TERM
+
   echo -e "\n${YELLOW}Stopping all log streams...${NC}"
   kill "${PIDS[@]}" 2>/dev/null
   wait "${PIDS[@]}" 2>/dev/null
@@ -237,10 +239,18 @@ _inspector_stop() {
   exit 0
 }
 
+trap '_inspector_stop' INT TERM
+
 # ── Heartbeat: print line-count progress every 5 seconds ─────────────────────
+# sleep runs as a background job; wait is interruptible by SIGINT.
+# When Ctrl-C fires: wait returns non-zero → break exits the loop cleanly
+# → the trap fires _inspector_stop exactly once.
 TICK=0
 while true; do
-  sleep 5
+  sleep 5 &
+  SLEEP_PID=$!
+  wait ${SLEEP_PID}
+  [ $? -ne 0 ] && break
   TICK=$(( TICK + 5 ))
   STATUS=""
   for CONTAINER in "${CONTAINERS[@]}"; do
