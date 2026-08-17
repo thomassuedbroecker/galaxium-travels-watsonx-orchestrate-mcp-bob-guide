@@ -92,8 +92,9 @@ require_cmd() {
 }
 
 # ── Pre-flight ────────────────────────────────────────────────────────────────
-require_cmd bob  "Install IBM Bob CLI: npm install -g @ibm/bob-cli"
-require_cmd jq   "Install jq: brew install jq"
+require_cmd bob    "Install IBM Bob CLI: npm install -g @ibm/bob-cli"
+require_cmd jq     "Install jq: brew install jq"
+require_cmd python3 "Python 3 is required to locate the bundled limactl"
 
 # ── Activate venv ─────────────────────────────────────────────────────────────
 if [ -f ".venv/bin/activate" ]; then
@@ -105,30 +106,103 @@ if [ -f "${ENV_FILE}" ]; then
 fi
 
 # ── Step 1: Optional log capture ──────────────────────────────────────────────
+# Timed capture strategy: sleep first, then pull logs with --since <start_time>.
+#
+# WHY NOT docker logs --follow:
+#   limactl shell opens an SSH tunnel into the Lima VM.  Killing the local
+#   limactl/subshell process closes the SSH client but docker logs --follow
+#   keeps running inside the VM; its stdout holds the pipe open so tee/sed
+#   on the host never receive EOF and block forever — wait never returns.
+#   No amount of PID or PGID killing on the host side can reach the process
+#   inside the VM.
+#
+# WHY --since works:
+#   docker logs --since <timestamp> --until <timestamp> is a bounded, blocking
+#   call: it fetches the log slice and exits.  No background jobs, no killing,
+#   no hanging pipes.  We record CAPTURE_START before the sleep, sleep for the
+#   requested duration, then call docker logs once per container.  The call
+#   finishes on its own in a few seconds.
 if [ "${DO_CAPTURE}" = "true" ]; then
   print_header "Step 1 — Capturing logs for ${CAPTURE_SECONDS}s"
-  echo -e "${CYAN}Starting wxo_server_log_inspector.sh in background...${NC}"
-  echo -e "${CYAN}(log output may appear in this terminal during capture)${NC}"
 
-  # Start the inspector in its own process group so that killing -PGID
-  # reaches all the limactl/docker/tee/sed child processes it spawns —
-  # a plain 'kill PID' only kills the outer bash script and leaves the
-  # docker-log streams running as orphans in the terminal.
-  bash wxo_server_log_inspector.sh &
-  INSPECTOR_PID=$!
-  # setsid is not portable to macOS; use negative PID (process-group kill)
-  # after giving bash a moment to fork so the PGID is the PID itself.
-  sleep 0.2
+  # ── Locate bundled limactl ──────────────────────────────────────────────────
+  LIMACTL=$(python3 -c "
+from importlib.resources import files
+p = files('ibm_watsonx_orchestrate.developer_edition.resources.lima.bin') / 'limactl'
+print(str(p))
+" 2>/dev/null)
 
-  echo -e "${CYAN}Capturing... (${CAPTURE_SECONDS}s)${NC}"
+  if [ -z "${LIMACTL}" ] || [ ! -f "${LIMACTL}" ]; then
+    echo -e "${RED}ERROR: bundled limactl not found.${NC}" >&2
+    echo -e "${RED}Is the virtual environment activated and ibm-watsonx-orchestrate installed?${NC}" >&2
+    exit 1
+  fi
+  echo -e "${GREEN}limactl: ${LIMACTL}${NC}"
+
+  # ── Discover containers ─────────────────────────────────────────────────────
+  LIMA_VM="ibm-watsonx-orchestrate"
+  CAPTURE_TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+  CAPTURE_SESSION_DIR="${LOG_DIR}/${CAPTURE_TIMESTAMP}"
+
+  RAW_CONTAINERS=$("${LIMACTL}" shell "${LIMA_VM}" -- \
+    docker ps --format '{{.Names}}' 2>/dev/null)
+  if [ -z "${RAW_CONTAINERS}" ]; then
+    echo -e "${RED}ERROR: no running containers found inside the Lima VM.${NC}" >&2
+    echo -e "${YELLOW}Start the server with: bash wxo_local_start.sh${NC}" >&2
+    exit 1
+  fi
+
+  mkdir -p "${CAPTURE_SESSION_DIR}"
+
+  # ── Fetch a full log snapshot per container (blocking, exits cleanly) ────────
+  # docker logs (no --follow) reads all buffered output and exits immediately.
+  # No background jobs, no killing, no hanging pipes — guaranteed to terminate.
+  # We sleep first so that any activity during the capture window is included,
+  # then pull the full log buffer which covers the whole server lifetime.
+  echo -e "${CYAN}Waiting ${CAPTURE_SECONDS}s then fetching logs...${NC}"
   sleep "${CAPTURE_SECONDS}"
+  echo ""
 
-  echo -e "${YELLOW}Stopping capture (PID ${INSPECTOR_PID})...${NC}"
-  # Kill the entire process group spawned by the inspector script.
-  # -INSPECTOR_PID targets the process group whose PGID == INSPECTOR_PID.
-  kill -- "-${INSPECTOR_PID}" 2>/dev/null
-  wait "${INSPECTOR_PID}" 2>/dev/null
-  echo -e "${GREEN}Capture complete.${NC}"
+  LOG_FILES_LIST=()
+  while IFS= read -r CONTAINER; do
+    [ -z "${CONTAINER}" ] && continue
+    LOG_FILE="${CAPTURE_SESSION_DIR}/${CONTAINER}.log"
+    echo -e "${GREEN}[FETCH]${NC} ${CYAN}${CONTAINER}${NC} → ${LOG_FILE}"
+    # < /dev/null prevents limactl/docker from consuming the loop's stdin herestring.
+    "${LIMACTL}" shell "${LIMA_VM}" -- \
+      docker logs "${CONTAINER}" < /dev/null > "${LOG_FILE}" 2>&1
+    LINES=$(wc -l < "${LOG_FILE}" | tr -d ' ')
+    echo -e "        ${LINES} lines"
+    LOG_FILES_LIST+=("${CONTAINER}.log")
+  done <<< "${RAW_CONTAINERS}"
+
+  # ── Write manifest (matches format expected by wxo_server_log_analyze.sh) ───
+  {
+    echo "{"
+    echo "  \"timestamp\": \"${CAPTURE_TIMESTAMP}\","
+    echo "  \"env_file\": \"${ENV_FILE}\","
+    LAST_IDX=$(( ${#LOG_FILES_LIST[@]} - 1 ))
+    echo "  \"containers\": ["
+    for i in "${!LOG_FILES_LIST[@]}"; do
+      COMMA=","; [ $i -eq $LAST_IDX ] && COMMA=""
+      # strip .log suffix for container name
+      CNAME="${LOG_FILES_LIST[$i]%.log}"
+      echo "    \"${CNAME}\"${COMMA}"
+    done
+    echo "  ],"
+    echo "  \"log_files\": ["
+    for i in "${!LOG_FILES_LIST[@]}"; do
+      COMMA=","; [ $i -eq $LAST_IDX ] && COMMA=""
+      echo "    \"${LOG_FILES_LIST[$i]}\"${COMMA}"
+    done
+    echo "  ]"
+    echo "}"
+  } > "${CAPTURE_SESSION_DIR}/manifest.json"
+
+  echo -e "${GREEN}Capture complete → ${CAPTURE_SESSION_DIR}${NC}"
+
+  # Force the session resolver below to use this new session.
+  SESSION="${CAPTURE_TIMESTAMP}"
 else
   print_header "Step 1 — Log capture"
   echo -e "${CYAN}Skipping capture. Using existing session.${NC}"

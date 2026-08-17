@@ -81,11 +81,12 @@ cd watsonx-orchestrate-adk && source .venv/bin/activate && \
   bash wxo_bob_log_inspect.sh --capture --capture-seconds 30
 ```
 
-This starts `wxo_server_log_inspector.sh` in the background of the **current terminal**
-(container log lines will scroll in this window during capture), waits 30 seconds,
-kills the entire process group so all `docker logs --follow` streams stop cleanly,
-then continues automatically to Steps 3 and 4. Run in a **new terminal** if you prefer
-the capture output isolated.
+This locates `limactl`, discovers all containers via `docker ps` inside the Lima VM,
+**sleeps 30 seconds** (terminal is quiet; no streaming), then calls
+`docker logs <container>` (no `--follow`) once per container — each call fetches the
+full log buffer and exits immediately. No background jobs, no killing, guaranteed to
+terminate. Continues automatically to Steps 3 and 4.
+Run in a **new terminal** if you prefer a dedicated window.
 
 **Existing session (skip capture):**
 

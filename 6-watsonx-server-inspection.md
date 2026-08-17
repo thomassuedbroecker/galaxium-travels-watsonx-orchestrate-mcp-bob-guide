@@ -133,19 +133,24 @@ bash wxo_bob_log_inspect.sh \
 ```
 
 Internally the script:
-1. Starts `wxo_server_log_inspector.sh` as a background process **in the same terminal**
-2. Waits exactly `--capture-seconds` seconds (container log lines stream into this terminal during capture)
-3. Kills the **entire process group** of the inspector — all `docker logs --follow` child processes stop; log files are now written to `./server-logs/YYYYMMDD_HHMMSS/`
-4. Runs `wxo_server_log_analyze.sh` over the new session
-5. Passes the summary to `bob run`
+1. Locates the bundled `limactl` binary from the ADK Python package
+2. Runs `docker ps` inside the Lima VM to discover all running containers
+3. **Sleeps for `--capture-seconds` seconds** — the terminal is quiet; the server accumulates logs normally
+4. After the sleep, calls `docker logs <container>` (no `--follow`) once per container — each call fetches the full log buffer and exits immediately
+5. Writes one `.log` file per container to `./server-logs/YYYYMMDD_HHMMSS/`
+6. Runs `wxo_server_log_analyze.sh` over the new session
+7. Passes the summary to `bob run`
 
-> **Log output appears in this terminal during capture.** Because the inspector
-> runs in the background of the same shell, container log lines scroll in this
-> window alongside the pipeline's own status messages. This is normal — they stop
-> automatically when the capture window ends. If you prefer a cleaner view, open a
-> **new terminal** for the timed-capture command, or use
-> [open-ended capture](#open-ended-capture--dedicated-terminal-interactive-sessions)
-> in a dedicated window.
+> **Why sleep-then-fetch instead of streaming?**
+> `limactl shell` opens an SSH tunnel into the Lima VM. Killing the tunnel from
+> the host does not stop `docker logs --follow` running *inside* the VM — those
+> processes keep writing and the local `tee`/`sed` pipes block forever waiting
+> for EOF. `docker logs` (without `--follow`) is a bounded call: it reads the
+> Docker log buffer and exits, so the loop terminates reliably every time.
+
+> **Tip:** If you prefer a dedicated window, open a **new terminal** for the
+> timed-capture command. The pipeline completes and exits on its own — no
+> `Ctrl-C` required.
 
 A new timestamped session directory is created every time — nothing from a
 previous run is reused.
@@ -156,14 +161,15 @@ previous run is reused.
 ════════════════════════════════════════
   Step 1 — Capturing logs for 60s
 ════════════════════════════════════════
-Starting wxo_server_log_inspector.sh in background...
-(log output may appear in this terminal during capture)
-Capturing... (60s)
-[dev-edition-wxo-server-1] {"time": "...", "level": "INFO", ...}
-[dev-edition-ui-1]         {"time": "...", ...}
+limactl: /path/to/limactl
+Waiting 60s then fetching logs...
+
+[FETCH] dev-edition-wxo-server-1 → ./server-logs/20260816_162515/dev-edition-wxo-server-1.log
+        5806 lines
+[FETCH] dev-edition-ui-1         → ./server-logs/20260816_162515/dev-edition-ui-1.log
+        78 lines
 ...
-Stopping capture (PID 12345)...
-Capture complete.
+Capture complete → ./server-logs/20260816_162515
 
 ════════════════════════════════════════
   Step 2 — Resolving session
@@ -441,11 +447,12 @@ List each distinct error message and state whether it is actionable or startup n
 ```
 
 > **What happens step by step:**
-> 1. `wxo_server_log_inspector.sh` starts in the background **in this terminal** and
->    begins streaming all container logs to a new `./server-logs/YYYYMMDD_HHMMSS/` directory.
->    Container log lines scroll in this window during the 60-second window — this is normal.
-> 2. After 60 seconds the **entire process group** of the inspector is killed automatically
->    (all `docker logs --follow` child processes stop) — fresh log files are now on disk.
+> 1. `limactl` is located; containers are discovered via `docker ps` inside the Lima VM.
+> 2. The script **sleeps for 60 seconds** — no output, no streaming. The server accumulates
+>    logs normally during this window.
+> 3. After the sleep, `docker logs <container>` (no `--follow`) is called once per container.
+>    Each call fetches the full log buffer and exits immediately — all 29 containers are
+>    fetched sequentially in a few seconds. No background jobs, nothing to kill.
 > 3. `wxo_server_log_analyze.sh` reads the new session and writes `ANALYSIS_REPORT.md`.
 > 4. The 44-line summary (metadata table + Sessions Overview) is extracted and
 >    passed to `bob run --mode ask` together with your question.
