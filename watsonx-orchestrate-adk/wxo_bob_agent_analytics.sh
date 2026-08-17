@@ -533,8 +533,11 @@ import sys, re
 with open(sys.argv[1]) as f:
     raw = f.read()
 
+# ── 0. Fix Mermaid sequence diagram keyword (LLM often emits "sequence diagram") ─
+clean = re.sub(r'(```mermaid\s*)sequence diagram', r'\1sequenceDiagram', raw, flags=re.IGNORECASE)
+
 # ── 1. Remove <thinking> blocks ───────────────────────────────────────────────
-clean = re.sub(r'<thinking>.*?</thinking>\n?', '', raw, flags=re.DOTALL)
+clean = re.sub(r'<thinking>.*?</thinking>\n?', '', clean, flags=re.DOTALL)
 
 # ── 2. Remove [using tool …] lines and ---output--- fences ────────────────────
 clean = re.sub(r'\[using tool [^\]]+\]\n?', '', clean)
