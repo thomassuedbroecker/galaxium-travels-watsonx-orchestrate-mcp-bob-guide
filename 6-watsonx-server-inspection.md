@@ -42,7 +42,7 @@ start.
 
 ---
 
-## 6.2 Step 1 — Activate The Virtual Environment And Set BOB_API_KEY
+## 6.2 Activate The Virtual Environment And Set BOB_API_KEY
 
 Before running either script, activate the virtual environment so the
 `orchestrate` command is available:
@@ -65,7 +65,7 @@ cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
 
 ---
 
-## 6.3 Step 2 — Capture The Logs
+## 6.3 Capture The Logs
 
 > **Choose the right capture mode before running anything.**
 >
@@ -210,7 +210,7 @@ watsonx-orchestrate-adk/
 
 ---
 
-## 6.4 Step 3 — Analyse The Captured Logs
+## 6.4 Analyse The Captured Logs
 
 Run the analyser after capture has stopped (or while it is still running — the
 log files are valid at any point):
@@ -318,7 +318,7 @@ The report contains:
 - Per-container sections with errors, warnings, session/`thread_id` references,
   top tokens, and a log tail
 
-This file is the handover point for **Step 4** (section 6.9): `wxo_bob_log_inspect.sh`
+This file is the handover point for **§6.9** (Structured Analysis Via IBM Bob CLI): `wxo_bob_log_inspect.sh`
 extracts the summary section and passes it to `bob run` for a structured health
 verdict — directly from the terminal, no agent deployment needed.
 
@@ -429,7 +429,7 @@ the Sessions Overview number looks alarming.
 
 ---
 
-## 6.9 Step 4 — Structured Analysis Via IBM Bob CLI
+## 6.9 Structured Analysis Via IBM Bob CLI
 
 After capturing logs and generating `ANALYSIS_REPORT.md`, ask IBM Bob to inspect
 and explain them. Bob reads the bash output and the report directly — no watsonx

@@ -651,7 +651,136 @@ bash wxo_bob_session_analytics.sh \
 
 ---
 
-## 7.8 All Artifacts In This Guide
+## 7.8 Verify Traces in the Langfuse UI
+
+After a script run you can log in to the local Langfuse UI and inspect the raw
+trace yourself — without reading any JSON.
+
+### 7.8.1 Langfuse Project Reference
+
+When the Developer Edition starts with `--with-ibm-telemetry` it provisions a
+local Langfuse instance and seeds it with:
+
+| Item | Value |
+|---|---|
+| **Organization** | IBM |
+| **Project** | Watsonx Orchestrate Lite Project |
+| **Project ID (URL slug)** | `orchestrate-lite` |
+| **Public key** | `pk-lf-orchestrate` |
+| **Secret key** | `sk-lf-orchestrate` |
+
+The analytics scripts use `pk-lf-orchestrate` / `sk-lf-orchestrate` — those keys
+are **bound to the `orchestrate-lite` project**. Every agent run is recorded there.
+
+### 7.8.2 Why a Second Organisation Appears (and How to Prevent It)
+
+The `docker-compose.yml` seeds the Langfuse user with:
+
+```yaml
+LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_EMAIL}
+LANGFUSE_DEFAULT_USER_EMAIL: ${LANGFUSE_EMAIL}
+```
+
+If `LANGFUSE_EMAIL` is **missing from `.env`**, it expands to an empty string.
+Langfuse seeds the `orchestrate-lite` project and user with no email. When you
+then log in to the UI with `orchestrate@ibm.com`, Langfuse cannot match that
+address to the existing empty-email account and **auto-creates a brand-new personal
+organisation** (`102b61a7-...` or similar UUID). Agent traces still go to
+`orchestrate-lite` (the API key is correct), but the UI user is logged into the
+wrong org and sees 0 traces there.
+
+**Fix:** ensure `LANGFUSE_EMAIL=orchestrate@ibm.com` is set in `.env` **before**
+starting the server. It is already present in `.env_template` — copy it if you
+have not done so.
+
+```sh
+# Verify it is set
+grep LANGFUSE_EMAIL watsonx-orchestrate-adk/.env
+# Expected: export LANGFUSE_EMAIL=orchestrate@ibm.com
+```
+
+If you already started the server without it, run a full reset so the seed
+re-runs with the correct email:
+
+```sh
+cd watsonx-orchestrate-adk
+orchestrate server reset
+# then restart with wxo_local_start.sh
+```
+
+After a clean start with `LANGFUSE_EMAIL` set, only the **IBM** organisation will
+exist in the UI and the login `orchestrate@ibm.com` maps directly to the
+`Watsonx Orchestrate Lite Project`.
+
+### 7.8.3 Log In and Navigate to the Project
+
+1. Open `http://localhost:3010` in your browser.
+2. Log in with:
+
+   | Field | Value |
+   |---|---|
+   | **Email** | `orchestrate@ibm.com` |
+   | **Password** | `LANGFUSE_PASSWORD` from your `.env` (default: `orchestrate`) |
+
+3. On the **Organizations** page click **"Go to project"** under the **IBM**
+   organisation to open the **Watsonx Orchestrate Lite Project**.
+4. In the left sidebar click **Traces**.
+
+### 7.8.4 Find and Open a Trace
+
+**Option A — deep link from the analytics report**
+
+Every `BOB_AGENT_ANALYTICS_REPORT_*.md` contains a direct URL in its metadata
+header:
+
+```
+| Langfuse UI | http://localhost:3010/project/orchestrate-lite/traces/<trace_id> |
+```
+
+Paste it into your browser to land directly on that trace.
+
+**Option B — find by timestamp**
+
+In the Traces list find the row whose **Timestamp** matches when you ran the
+script and click it.
+
+### 7.8.5 What to Look For on the Trace Detail Page
+
+The trace detail page shows the **LangGraph execution tree** as a timeline of
+spans. For `agent_hello_world` (no tools) expect exactly four spans:
+
+| Span | Type | What it represents |
+|---|---|---|
+| `LangGraph` | CHAIN | Root span — full end-to-end duration |
+| `agent` | AGENT | LangGraph agent node |
+| `invoke_agent` | GENERATION | LLM call — model, token counts, system prompt |
+| `answer` | CHAIN | Final output marshalling |
+
+Click any span to expand its **Input / Output**, **Metadata** (`service.name`,
+`ls_provider`, model), and **Latency**.
+
+> **`ls_provider = openai` is expected** — this is the watsonx-via-OpenAI-adapter
+> label. It does not mean the agent called OpenAI.
+
+### 7.8.6 Cross-Check with the Analytics Report
+
+The `Trace ID` in the terminal output and in the report header identifies the
+same trace in both places:
+
+```
+# Terminal / report header:
+Trace ID : e585e71777219b7f91a0239a23005f9c
+
+# Langfuse UI direct link:
+http://localhost:3010/project/orchestrate-lite/traces/e585e71777219b7f91a0239a23005f9c
+```
+
+If the trace is not visible immediately, wait 10–15 seconds and refresh —
+Langfuse ingestion has a small delay.
+
+---
+
+## 7.9 All Artifacts In This Guide
 
 | Artifact | Location | Purpose |
 |---|---|---|
