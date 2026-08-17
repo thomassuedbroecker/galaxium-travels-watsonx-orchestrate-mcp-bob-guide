@@ -1,71 +1,110 @@
 # 6. Inspect The `watsonx Orchestrate` Server Logs
 
-Use this guide to capture, analyse, and inspect the container logs produced by a
-running `watsonx Orchestrate Developer Edition` server. Three automation scripts
-in [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/) plus a Bob skill
-drive the full pipeline:
+This guide shows how to capture, analyse, and interpret the container logs
+produced by a running `watsonx Orchestrate Developer Edition` server, and then
+ask IBM Bob to reason over the results.
 
-| Artifact | Purpose |
+| Script / Artifact | When to use |
 |---|---|
-| [`wxo_server_log_inspector.sh`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Discovers all running containers and streams their logs in parallel to timestamped files |
-| [`wxo_server_log_analyze.sh`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Reads the captured files, produces a Sessions Overview, and writes `ANALYSIS_REPORT.md` |
-| [`wxo_bob_log_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary command** — chains capture + analysis + IBM Bob CLI in one command |
-| [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | Bob skill — drives the full pipeline interactively from IBM Bob |
+| [`wxo_bob_log_inspect.sh`](./watsonx-orchestrate-adk/wxo_bob_log_inspect.sh) | **Primary command** — captures logs, analyses them, and asks Bob to explain the findings in one shot |
+| [`wxo_server_log_inspector.sh`](./watsonx-orchestrate-adk/wxo_server_log_inspector.sh) | Continuous capture for an open-ended interactive session (dedicated terminal) |
+| [`wxo_server_log_analyze.sh`](./watsonx-orchestrate-adk/wxo_server_log_analyze.sh) | Analyse already-captured log files independently |
+| [`.bob/skills/wxo-log-inspector/`](./.bob/skills/wxo-log-inspector/SKILL.md) | IBM Bob skill — drives the full pipeline interactively from the Bob UI |
 
 Run all commands from the **`watsonx-orchestrate-adk/`** directory unless a block
-says otherwise. The Developer Edition must be running (see guide `3`) before you
-start.
+says otherwise.
 
 ---
 
-## 6.1 Prerequisites
+## 6.1 What Is Server Log Inspection?
 
-| Requirement | Notes |
-|---|---|
-| Running Developer Edition | Start it with guide `3` (`wxo_local_start.sh`) |
-| Python virtual environment | Created in guide `3` — activate with `source .venv/bin/activate` |
-| `jq` | JSON processor used by the analyser — `brew install jq` (macOS) |
-| `bob` CLI | IBM Bob CLI used in step 4 — `npm install -g @ibm/bob-cli` |
-| `BOB_API_KEY` | Required for headless `bob run` — set in `.env` (see §5.2) |
+The `watsonx Orchestrate Developer Edition` runs as a set of Docker containers
+inside a Lima VM managed by the ADK. Because the containers are isolated, there
+is no direct way to see what is happening inside them without explicitly capturing
+their output.
+
+The log inspection pipeline solves this in three steps:
+
+```
+1. wxo_server_log_inspector.sh   streams container logs → server-logs/<SESSION>/*.log
+2. wxo_server_log_analyze.sh     reads the files        → server-logs/<SESSION>/ANALYSIS_REPORT.md
+3. IBM Bob CLI (bob run)         reasons over the report → server-logs/<SESSION>/BOB_ANALYSIS_REPORT.md
+```
+
+**Why inspect logs?**
+
+- Trace errors, warnings, and `thread_id` values without attaching to each
+  container individually.
+- Determine whether error-count spikes are genuine failures or expected startup
+  noise.
+- Feed the captured report directly to IBM Bob for a structured health verdict —
+  no watsonx Orchestrate agent deployment required.
 
 > **No system Docker required.**
-> The Developer Edition runs inside a Lima VM managed by the ADK. The inspector
-> uses the **bundled `limactl`** binary shipped inside the Python package to
-> query containers directly — no host-level Docker Desktop installation is needed.
-
-> **Why capture logs?**
-> The Developer Edition runs as a set of Docker containers. Inspecting their
-> logs during a test run lets you trace errors, session `thread_id` values,
-> warnings, and model call patterns without needing to attach to each container
-> individually. The captured `ANALYSIS_REPORT.md` is then fed directly to IBM
-> Bob CLI for automated structured analysis — no watsonx Orchestrate agent needed.
+> The inspector uses the **bundled `limactl`** binary shipped inside the Python
+> package to query containers directly. No host-level Docker Desktop installation
+> is needed.
 
 ---
 
-## 6.2 Activate The Virtual Environment And Set BOB_API_KEY
+## 6.2 Prerequisites
 
-Before running either script, activate the virtual environment so the
-`orchestrate` command is available:
+| Requirement | How it is satisfied |
+|---|---|
+| Developer Edition running with the local environment active | `wxo_local_start.sh` (guide 3) |
+| Python virtual environment | Created in guide 3 — activate with `source .venv/bin/activate` |
+| `jq` | JSON processor used by the analyser — `brew install jq` (macOS) |
+| IBM Bob CLI | `npm install -g @ibm/bob-cli` |
+| `BOB_API_KEY` | Required for headless `bob run` — set in `.env` (see §6.3) |
+
+> **If you already ran `wxo_local_start.sh` from guide 3, the Developer Edition
+> and virtual environment are ready — skip the setup and go straight to §6.4.**
+
+---
+
+## 6.3 One-Time Setup
+
+### Step 1 — Activate the virtual environment
 
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
 ```
 
-`bob run` requires `BOB_API_KEY` for headless use. Set it in
-`watsonx-orchestrate-adk/.env` before running `wxo_bob_log_inspect.sh`:
+### Step 2 — Copy the env template
 
 ```sh
-# copy the template if .env does not exist yet
 cp watsonx-orchestrate-adk/.env_template watsonx-orchestrate-adk/.env
-# edit .env and fill in BOB_API_KEY:
-#   export BOB_API_KEY=<YOUR_BOB_API_KEY>
-# Create the key at bob.ibm.com → Account → API Keys (scope: Inference).
+```
+
+### Step 3 — Set BOB_API_KEY
+
+`bob run` requires an API key for headless (non-interactive) use. Edit
+`watsonx-orchestrate-adk/.env` and fill in:
+
+```sh
+export BOB_API_KEY=<YOUR_BOB_API_KEY>
+```
+
+Create the key at **bob.ibm.com → Account → API Keys** (scope: **Inference**).
+
+### Step 4 — Verify the services
+
+```sh
+# Active orchestrate environment is 'local'
+orchestrate env list
+# expected: local (active)
+```
+
+If any check fails, re-run the start script:
+
+```sh
+bash wxo_local_start.sh
 ```
 
 ---
 
-## 6.3 Capture The Logs
+## 6.4 Log Capture Modes
 
 > **Choose the right capture mode before running anything.**
 >
@@ -210,7 +249,7 @@ watsonx-orchestrate-adk/
 
 ---
 
-## 6.4 Analyse The Captured Logs
+## 6.5 Analyse The Captured Logs
 
 Run the analyser after capture has stopped (or while it is still running — the
 log files are valid at any point):
@@ -256,7 +295,7 @@ Options:
 
 ---
 
-## 6.5 Sessions Overview — Reading The Output
+## 6.6 Sessions Overview — Reading The Output
 
 The analyser prints a colour-coded summary table to the terminal:
 
@@ -295,7 +334,7 @@ Row colour:
 
 ---
 
-## 6.6 The Markdown Report
+## 6.7 The Markdown Report
 
 After the terminal output, the analyser writes `ANALYSIS_REPORT.md` into the
 session directory:
@@ -324,7 +363,7 @@ verdict — directly from the terminal, no agent deployment needed.
 
 ---
 
-## 6.7 Exit Codes
+## 6.8 Exit Codes
 
 The analyser exits with a code that reflects the overall log health — useful
 when running it inside a CI pipeline or as part of a test suite:
@@ -337,25 +376,48 @@ when running it inside a CI pipeline or as part of a test suite:
 
 ---
 
-## 6.8 Worked Example — How Many Real Errors Are in `dev-edition-wxo-server-1.log`?
+## 6.9 Worked Example — How Many Real Errors Are in `dev-edition-wxo-server-1.log`?
 
-**Objective:** Capture a fresh log snapshot while the Developer Edition is running,
-then use IBM Bob to determine how many real `ERROR`-level entries exist in
-`dev-edition-wxo-server-1.log` and whether they are actionable.
+### 6.9.1 Scenario Definition
 
-**What you need before starting:**
-- Developer Edition running (`bash wxo_local_start.sh` from guide 3)
-- `BOB_API_KEY` set in `watsonx-orchestrate-adk/.env`
-- `jq` installed (`brew install jq`)
+Before running any command, define what you are trying to find out and what a
+healthy result looks like. This makes the Bob question precise and the result
+verifiable.
 
-### Step 1 — Navigate to the working directory
+| Field | Value |
+|---|---|
+| **Container under test** | `dev-edition-wxo-server-1` — the core backend |
+| **Capture window** | 60 seconds of fresh logs while the server is idle |
+| **Objective** | Determine how many true `ERROR`-level log entries exist and whether they are actionable |
+| **Success criteria** | Bob identifies ≤ 2 distinct error messages; both are classified as startup noise; no actionable errors remain |
+| **Anomaly watch list** | Any error message not listed in §6.9 Step 4; any error flagged as actionable; error count > 10 |
+| **Script** | `wxo_bob_log_inspect.sh` — captures, analyses, and asks Bob in one command |
+| **Bob question focus** | *"How many lines have level ERROR? List each distinct error message and state whether it is actionable or startup noise."* |
+
+### 6.9.2 Worked Exercise — Are The Server Errors Actionable?
+
+#### Step 1 — Confirm prerequisites
 
 ```sh
 cd watsonx-orchestrate-adk
 source .venv/bin/activate
+
+# Developer Edition must be running
+orchestrate env list
+# Expected: local  (active)
+
+# BOB_API_KEY must be set
+grep BOB_API_KEY .env
+# Expected: export BOB_API_KEY=<your-key>
 ```
 
-### Step 2 — Run the full pipeline with timed capture
+If any check fails, re-run the start script:
+
+```sh
+bash wxo_local_start.sh
+```
+
+#### Step 2 — Run the full pipeline with timed capture
 
 This single command captures fresh logs for 60 seconds, stops the capture
 automatically, runs the analyser, and passes the result to IBM Bob with a
@@ -382,7 +444,39 @@ List each distinct error message and state whether it is actionable or startup n
 You will see the capture phase, then the analysis phase, then Bob's live response —
 all in one terminal, no `Ctrl-C` required.
 
-### Step 3 — Read the exported report
+#### Step 3 — Follow the terminal output
+
+```
+════════════════════════════════════════
+  Step 1 — Capturing logs for 60s
+════════════════════════════════════════
+Starting wxo_server_log_inspector.sh in background...
+Capturing... (60s)
+...
+Stopping capture (PID 12345)...
+Capture complete.
+
+════════════════════════════════════════
+  Step 2 — Resolving session
+════════════════════════════════════════
+Session:   20260816_162515
+Directory: ./server-logs/20260816_162515
+
+════════════════════════════════════════
+  Step 3 — Pre-analysis (wxo_server_log_analyze.sh)
+════════════════════════════════════════
+...
+
+════════════════════════════════════════
+  Step 4 — IBM Bob CLI analysis (mode: ask)
+════════════════════════════════════════
+[Bob streams analysis here...]
+
+════════════════════════════════════════
+Report: ./server-logs/20260816_162515/BOB_ANALYSIS_REPORT.md
+```
+
+#### Step 4 — Read the exported report
 
 ```sh
 cat server-logs/$(ls server-logs/ | sort | tail -1)/BOB_ANALYSIS_REPORT.md
@@ -392,7 +486,7 @@ The Sessions Overview in the report will show `dev-edition-wxo-server-1` as the
 dominant container — likely with a large "Errors" count (hundreds). Bob's answer
 to your question will explain what that count actually means.
 
-### Step 4 — Verify the raw ERROR count yourself
+#### Step 5 — Verify the raw ERROR count yourself
 
 Bob's analysis identifies the true `ERROR`-level entries. Confirm with `grep`:
 
@@ -409,10 +503,23 @@ messages, both repeated once per worker process:
 | `Failed to connect to Redis for TRM cache: Error 111 connecting to localhost:6379. Connection refused.` | `trm_response_cache.py` | ❌ No — Redis starts after the server workers; connection retries automatically |
 | `Could not create /gitops: [Errno 13] Permission denied: '/gitops'` | `gitops.py` | ❌ No — GitOps directory creation is skipped in the Developer Edition; expected |
 
-**Answer to the objective:** Both error types are **startup noise**. The server is
-healthy once these pass. No action is required.
+#### Step 6 — Verify against the scenario definition
 
-### Step 5 — Understand the count difference
+Check every item from the scenario (§6.9.1) against what Bob reports:
+
+| Scenario check | Where to look in the report | Pass condition |
+|---|---|---|
+| ERROR count | Bob's direct answer to the question | ≤ 2 distinct messages |
+| Both errors are startup noise | Bob's classification per error | Both marked ❌ not actionable |
+| No new/unexpected errors | Bob's anomaly section | No additional errors listed |
+| Sessions Overview count vs. true ERROR count | Bob's explanation | Large count explained as broad pattern matching |
+
+> **The large "Errors" count is expected and not a failure.** The Sessions Overview
+> counts all lines that match a broad error-pattern regex — including INFO messages
+> that contain the word "error". The `grep '"level": "ERROR"'` count is the
+> definitive source of truth. Bob's analysis will explain the difference.
+
+#### Step 7 — Understand the count difference
 
 Bob's report will show a large "Errors" count (e.g. 891) in the Sessions Overview
 next to `dev-edition-wxo-server-1`. The `grep` above returns only ~10 lines.
@@ -429,7 +536,7 @@ the Sessions Overview number looks alarming.
 
 ---
 
-## 6.9 Structured Analysis Via IBM Bob CLI
+## 6.10 Structured Analysis Via IBM Bob CLI
 
 After capturing logs and generating `ANALYSIS_REPORT.md`, ask IBM Bob to inspect
 and explain them. Bob reads the bash output and the report directly — no watsonx
@@ -535,30 +642,38 @@ Options:
 
 ### Usage examples
 
+Each example states its **objective** — what you are trying to find out — so you
+can pick the right combination of flags for your situation.
+
 ```sh
-# Capture 60 s of fresh logs, then run full analysis + Bob health check:
+# Objective: general health check — capture 60 s of fresh logs and ask Bob
+# for a structured overview of errors, warnings, and session counts.
 bash wxo_bob_log_inspect.sh --capture --capture-seconds 60
 
-# Custom question focused on a specific container:
+# Objective: investigate a specific container — focus Bob's analysis on
+# the main backend and ask it to classify every ERROR-level entry.
 bash wxo_bob_log_inspect.sh \
   --capture --capture-seconds 60 \
   -q "Focus on dev-edition-wxo-server-1. How many ERROR-level lines are there \
 and are they actionable?"
 
-# Use arch-review mode for a deeper analysis:
+# Objective: deeper architectural analysis — use arch-review mode to
+# evaluate whether the log patterns indicate a structural problem.
 bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 --mode arch-review
 
-# Send the full 1500-line report to Bob (slower, more detail):
+# Objective: send the complete report to Bob (all containers, all log tails)
+# when the 44-line summary is not enough detail.
 bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 --full-report
 
-# Write Bob's response to a custom path:
+# Objective: save Bob's response to a dated archive path for a nightly
+# CI job or scheduled health check.
 bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 \
   -o ./reports/health_$(date +%Y%m%d).md
 ```
 
 ---
 
-## 6.10 Running Both Scripts Together During An Interactive Session
+## 6.11 Running Both Scripts Together During An Interactive Session
 
 For an interactive test session where you control the start and end manually,
 use two terminals side by side:
@@ -586,7 +701,7 @@ bash wxo_bob_log_inspect.sh
 
 ---
 
-## 6.11 Known Issues
+## 6.12 Known Issues
 
 ### `Ctrl-C` restarts the inspector instead of stopping it
 
@@ -648,7 +763,7 @@ trap entirely.
 
 ---
 
-## 6.12 All Artifacts In This Guide
+## 6.13 All Artifacts In This Guide
 
 | Artifact | Location | Purpose |
 |---|---|---|
