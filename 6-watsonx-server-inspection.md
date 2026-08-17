@@ -390,7 +390,7 @@ verifiable.
 | **Capture window** | 60 seconds of fresh logs while the server is idle |
 | **Objective** | Determine how many true `ERROR`-level log entries exist and whether they are actionable |
 | **Success criteria** | Bob identifies ≤ 2 distinct error messages; both are classified as startup noise; no actionable errors remain |
-| **Anomaly watch list** | Any error message not listed in §6.9 Step 4; any error flagged as actionable; error count > 10 |
+| **Anomaly watch list** | Any error message not listed in §6.9 Step 6; any error flagged as actionable; error count > 10 |
 | **Script** | `wxo_bob_log_inspect.sh` — captures, analyses, and asks Bob in one command |
 | **Bob question focus** | *"How many lines have level ERROR? List each distinct error message and state whether it is actionable or startup noise."* |
 
@@ -444,7 +444,34 @@ List each distinct error message and state whether it is actionable or startup n
 You will see the capture phase, then the analysis phase, then Bob's live response —
 all in one terminal, no `Ctrl-C` required.
 
-#### Step 3 — Follow the terminal output
+#### Step 3 — Interact with the agent during capture (optional but recommended)
+
+While the 60-second capture window is running, open a browser and send a message
+to the watsonx Orchestrate chat UI:
+
+```
+http://localhost:3000/chat
+```
+
+Type a short greeting — for example `"Hello, are you working?"` — and submit it.
+The agent interaction triggers a live LLM call that flows through the backend
+containers. Its log lines (session `thread_id`, model call, response marshalling)
+will appear in the captured files alongside any startup entries.
+
+> **Why do this?**
+> An idle server produces only startup noise in its logs. Sending one real message
+> during capture lets you see what a genuine agent call looks like in the Sessions
+> Overview — and whether it introduces any new errors or warnings beyond the two
+> expected startup entries. It also gives Bob more signal to reason over, making
+> the analysis more representative of a real workload.
+
+> **What to look for afterwards:**
+> The Sessions Overview "Sessions" column for `dev-edition-wxo-server-1` should
+> increment (each agent run records a `thread_id`). If the value stays at `0` after
+> your chat interaction, the request did not reach the backend — check that
+> `orchestrate env list` still shows `local (active)`.
+
+#### Step 4 — Follow the terminal output
 
 ```
 ════════════════════════════════════════
@@ -476,7 +503,7 @@ Directory: ./server-logs/20260816_162515
 Report: ./server-logs/20260816_162515/BOB_ANALYSIS_REPORT.md
 ```
 
-#### Step 4 — Read the exported report
+#### Step 5 — Read the exported report
 
 ```sh
 cat server-logs/$(ls server-logs/ | sort | tail -1)/BOB_ANALYSIS_REPORT.md
@@ -486,7 +513,7 @@ The Sessions Overview in the report will show `dev-edition-wxo-server-1` as the
 dominant container — likely with a large "Errors" count (hundreds). Bob's answer
 to your question will explain what that count actually means.
 
-#### Step 5 — Verify the raw ERROR count yourself
+#### Step 6 — Verify the raw ERROR count yourself
 
 Bob's analysis identifies the true `ERROR`-level entries. Confirm with `grep`:
 
@@ -503,7 +530,7 @@ messages, both repeated once per worker process:
 | `Failed to connect to Redis for TRM cache: Error 111 connecting to localhost:6379. Connection refused.` | `trm_response_cache.py` | ❌ No — Redis starts after the server workers; connection retries automatically |
 | `Could not create /gitops: [Errno 13] Permission denied: '/gitops'` | `gitops.py` | ❌ No — GitOps directory creation is skipped in the Developer Edition; expected |
 
-#### Step 6 — Verify against the scenario definition
+#### Step 7 — Verify against the scenario definition
 
 Check every item from the scenario (§6.9.1) against what Bob reports:
 
@@ -519,7 +546,7 @@ Check every item from the scenario (§6.9.1) against what Bob reports:
 > that contain the word "error". The `grep '"level": "ERROR"'` count is the
 > definitive source of truth. Bob's analysis will explain the difference.
 
-#### Step 7 — Understand the count difference
+#### Step 8 — Understand the count difference
 
 Bob's report will show a large "Errors" count (e.g. 891) in the Sessions Overview
 next to `dev-edition-wxo-server-1`. The `grep` above returns only ~10 lines.
