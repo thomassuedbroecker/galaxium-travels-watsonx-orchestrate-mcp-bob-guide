@@ -43,8 +43,8 @@ Python packages:
 
 | Package | Version | License recorded by this repository | Where referenced |
 | --- | ---: | --- | --- |
-| `ibm-watsonx-orchestrate` | `2.12.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
-| `ibm-watsonx-orchestrate-mcp-server` | `2.12.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate` | `2.14.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate-mcp-server` | `2.14.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
 
 The packages and their transitive dependencies are not vendored in this
 repository. Review the package metadata and dependency tree resolved in your
