@@ -81,8 +81,11 @@ cd watsonx-orchestrate-adk && source .venv/bin/activate && \
   bash wxo_bob_log_inspect.sh --capture --capture-seconds 30
 ```
 
-This starts `wxo_server_log_inspector.sh` in the background, waits 30 seconds,
-kills it, then continues automatically to Steps 3 and 4.
+This starts `wxo_server_log_inspector.sh` in the background of the **current terminal**
+(container log lines will scroll in this window during capture), waits 30 seconds,
+kills the entire process group so all `docker logs --follow` streams stop cleanly,
+then continues automatically to Steps 3 and 4. Run in a **new terminal** if you prefer
+the capture output isolated.
 
 **Existing session (skip capture):**
 

@@ -108,15 +108,25 @@ fi
 if [ "${DO_CAPTURE}" = "true" ]; then
   print_header "Step 1 — Capturing logs for ${CAPTURE_SECONDS}s"
   echo -e "${CYAN}Starting wxo_server_log_inspector.sh in background...${NC}"
+  echo -e "${CYAN}(log output may appear in this terminal during capture)${NC}"
 
+  # Start the inspector in its own process group so that killing -PGID
+  # reaches all the limactl/docker/tee/sed child processes it spawns —
+  # a plain 'kill PID' only kills the outer bash script and leaves the
+  # docker-log streams running as orphans in the terminal.
   bash wxo_server_log_inspector.sh &
   INSPECTOR_PID=$!
+  # setsid is not portable to macOS; use negative PID (process-group kill)
+  # after giving bash a moment to fork so the PGID is the PID itself.
+  sleep 0.2
 
   echo -e "${CYAN}Capturing... (${CAPTURE_SECONDS}s)${NC}"
   sleep "${CAPTURE_SECONDS}"
 
   echo -e "${YELLOW}Stopping capture (PID ${INSPECTOR_PID})...${NC}"
-  kill "${INSPECTOR_PID}" 2>/dev/null
+  # Kill the entire process group spawned by the inspector script.
+  # -INSPECTOR_PID targets the process group whose PGID == INSPECTOR_PID.
+  kill -- "-${INSPECTOR_PID}" 2>/dev/null
   wait "${INSPECTOR_PID}" 2>/dev/null
   echo -e "${GREEN}Capture complete.${NC}"
 else

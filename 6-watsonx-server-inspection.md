@@ -133,11 +133,19 @@ bash wxo_bob_log_inspect.sh \
 ```
 
 Internally the script:
-1. Starts `wxo_server_log_inspector.sh` as a background process
-2. Waits exactly `--capture-seconds` seconds
-3. Kills the background process — log files are now written to `./server-logs/YYYYMMDD_HHMMSS/`
+1. Starts `wxo_server_log_inspector.sh` as a background process **in the same terminal**
+2. Waits exactly `--capture-seconds` seconds (container log lines stream into this terminal during capture)
+3. Kills the **entire process group** of the inspector — all `docker logs --follow` child processes stop; log files are now written to `./server-logs/YYYYMMDD_HHMMSS/`
 4. Runs `wxo_server_log_analyze.sh` over the new session
 5. Passes the summary to `bob run`
+
+> **Log output appears in this terminal during capture.** Because the inspector
+> runs in the background of the same shell, container log lines scroll in this
+> window alongside the pipeline's own status messages. This is normal — they stop
+> automatically when the capture window ends. If you prefer a cleaner view, open a
+> **new terminal** for the timed-capture command, or use
+> [open-ended capture](#open-ended-capture--dedicated-terminal-interactive-sessions)
+> in a dedicated window.
 
 A new timestamped session directory is created every time — nothing from a
 previous run is reused.
@@ -149,6 +157,7 @@ previous run is reused.
   Step 1 — Capturing logs for 60s
 ════════════════════════════════════════
 Starting wxo_server_log_inspector.sh in background...
+(log output may appear in this terminal during capture)
 Capturing... (60s)
 [dev-edition-wxo-server-1] {"time": "...", "level": "INFO", ...}
 [dev-edition-ui-1]         {"time": "...", ...}
@@ -432,17 +441,23 @@ List each distinct error message and state whether it is actionable or startup n
 ```
 
 > **What happens step by step:**
-> 1. `wxo_server_log_inspector.sh` starts in the background and begins streaming
->    all container logs to a new `./server-logs/YYYYMMDD_HHMMSS/` directory.
-> 2. After 60 seconds the background process is killed automatically — fresh log
->    files are now on disk.
+> 1. `wxo_server_log_inspector.sh` starts in the background **in this terminal** and
+>    begins streaming all container logs to a new `./server-logs/YYYYMMDD_HHMMSS/` directory.
+>    Container log lines scroll in this window during the 60-second window — this is normal.
+> 2. After 60 seconds the **entire process group** of the inspector is killed automatically
+>    (all `docker logs --follow` child processes stop) — fresh log files are now on disk.
 > 3. `wxo_server_log_analyze.sh` reads the new session and writes `ANALYSIS_REPORT.md`.
 > 4. The 44-line summary (metadata table + Sessions Overview) is extracted and
 >    passed to `bob run --mode ask` together with your question.
 > 5. Bob's response streams to the terminal and is written to `BOB_ANALYSIS_REPORT.md`.
 
+> **Tip — cleaner terminal view:** If the scrolling container log output is
+> distracting, run this command in a **new terminal window** so the capture output
+> is isolated from your main session. The pipeline completes and exits on its own —
+> no `Ctrl-C` required.
+
 You will see the capture phase, then the analysis phase, then Bob's live response —
-all in one terminal, no `Ctrl-C` required.
+all in the same terminal, no `Ctrl-C` required.
 
 #### Step 3 — Interact with the agent during capture (optional but recommended)
 

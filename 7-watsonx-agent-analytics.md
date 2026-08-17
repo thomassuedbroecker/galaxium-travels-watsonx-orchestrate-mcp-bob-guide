@@ -171,6 +171,12 @@ bash wxo_local_start.sh
 Every execution triggers a **new run** against the live agent, exports a fresh
 trace from Langfuse, and writes new timestamped output files:
 
+> **Tip — recommended: open a new terminal for this step.**
+> The script polls the agent run, streams Bob's analysis, and then exits cleanly
+> on its own. Running it in a dedicated terminal keeps your main working shell
+> uncluttered and lets you interact with the watsonx Orchestrate UI or other
+> tools in parallel without the terminal output interfering.
+
 ```sh
 bash wxo_bob_agent_analytics.sh \
   -n agent_hello_world \
@@ -460,6 +466,11 @@ wxo_bob_session_analytics.sh
 
 `--from` is required. `--to` defaults to now. Bare `YYYY-MM-DD` dates are
 automatically expanded to `T00:00:00Z` / `T23:59:59Z`.
+
+> **Tip — recommended: open a new terminal for this step.**
+> The script fetches all traces, builds the context document, streams Bob's
+> analysis, and then exits cleanly on its own — no `Ctrl-C` required. Running
+> it in a dedicated terminal keeps your main working shell uncluttered.
 
 ```sh
 cd watsonx-orchestrate-adk

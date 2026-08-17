@@ -67,7 +67,9 @@ If the user says "test it now" or "check if it works", default to **Script A**.
 
 ## Step 3A — Single-run analytics (Script A)
 
-Run from `watsonx-orchestrate-adk/` with the virtual environment active:
+Run from `watsonx-orchestrate-adk/` with the virtual environment active.
+Recommend opening a **new terminal** — the script polls the agent, streams
+Bob's analysis, then exits cleanly on its own.
 
 ```bash
 cd watsonx-orchestrate-adk && source .venv/bin/activate && \
@@ -117,7 +119,8 @@ Outputs land in `watsonx-orchestrate-adk/agent-analytics/`.
 ## Step 3B — Session analytics (Script B)
 
 `--from` is required. `--to` defaults to now. Bare `YYYY-MM-DD` dates expand to
-`T00:00:00Z` / `T23:59:59Z` automatically.
+`T00:00:00Z` / `T23:59:59Z` automatically. Recommend opening a **new terminal**
+— the script fetches traces, streams Bob's analysis, then exits cleanly on its own.
 
 ```bash
 cd watsonx-orchestrate-adk && source .venv/bin/activate && \
