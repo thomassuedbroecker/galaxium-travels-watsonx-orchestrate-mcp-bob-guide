@@ -49,6 +49,11 @@
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
+# ── Load environment variables first so every subsequent command inherits them ─
+if [ -f ".env" ]; then
+  set -a; source ".env"; set +a
+fi
+
 # ── Defaults ──────────────────────────────────────────────────────────────────
 DO_CAPTURE=false
 CAPTURE_SECONDS=30
@@ -99,10 +104,6 @@ require_cmd python3 "Python 3 is required to locate the bundled limactl"
 # ── Activate venv ─────────────────────────────────────────────────────────────
 if [ -f ".venv/bin/activate" ]; then
   source .venv/bin/activate
-fi
-
-if [ -f "${ENV_FILE}" ]; then
-  set -a; source "${ENV_FILE}"; set +a
 fi
 
 # ── Step 1: Optional log capture ──────────────────────────────────────────────

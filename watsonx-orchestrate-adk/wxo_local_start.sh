@@ -5,6 +5,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# ── Load environment variables first so every subsequent command inherits them ─
+if [ -f ".env" ]; then
+  set -a; source ".env"; set +a
+fi
+
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Verify environment ${NC}"
 clear 
@@ -18,8 +23,11 @@ echo -e "${YELLOW} Verify watsonx Orchestrate version... ${NC}"
 orchestrate --version
 
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${YELLOW} Set environments variables...${NC}"
-source .env
+echo -e "${YELLOW} Environment variables loaded from .env${NC}"
+if [ -z "${OTEL_SERVICE_NAME}" ]; then
+  echo -e "${YELLOW}WARNING: OTEL_SERVICE_NAME is not set in .env — all trace spans will show service.name='unknown_service'.${NC}"
+  echo -e "${GREEN}         Fix: add 'export OTEL_SERVICE_NAME=wxo-agent-runtime' to your .env file.${NC}"
+fi
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Starting watsonx Orchestrate Development Edition ${NC}"

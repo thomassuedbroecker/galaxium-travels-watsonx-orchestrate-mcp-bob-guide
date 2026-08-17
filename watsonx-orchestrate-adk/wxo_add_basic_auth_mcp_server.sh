@@ -6,6 +6,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# ── Load environment variables first so every subsequent command inherits them ─
+if [ -f ".env" ]; then
+  set -a; source ".env"; set +a
+fi
+
 clear
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Add the list flights tool from the Booking MCP Server to watsonx Orchestrate Development Edition ${NC}"
@@ -15,8 +20,7 @@ echo -e "${YELLOW} Activating virtual environment... ${NC}"
 source .venv/bin/activate
 
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${YELLOW} Set environment variables...${NC}"
-source .env
+echo -e "${YELLOW} Environment variables loaded from .env${NC}"
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Activating local environment watsonx Orchestrate configuration ...${NC}"
