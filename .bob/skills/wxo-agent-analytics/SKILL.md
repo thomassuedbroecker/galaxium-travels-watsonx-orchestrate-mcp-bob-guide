@@ -105,14 +105,14 @@ wxo_bob_agent_analytics.sh
 ├─ Step 3 ── Poll until run completes        (GET /v1/orchestrate/runs/{id})
 │            → captures run_id, thread_id, trace_id, final response
 ├─ Step 4 ── Wait 5s, export trace           (Langfuse /api/public/traces + observations)
-│            → trace_<ts>.json
-│            → analytics_context_<ts>.md     (Production-Hardening Signals table
-│                                             + trace table + JSON excerpt)
+│            → agent-analytics/<agent>/<ts>/trace.json
+│            → agent-analytics/<agent>/<ts>/analytics_context.md  (Production-Hardening Signals table
+│                                                                   + trace table + JSON excerpt)
 └─ Step 5 ── bob run --mode ask "<context+question>"
-             → BOB_AGENT_ANALYTICS_REPORT_<ts>.md  (clean GFM + IBM Bob CLI Usage)
+             → agent-analytics/<agent>/<ts>/BOB_AGENT_ANALYTICS_REPORT.md  (clean GFM + IBM Bob CLI Usage)
 ```
 
-Outputs land in `watsonx-orchestrate-adk/agent-analytics/`.
+Each run creates a dedicated folder `watsonx-orchestrate-adk/agent-analytics/<agent_name>/<timestamp>/`.
 
 ---
 
@@ -175,7 +175,7 @@ wxo_bob_session_analytics.sh
 
 After `execute_command` completes, read and summarise the report with `read_file`.
 
-**Single-run report (`BOB_AGENT_ANALYTICS_REPORT_<ts>.md`):**
+**Single-run report (`BOB_AGENT_ANALYTICS_REPORT.md`):**
 
 | Section | What to highlight |
 |---|---|
@@ -201,7 +201,7 @@ After `execute_command` completes, read and summarise the report with `read_file
 | IBM Bob CLI Usage | Wall-clock time, prompt size, cost note |
 
 Always surface the **Langfuse UI deep-link** from the report header so the user
-can click through to inspect raw spans:
+can click through to inspect raw spans (login: `orchestrate@ibm.com` / `orchestrate`):
 
 ```
 http://localhost:3010/project/orchestrate-lite/traces/<trace_id>
@@ -216,7 +216,7 @@ After presenting the report, offer concrete next actions based on findings:
 - **Latency too high** → re-run with `--obs-limit 200` to inspect every span and
   use `-q "Which span caused the most latency and why?"`.
 - **Tool call failed** → read the raw trace JSON with `read_file` on
-  `agent-analytics/trace_<ts>.json` and inspect the `output` field of the
+  `agent-analytics/<agent>/<ts>/trace.json` and inspect the `output` field of the
   failing observation.
 - **Inconsistent session responses** → re-run Script B with a wider window and
   `-q "Which runs gave inconsistent answers? What changed between them?"`.

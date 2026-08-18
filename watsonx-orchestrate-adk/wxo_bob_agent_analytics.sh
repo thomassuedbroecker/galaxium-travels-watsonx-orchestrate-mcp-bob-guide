@@ -9,7 +9,7 @@
 #   2. Poll until the run completes
 #   3. Export trace observations from local Langfuse (http://localhost:3010)
 #   4. bob run --mode ask "<context+question>"  → AI analysis
-#   5. Save report to <output-dir>/BOB_AGENT_ANALYTICS_REPORT_<ts>.md
+#   5. Save all files to <output-dir>/<agent_name>/<timestamp>/
 #
 # Usage:
 #   bash wxo_bob_agent_analytics.sh [OPTIONS]
@@ -189,31 +189,40 @@ echo -e "${CYAN}Environment : ${ACTIVE_ENV}${NC}"
 echo -e "${CYAN}WXO URL     : ${WXO_URL}${NC}"
 echo -e "${CYAN}Langfuse    : ${LANGFUSE_URL}${NC}"
 
-# ── Verify Langfuse is reachable ───────────────────────────────────────────────
+# ── Verify Langfuse is reachable AND credentials are valid ────────────────────
+# /api/public/health accepts any credentials — use /api/public/projects instead,
+# which requires valid Basic Auth, to catch wrong keys early.
 LF_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" \
   -u "${LANGFUSE_PK}:${LANGFUSE_SK}" \
-  "${LANGFUSE_URL}/api/public/health" 2>/dev/null || echo "000")
+  "${LANGFUSE_URL}/api/public/projects" 2>/dev/null || echo "000")
 
+if [ "${LF_HEALTH}" = "401" ]; then
+  echo -e "${RED}ERROR: Langfuse credentials rejected (HTTP 401) at ${LANGFUSE_URL}.${NC}" >&2
+  echo -e "${YELLOW}Default keys: pk-lf-orchestrate / sk-lf-orchestrate${NC}" >&2
+  echo -e "${YELLOW}Override with: --langfuse-pk <key> --langfuse-sk <key>${NC}" >&2
+  exit 1
+fi
 if [ "${LF_HEALTH}" != "200" ]; then
   echo -e "${RED}ERROR: Langfuse not reachable at ${LANGFUSE_URL} (HTTP ${LF_HEALTH}).${NC}" >&2
   echo -e "${YELLOW}Ensure the Developer Edition was started with --with-ibm-telemetry (-i).${NC}" >&2
   echo -e "${YELLOW}Langfuse UI is at ${LANGFUSE_URL} (not https://localhost:8765/).${NC}" >&2
   exit 1
 fi
-echo -e "${GREEN}Langfuse    : reachable (HTTP ${LF_HEALTH})${NC}"
+echo -e "${GREEN}Langfuse    : reachable + credentials valid (HTTP ${LF_HEALTH})${NC}"
 
-# ── Prepare output directory ───────────────────────────────────────────────────
-mkdir -p "${OUTPUT_DIR}"
+# ── Prepare output directory — one sub-folder per agent per run ───────────────
 RUN_TS=$(date '+%Y%m%d_%H%M%S')
-TRACE_FILE="${OUTPUT_DIR}/trace_${RUN_TS}.json"
+OUTPUT_DIR="${OUTPUT_DIR}/${AGENT_NAME}/${RUN_TS}"
+mkdir -p "${OUTPUT_DIR}"
+TRACE_FILE="${OUTPUT_DIR}/trace.json"
 if [ -z "${EXPORT_FILE}" ]; then
-  EXPORT_FILE="${OUTPUT_DIR}/BOB_AGENT_ANALYTICS_REPORT_${RUN_TS}.md"
+  EXPORT_FILE="${OUTPUT_DIR}/BOB_AGENT_ANALYTICS_REPORT.md"
 fi
 
 # ── Step 1: Resolve agent name → agent ID ─────────────────────────────────────
 print_header "Step 1 — Resolving agent '${AGENT_NAME}'"
 
-_AGENTS_FILE="${OUTPUT_DIR}/_agents_${RUN_TS}.json"
+_AGENTS_FILE="${OUTPUT_DIR}/_agents.json"
 curl -sf -H "Authorization: Bearer ${TOKEN}" \
   "${WXO_URL}/v1/orchestrate/agents" -o "${_AGENTS_FILE}" 2>/dev/null \
   || { echo -e "${RED}ERROR: Failed to list agents. Is the server running?${NC}" >&2; exit 1; }
@@ -260,7 +269,7 @@ echo -e "${GREEN}Thread ID: ${THREAD_ID}${NC}"
 print_header "Step 3 — Polling run for completion (timeout: ${POLL_TIMEOUT}s, interval: ${POLL_INTERVAL}s)"
 
 ELAPSED=0
-RUN_STATUS_FILE="${OUTPUT_DIR}/run_status_${RUN_TS}.json"
+RUN_STATUS_FILE="${OUTPUT_DIR}/run_status.json"
 STATUS=""
 while true; do
   curl -sf -H "Authorization: Bearer ${TOKEN}" \
@@ -353,7 +362,7 @@ PYEOF
 echo -e "${GREEN}Trace file: ${TRACE_FILE}${NC}"
 
 # ── Step 4b: Build compact context document for Bob ───────────────────────────
-CONTEXT_FILE="${OUTPUT_DIR}/analytics_context_${RUN_TS}.md"
+CONTEXT_FILE="${OUTPUT_DIR}/analytics_context.md"
 
 python3 - "${TRACE_FILE}" "${CONTEXT_FILE}" "${AGENT_NAME}" "${TRACE_ID}" \
           "${RUN_TS}" "${THREAD_ID}" "${FINAL_MESSAGE}" "${CTX_LINES}" <<'PYEOF'

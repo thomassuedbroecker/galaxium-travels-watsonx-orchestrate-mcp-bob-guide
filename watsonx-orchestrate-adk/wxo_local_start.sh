@@ -38,7 +38,7 @@ echo -e "${YELLOW} Running watsonx Orchestrate server reset...${NC}"
 orchestrate server reset
 cat ~/.cache/orchestrate/merged.env
 
-echo "Press any key to move on:"
+echo "Press any key to move on to delete the 'merged.env' file:"
 read ANY_KEY
 rm ~/.cache/orchestrate/merged.env
 

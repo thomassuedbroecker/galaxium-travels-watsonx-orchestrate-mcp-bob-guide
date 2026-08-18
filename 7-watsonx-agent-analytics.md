@@ -191,9 +191,9 @@ Is the agent behaving as expected for a no-tool hello-world agent?"
 > 3. `POST /v1/orchestrate/runs` → sends the test message, captures `run_id` + `thread_id`
 > 4. `GET /v1/orchestrate/runs/{run_id}` every 3 s → polls until `status: completed` (or 120 s timeout)
 > 5. Waits 5 s for Langfuse ingestion, fetches the trace + observations from `http://localhost:3010`
-> 6. Writes `trace_<ts>.json` and builds `analytics_context_<ts>.md` — includes Production-Hardening Signals table
+> 6. Writes `trace.json` and builds `analytics_context.md` — includes Production-Hardening Signals table
 > 7. Passes context + question to `bob run --mode ask`
-> 8. Writes `BOB_AGENT_ANALYTICS_REPORT_<ts>.md` to `./agent-analytics/`
+> 8. Writes `BOB_AGENT_ANALYTICS_REPORT.md` to `./agent-analytics/<agent_name>/<timestamp>/`
 
 #### Step 3 — Follow the terminal output
 
@@ -201,7 +201,7 @@ Is the agent behaving as expected for a no-tool hello-world agent?"
 Environment : local
 WXO URL     : http://localhost:4321
 Langfuse    : http://localhost:3010
-Langfuse    : reachable (HTTP 200)
+Langfuse    : reachable + credentials valid (HTTP 200)
 
 ════════════════════════════════════════
   Step 1 — Resolving agent 'agent_hello_world'
@@ -227,7 +227,7 @@ Response : Hello! Yes, I'm working correctly...
   Step 4 — Exporting trace from Langfuse
 ════════════════════════════════════════
 Waiting 5s for Langfuse ingestion...
-Exported: 4 observations → ./agent-analytics/trace_<ts>.json
+Exported: 4 observations → ./agent-analytics/agent_hello_world/<ts>/trace.json
 
 ════════════════════════════════════════
   Step 5 — IBM Bob CLI analysis (mode: ask)
@@ -237,20 +237,20 @@ Exported: 4 observations → ./agent-analytics/trace_<ts>.json
 ════════════════════════════════════════
 Agent    : agent_hello_world
 Trace ID : <trace-id>
-Report   : ./agent-analytics/BOB_AGENT_ANALYTICS_REPORT_<ts>.md
+Report   : ./agent-analytics/agent_hello_world/<ts>/BOB_AGENT_ANALYTICS_REPORT.md
 ```
 
-Every run produces new `<ts>` values. No previous run's files are overwritten.
+Every run creates a new sub-folder `./agent-analytics/<agent_name>/<timestamp>/`. No previous run's files are ever overwritten.
 
 #### Step 4 — Read the report
 
 ```sh
-# Open the newest report
-cat agent-analytics/$(ls agent-analytics/ | grep BOB_AGENT | sort | tail -1)
+# Open the newest report for agent_hello_world
+cat agent-analytics/agent_hello_world/$(ls agent-analytics/agent_hello_world/ | sort | tail -1)/BOB_AGENT_ANALYTICS_REPORT.md
 ```
 
-Or open `./agent-analytics/` in your file browser and open the newest
-`BOB_AGENT_ANALYTICS_REPORT_*.md`.
+Or open `./agent-analytics/<agent_name>/` in your file browser and open the newest
+timestamped folder → `BOB_AGENT_ANALYTICS_REPORT.md`.
 
 #### Step 5 — Verify against the scenario definition
 
@@ -306,10 +306,10 @@ wxo_bob_agent_analytics.sh
 ├─ Step 3 ── Poll until run completes       (GET /v1/orchestrate/runs/{id})
 │            → captures run_id, thread_id, trace_id, final response
 ├─ Step 4 ── Wait 5s, export trace          (Langfuse /api/public/traces + observations)
-│            → trace_<ts>.json
-│            → analytics_context_<ts>.md   (Production-Hardening Signals + trace table + JSON excerpt)
+│            → agent-analytics/<agent>/<ts>/trace.json
+│            → agent-analytics/<agent>/<ts>/analytics_context.md  (Production-Hardening Signals + trace table + JSON excerpt)
 └─ Step 5 ── bob run --mode ask "<context+question>"
-             → BOB_AGENT_ANALYTICS_REPORT_<ts>.md  (includes IBM Bob CLI Usage section)
+             → agent-analytics/<agent>/<ts>/BOB_AGENT_ANALYTICS_REPORT.md  (includes IBM Bob CLI Usage section)
 ```
 
 ### 7.5.4 Reference — Report Structure, Generated Files, and Options
@@ -329,7 +329,7 @@ Every report begins with a metadata header:
 | Thread ID | <wxo_thread_id> |
 | Bob mode | ask |
 | Generated | <timestamp> |
-| Trace file | ./agent-analytics/trace_<ts>.json |
+| Trace file | ./agent-analytics/<agent_name>/<ts>/trace.json |
 | Langfuse | http://localhost:3010 |
 | Langfuse UI | http://localhost:3010/project/orchestrate-lite/traces/<trace_id> |
 ```
@@ -350,14 +350,15 @@ what Bob detects in the trace):
 
 #### Generated files
 
-Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/`:
+Every run creates a dedicated folder `watsonx-orchestrate-adk/agent-analytics/<agent_name>/<timestamp>/`:
 
 | File | What it contains |
 |---|---|
-| `trace_<ts>.json` | Full Langfuse trace — all observations with input/output JSON |
-| `run_status_<ts>.json` | Raw response from `/v1/orchestrate/runs/{id}` |
-| `analytics_context_<ts>.md` | Compact context sent to Bob — includes Production-Hardening Signals table, trace table, JSON excerpt |
-| `BOB_AGENT_ANALYTICS_REPORT_<ts>.md` | Bob's structured analysis report, including IBM Bob CLI Usage section |
+| `trace.json` | Full Langfuse trace — all observations with input/output JSON |
+| `run_status.json` | Raw response from `/v1/orchestrate/runs/{id}` |
+| `_agents.json` | Agent list snapshot used to resolve the agent ID |
+| `analytics_context.md` | Compact context sent to Bob — includes Production-Hardening Signals table, trace table, JSON excerpt |
+| `BOB_AGENT_ANALYTICS_REPORT.md` | Bob's structured analysis report, including IBM Bob CLI Usage section |
 
 #### Example files from a real run
 
