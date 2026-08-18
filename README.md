@@ -25,7 +25,8 @@ Here is what the finished agent looks like:
 
 Before starting, you need:
 
-- A container runtime supported by the watsonx Orchestrate ADK (Rancher Desktop with Lima VM is used in this guide)
+- A container runtime supported by the watsonx Orchestrate ADK (Lima VM is used in this guide)
+- Container Runtime for example Rancher Desktop to run the example Galaxium Travels infrastructure
 - An IBM entitlement key (`WO_ENTITLEMENT_KEY`)
 - A watsonx.ai API key and Space ID (`WATSONX_APIKEY`, `WATSONX_SPACE_ID`)
 - An IBM Bob API key (`BOB_API_KEY`) — create one at **bob.ibm.com → Account → API Keys** (scope: Inference); needed for guides 6 and 7
@@ -132,13 +133,13 @@ The Bob configuration files in this repository are:
 
 `Build an AI Booking Agent with MCP — an update with IBM Bob 2.0 + watsonx Orchestrate 2.12.0`
 
-[![Related YouTube video](./images/youtube-02.jpg)](https://youtu.be/Ut5aXGEA9kA?si=b4c9jdcNUNBvPQXO)
+[![Related YouTube video](./images/youtube-01.jpg)](https://youtu.be/Ut5aXGEA9kA?si=b4c9jdcNUNBvPQXO)
 
 **Initial video** — Bob 1.0 + watsonx Orchestrate 2.2.0:
 
 `How to Use IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent?`
 
-[![Related YouTube video](./images/youtube-01.jpg)](https://youtu.be/QRb2_ZVlynE?si=MG6RmWewAlmGkSjn)
+[![Related YouTube video](./images/youtube-02.jpg)](https://youtu.be/QRb2_ZVlynE?si=MG6RmWewAlmGkSjn)
 
 **Initial blog post:** [Using IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent](https://suedbroecker.net/2026/03/29/using-ibm-bob-mcp-and-watsonx-orchestrate-to-generate-an-agent/)
 
