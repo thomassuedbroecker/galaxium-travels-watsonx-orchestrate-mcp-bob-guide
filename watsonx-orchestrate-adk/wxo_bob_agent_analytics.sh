@@ -543,8 +543,12 @@ import sys, re
 with open(sys.argv[1]) as f:
     raw = f.read()
 
-# ── 0. Fix Mermaid sequence diagram keyword (LLM often emits "sequence diagram") ─
-clean = re.sub(r'(```mermaid\s*)sequence diagram', r'\1sequenceDiagram', raw, flags=re.IGNORECASE)
+# ── 0a. Strip ANSI escape codes (Bob CLI wraps terminal output in colour codes;
+#        they prevent box-drawing detection from working correctly) ─────────────
+clean = re.sub(r'\x1b\[[0-9;]*[mK]', '', raw)
+
+# ── 0b. Fix Mermaid sequence diagram keyword (LLM often emits "sequence diagram") ─
+clean = re.sub(r'(```mermaid\s*)sequence diagram', r'\1sequenceDiagram', clean, flags=re.IGNORECASE)
 
 # ── 1. Remove <thinking> blocks ───────────────────────────────────────────────
 clean = re.sub(r'<thinking>.*?</thinking>\n?', '', clean, flags=re.DOTALL)

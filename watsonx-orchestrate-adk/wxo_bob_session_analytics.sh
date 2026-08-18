@@ -494,8 +494,12 @@ import sys, re
 with open(sys.argv[1]) as f:
     raw = f.read()
 
+# ── 0. Strip ANSI escape codes (Bob CLI wraps terminal output in colour codes;
+#       they prevent box-drawing detection from working correctly) ──────────────
+clean = re.sub(r'\x1b\[[0-9;]*[mK]', '', raw)
+
 # ── 1. Remove <thinking> blocks ───────────────────────────────────────────────
-clean = re.sub(r'<thinking>.*?</thinking>\n?', '', raw, flags=re.DOTALL)
+clean = re.sub(r'<thinking>.*?</thinking>\n?', '', clean, flags=re.DOTALL)
 
 # ── 2. Remove [using tool …] lines and ---output--- fences ────────────────────
 clean = re.sub(r'\[using tool [^\]]+\]\n?', '', clean)
