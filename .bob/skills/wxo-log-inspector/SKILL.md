@@ -1,176 +1,262 @@
 ---
-name: wxo-log-inspector
+name: wxo-agent-analytics
 description: >
-  Use when the user wants to inspect, analyse, or understand watsonx Orchestrate
-  Developer Edition server logs. Runs the full bash pipeline in the terminal —
-  capture logs, pre-analyse with bash, then invoke the Bob CLI directly to reason
-  over the generated report. Trigger phrases: "inspect server logs",
-  "check wxo logs", "analyse orchestrate logs", "server log health",
-  "what errors are in the logs", "run wxo_bob_log_inspect.sh".
+  Use when the user wants to inspect, analyse, or review watsonx Orchestrate
+  agent behaviour using Langfuse traces and IBM Bob. Handles both a single new
+  test run and bulk session history. Trigger phrases: "analyse agent behaviour",
+  "review agent analytics", "inspect agent traces", "run agent analytics",
+  "check agent performance", "review langfuse traces", "wxo_bob_agent_analytics",
+  "wxo_bob_session_analytics", "agent trace analysis", "agent behavior review".
 metadata:
   disable-model-invocation: false
 ---
 
-# wxo-log-inspector
+# wxo-agent-analytics
 
-Inspect watsonx Orchestrate Developer Edition server logs by running a bash
-pipeline that ends with the **Bob CLI invoked from the terminal**.
+Analyse watsonx Orchestrate agent behaviour by running a Langfuse trace pipeline
+and asking IBM Bob to reason over the structured execution data.
 
-## Architecture
+Two scripts are available:
 
-```
-Terminal
-  │
-  └─ bash wxo_bob_log_inspect.sh
-        │
-        ├─ Step 1  (optional) wxo_server_log_inspector.sh
-        │          limactl → docker logs --follow per container → *.log files
-        │
-        ├─ Step 2  wxo_server_log_analyze.sh
-        │          reads *.log files → ANALYSIS_REPORT.md + SUMMARY_BY_BOB.md
-        │
-        ├─ Step 3  bob run --mode ask \
-        │              "<SUMMARY_BY_BOB.md content + question>" \
-        │              | tee -a BOB_ANALYSIS_REPORT.md
-        │
-        └─ Step 4  BOB_ANALYSIS_REPORT.md written to <session-dir>/
-                   (header with session metadata + Bob's full response)
-```
-
-`bob run` receives the pre-built Markdown report embedded in the prompt argument
-and reasons over it. Its response is simultaneously printed to the terminal (via
-`tee`) and appended to `BOB_ANALYSIS_REPORT.md`. No watsonx Orchestrate agent.
-No tool imports. No Lima VM access from Bob's side.
-
-A post-processing step runs automatically after `bob run` and converts the raw
-terminal output to clean GFM: box-drawing tables → pipe tables, `────` lines →
-`---`, bare titles → `### headings`, terminal padding stripped, Bob's conversation
-frame and echoed prompt removed. The file ends with an **IBM Bob CLI Usage**
-section (wall-clock time, prompt size, cost note).
+| Script | When to use |
+|---|---|
+| `wxo_bob_agent_analytics.sh` | Fire a **new test run**, capture its trace, analyse it immediately |
+| `wxo_bob_session_analytics.sh` | Inspect **all past runs** within a time window — no new run needed |
 
 ---
 
 ## Step 1 — Verify prerequisites
 
-Use `execute_command` to run:
+Use `execute_command` to confirm the environment is ready:
 
 ```bash
 which bob && bob --version 2>&1 | head -3
 which jq
-ls watsonx-orchestrate-adk/server-logs/ 2>/dev/null | grep -E '^[0-9]{8}_[0-9]{6}$' | sort
+curl -s http://localhost:3010/api/public/health
+orchestrate env list 2>/dev/null | grep active
 ```
 
 Confirm:
-- `bob` is on PATH (`/Users/.../.nvm/.../bob`)
-- `jq` is available
-- At least one session folder exists (format `YYYYMMDD_HHMMSS`)
+- `bob` is on PATH and returns a version.
+- `jq` is available.
+- Langfuse returns `{"status":"ok"}` at `http://localhost:3010`.
+- The active `orchestrate` environment is `local`.
 
-If no sessions exist, the user must run `wxo_server_log_inspector.sh` first (Step 2).
+If Langfuse is unreachable or no environment is active, tell the user to run
+`bash wxo_local_start.sh` first (guide §6.2).
+
+If `BOB_API_KEY` is not set, remind the user to fill it in
+`watsonx-orchestrate-adk/.env` (guide §6.3).
 
 ---
 
-## Step 2 — Capture logs (only if no session exists or user wants fresh data)
+## Step 2 — Choose the right script
 
-Ask the user with `ask_followup_question`:
-> "Do you want to capture fresh logs, or analyse the most-recent existing session?"
+Use `ask_followup_question` to determine the user's intent:
 
-**Fresh capture (timed — runs in background, stops automatically):**
+> "Do you want to fire a **new test message** against the agent and analyse that
+> run, or inspect the agent's **past runs** from a specific time window?"
+
+- **New test run** → use `wxo_bob_agent_analytics.sh` (proceed to Step 3A).
+- **Past runs / session history** → use `wxo_bob_session_analytics.sh` (proceed to Step 3B).
+
+If the user mentions a date range, default to **Script B**.
+If the user says "test it now" or "check if it works", default to **Script A**.
+
+---
+
+## Step 3A — Single-run analytics (Script A)
+
+Run from `watsonx-orchestrate-adk/` with the virtual environment active.
+Recommend opening a **new terminal** — the script polls the agent, streams
+Bob's analysis, then exits cleanly on its own.
 
 ```bash
 cd watsonx-orchestrate-adk && source .venv/bin/activate && \
-  bash wxo_bob_log_inspect.sh --capture --capture-seconds 30
+  bash wxo_bob_agent_analytics.sh
 ```
 
-This locates `limactl`, discovers all containers via `docker ps` inside the Lima VM,
-**sleeps 30 seconds** (terminal is quiet; no streaming), then calls
-`docker logs <container>` (no `--follow`) once per container — each call fetches the
-full log buffer and exits immediately. No background jobs, no killing, guaranteed to
-terminate. Continues automatically to Steps 3 and 4.
-Run in a **new terminal** if you prefer a dedicated window.
+**Common variants:**
 
-**Existing session (skip capture):**
+```bash
+# Different agent and message
+bash wxo_bob_agent_analytics.sh -n <agent_name> -m "Your test message"
+
+# Export trace only, skip Bob
+bash wxo_bob_agent_analytics.sh --trace-only
+
+# Deeper observation fetch for multi-tool agents
+bash wxo_bob_agent_analytics.sh --obs-limit 200 --ctx-lines 400
+
+# Extend timeout for slow agents
+bash wxo_bob_agent_analytics.sh --poll-timeout 300 --poll-interval 10
+
+# Custom analysis question
+bash wxo_bob_agent_analytics.sh -q "Why did the LLM call take over 3 seconds?"
+```
+
+**What the script does (execution tree):**
+
+```
+wxo_bob_agent_analytics.sh
+│
+├─ Step 1 ── Resolve agent name → agent ID   (GET /v1/orchestrate/agents)
+├─ Step 2 ── Send test message               (POST /v1/orchestrate/runs)
+├─ Step 3 ── Poll until run completes        (GET /v1/orchestrate/runs/{id})
+│            → captures run_id, thread_id, trace_id, final response
+├─ Step 4 ── Wait 5s, export trace           (Langfuse /api/public/traces + observations)
+│            → agent-analytics/<agent>/<ts>/trace.json
+│            → agent-analytics/<agent>/<ts>/analytics_context.md  (Production-Hardening Signals table
+│                                                                   + trace table + JSON excerpt)
+└─ Step 5 ── bob run --mode ask "<context+question>"
+             → agent-analytics/<agent>/<ts>/BOB_AGENT_ANALYTICS_REPORT.md  (clean GFM + IBM Bob CLI Usage)
+```
+
+Each run creates a dedicated folder `watsonx-orchestrate-adk/agent-analytics/<agent_name>/<timestamp>/`.
+
+---
+
+## Step 3B — Session analytics (Script B)
+
+`--from` is required. `--to` defaults to now. Bare `YYYY-MM-DD` dates expand to
+`T00:00:00Z` / `T23:59:59Z` automatically. Recommend opening a **new terminal**
+— the script fetches traces, streams Bob's analysis, then exits cleanly on its own.
 
 ```bash
 cd watsonx-orchestrate-adk && source .venv/bin/activate && \
-  bash wxo_bob_log_inspect.sh
+  bash wxo_bob_session_analytics.sh \
+    --from <YYYY-MM-DD> \
+    --to   <YYYY-MM-DD>
+```
+
+**Common variants:**
+
+```bash
+# Different agent, two-hour window
+bash wxo_bob_session_analytics.sh \
+  -n my_agent \
+  --from 2026-08-10T08:00:00Z \
+  --to   2026-08-10T10:00:00Z
+
+# Export traces only, skip Bob
+bash wxo_bob_session_analytics.sh --from 2026-08-10 --trace-only
+
+# Raise all limits for large agents
+bash wxo_bob_session_analytics.sh \
+  --from 2026-08-10 \
+  --obs-limit 200 --ctx-lines 200 --trace-limit 200
+
+# Custom cross-run question
+bash wxo_bob_session_analytics.sh \
+  --from 2026-08-10 \
+  -q "Which runs gave inconsistent answers? What changed between them?"
+```
+
+**What the script does (execution tree):**
+
+```
+wxo_bob_session_analytics.sh
+│
+├─ Step 1 ── Query Langfuse traces in [--from, --to]
+│            Filter by agent name (input.current_agent)
+│            Fetch observations for each matched trace
+│            → agent-analytics/<agent>/<ts>/session_traces.json
+├─ Step 2 ── Build consolidated context document
+│            Production-Hardening Signals (min/avg/max latency across all runs)
+│            + run summary table + per-run observation tables + JSON excerpts
+│            → agent-analytics/<agent>/<ts>/session_context.md
+└─ Step 3 ── bob run --mode ask "<context+question>"
+             → agent-analytics/<agent>/<ts>/BOB_SESSION_ANALYTICS_REPORT.md  (clean GFM + IBM Bob CLI Usage)
 ```
 
 ---
 
-## Step 3 — Run the full pipeline
+## Step 4 — Present the analysis
 
-Use `execute_command` to run the script. It executes all three steps and ends
-with Bob CLI producing the analysis in the terminal:
+After `execute_command` completes, read and summarise the report with `read_file`.
 
-```bash
-cd watsonx-orchestrate-adk && source .venv/bin/activate && bash wxo_bob_log_inspect.sh
+**Single-run report (`BOB_AGENT_ANALYTICS_REPORT.md`):**
+
+| Section | What to highlight |
+|---|---|
+| Run Summary | Agent name, trace ID, total latency, LLM model used |
+| Step-by-step Trace | Each observation with type, latency, token counts |
+| LLM Call Details | Model, token counts, system prompt in use |
+| Tool Calls | Any tools invoked (names, latency, success/failure) |
+| LangGraph Flow | Node sequence from trace metadata |
+| Production-Hardening Checks | `service.name` set?, `ls_provider` adapter label, LLM/total latency vs thresholds |
+| Verdict | Pass/fail per health criterion |
+| IBM Bob CLI Usage | Wall-clock time, prompt size, cost note |
+
+**Session report (`BOB_SESSION_ANALYTICS_REPORT.md`):**
+
+| Section | What to highlight |
+|---|---|
+| Session Summary | Time window, total runs, overall success rate |
+| Run-by-run Table | Trace ID, duration, status, response snippet per run |
+| Behaviour Patterns | Consistency, tool usage variation, latency trends |
+| Errors or Anomalies | Failed runs, latency outliers, unexpected observations |
+| Production-Hardening Checks | `service.name`, `ls_provider`, min/avg/max LLM and total latency across all runs |
+| Recommendation | Is the agent behaving correctly and consistently? |
+| IBM Bob CLI Usage | Wall-clock time, prompt size, cost note |
+
+Always surface the **Langfuse UI deep-link** from the report header so the user
+can click through to inspect raw spans (login: `orchestrate@ibm.com` / `orchestrate`):
+
 ```
-
-To change the Bob mode:
-
-```bash
-bash wxo_bob_log_inspect.sh --mode arch-review
-```
-
-To ask a specific question:
-
-```bash
-bash wxo_bob_log_inspect.sh -q "Which containers had Redis or database connection errors?"
+http://localhost:3010/project/orchestrate-lite/traces/<trace_id>
 ```
 
 ---
 
-## Step 4 — Present Bob's output and the exported report
+## Step 5 — Actionable follow-up loop
 
-After `execute_command` completes:
+After presenting the report, offer concrete next actions based on findings:
 
-1. The terminal shows Bob's live response (streamed via `tee`).
-2. `BOB_ANALYSIS_REPORT.md` has been written to the session directory as clean,
-   valid Markdown — metadata header, Bob's analysis, and an **IBM Bob CLI Usage**
-   section (wall-clock time, prompt size in chars, cost note).
-
-Present the analysis clearly, noting:
-
-- **Overall health** — ERRORS / WARNINGS / CLEAN
-- **Top error containers** — ranked by count
-- **Root cause notes** — which are startup noise vs real issues
-- **Recommendation**
-
-To show the user where the exported report was saved, use `read_file`:
-
-```
-watsonx-orchestrate-adk/server-logs/<SESSION>/BOB_ANALYSIS_REPORT.md
-```
-
-If the user wants to drill into a specific container log, read the raw file:
-
-```
-watsonx-orchestrate-adk/server-logs/<SESSION>/<container>.log
-```
-
-No further scripts needed — Bob reads log files directly.
+- **Latency too high** → re-run with `--obs-limit 200` to inspect every span and
+  use `-q "Which span caused the most latency and why?"`.
+- **Tool call failed** → read the raw trace JSON with `read_file` on
+  `agent-analytics/<agent>/<ts>/trace.json` and inspect the `output` field of the
+  failing observation.
+- **Inconsistent session responses** → re-run Script B with a wider window and
+  `-q "Which runs gave inconsistent answers? What changed between them?"`.
+- **Prompt or instruction issue suspected** → read the agent YAML with `read_file`
+  on `watsonx-orchestrate-adk/agents/<agent>.yaml` and compare `instructions`
+  against the system prompt captured in the trace.
+- **Regression after a config change** → run Script B with `--from <before-change>`
+  and `--to <after-change>` spanning the change window.
+- **`service.name` NOT SET** → advise setting it in the OpenTelemetry SDK resource
+  config: `Resource.create({SERVICE_NAME: "wxo-agent-runtime"})`. Without it,
+  traces cannot be filtered by service in multi-agent Langfuse dashboards.
+- **`ls_provider = openai`** → this is the watsonx-via-OpenAI-adapter label.
+  Advise adding a custom `actual_provider: watsonx` span attribute so dashboards
+  and cost/reliability alerts correctly attribute traces to watsonx, not OpenAI.
 
 ---
 
-## Key options for wxo_bob_log_inspect.sh
+## Key options reference
+
+**Script A (`wxo_bob_agent_analytics.sh`):**
 
 | Option | Default | Purpose |
 |---|---|---|
-| `--capture` | off | Start `wxo_server_log_inspector.sh` in background before analysis |
-| `--capture-seconds N` | 30 | How long to capture before stopping (only with `--capture`) |
-| `--session YYYYMMDD_HHMMSS` | most-recent | Specific session to analyse |
-| `--log-dir DIR` | `./server-logs` | Root directory of sessions |
-| `--mode MODE` | `ask` | Bob run mode (`ask`, `arch-review`, etc.) |
-| `--question TEXT` | health prompt | Custom question for Bob |
-| `--export-file FILE` | `<session-dir>/BOB_ANALYSIS_REPORT.md` | Override the path for the exported Bob analysis markdown |
-| `--full-report` | off | Send entire `ANALYSIS_REPORT.md` to Bob (slower, ~291 KB) instead of the summary extract (~1.8 KB) |
+| `--agent / -n` | `agent_hello_world` | Agent name to test |
+| `--message / -m` | `"Hello, are you working?"` | Test message |
+| `--obs-limit N` | `50` | Max observations from Langfuse |
+| `--ctx-lines N` | `150` | Max JSON lines sent to Bob |
+| `--poll-timeout N` | `120` | Run timeout in seconds |
+| `--trace-only` | off | Export trace; skip Bob |
+| `--question / -q` | health prompt | Custom question for Bob |
 
-## Why responses are fast
+**Script B (`wxo_bob_session_analytics.sh`):**
 
-By default the script extracts only the **metadata table and Sessions Overview
-table** (~44 lines, ~1.8 KB) and pipes that to Bob — not the full 1574-line report.
-This reduces Bob's input by 163× and makes the response time seconds instead of
-minutes.
-
-Use `--full-report` when you need Bob to reason over the raw error log excerpts,
-warning text, or per-container tails inside the full report.
+| Option | Default | Purpose |
+|---|---|---|
+| `--agent / -n` | `agent_hello_world` | Agent name to filter |
+| `--from / -f` | required | Start of time window |
+| `--to / -t` | now | End of time window |
+| `--trace-limit N` | `100` | Max traces per Langfuse page |
+| `--obs-limit N` | `50` | Max observations per trace |
+| `--ctx-lines N` | `80` | Max JSON lines per trace to Bob |
+| `--trace-only` | off | Export traces; skip Bob |
+| `--question / -q` | session health prompt | Custom question for Bob |

@@ -451,14 +451,14 @@ wxo_bob_session_analytics.sh
 ├─ Step 1 ── Query Langfuse traces in [--from, --to]
 │            Filter by agent name (input.current_agent)
 │            Fetch observations for each matched trace
-│            → session_traces_<ts>.json
+│            → agent-analytics/<agent>/<ts>/session_traces.json
 │
 ├─ Step 2 ── Build consolidated context document
 │            Run summary table + per-run observation tables + JSON excerpts
-│            → session_context_<ts>.md
+│            → agent-analytics/<agent>/<ts>/session_context.md
 │
 └─ Step 3 ── bob run --mode ask "<context+question>"
-             → BOB_SESSION_ANALYTICS_REPORT_<ts>.md
+             → agent-analytics/<agent>/<ts>/BOB_SESSION_ANALYTICS_REPORT.md
 ```
 
 ### Step-by-step walkthrough
@@ -487,7 +487,7 @@ The script verifies Langfuse reachability and prints the resolved window:
 Agent       : agent_hello_world
 From        : 2026-08-10T00:00:00Z
 To          : 2026-08-11T23:59:59Z
-Langfuse    : http://localhost:3010 (reachable)
+Langfuse    : http://localhost:3010 (reachable + credentials valid)
 ```
 
 #### Step 2 — Traces are fetched and filtered
@@ -500,7 +500,7 @@ Langfuse returned 3 traces in window (total in project: 12); 3 match agent 'agen
   trace 9eff6c5407b9… — 4 observations
   trace a12f3d8801c2… — 4 observations
   trace b99e20ff4401… — 6 observations
-Saved: 3 traces → ./agent-analytics/session_traces_20260810_110000.json
+Saved: 3 traces → ./agent-analytics/agent_hello_world/20260810_110000/session_traces.json
 Traces matched: 3
 ```
 
@@ -515,7 +515,7 @@ Langfuse is queried with `fromTimestamp` / `toTimestamp` and `name=LangGraph`
   Step 2 — Building session context document
 ════════════════════════════════════════
 Context: 287 lines (3 runs)
-Context file: ./agent-analytics/session_context_20260810_110000.md
+Context file: ./agent-analytics/agent_hello_world/20260810_110000/session_context.md
 ```
 
 The context document contains:
@@ -531,7 +531,7 @@ The context document contains:
   Step 3 — IBM Bob CLI analysis (mode: ask)
 ════════════════════════════════════════
 Building prompt → bob run --mode "ask" "<context+question>"
-Output → terminal + ./agent-analytics/BOB_SESSION_ANALYTICS_REPORT_20260810_110000.md
+Output → terminal + ./agent-analytics/agent_hello_world/20260810_110000/BOB_SESSION_ANALYTICS_REPORT.md
 
 [Bob analysis streams here...]
 
@@ -539,10 +539,10 @@ Output → terminal + ./agent-analytics/BOB_SESSION_ANALYTICS_REPORT_20260810_11
 Agent        : agent_hello_world
 Window       : 2026-08-10T00:00:00Z → 2026-08-11T23:59:59Z
 Runs         : 3
-Traces file  : ./agent-analytics/session_traces_20260810_110000.json
+Traces file  : ./agent-analytics/agent_hello_world/20260810_110000/session_traces.json
 Langfuse     : http://localhost:3010
 Bob mode     : ask
-Report       : ./agent-analytics/BOB_SESSION_ANALYTICS_REPORT_20260810_110000.md
+Report       : ./agent-analytics/agent_hello_world/20260810_110000/BOB_SESSION_ANALYTICS_REPORT.md
 ```
 
 ### The report
@@ -560,7 +560,7 @@ Every report begins with a session metadata header:
 | Runs found | 3 |
 | Bob mode | ask |
 | Generated | 2026-08-10 11:00:00 |
-| Traces file | ./agent-analytics/session_traces_20260810_110000.json |
+| Traces file | ./agent-analytics/agent_hello_world/20260810_110000/session_traces.json |
 | Langfuse | http://localhost:3010 |
 ```
 
@@ -578,13 +578,13 @@ Bob's analysis contains:
 
 ### Generated files
 
-Every run creates timestamped files in `watsonx-orchestrate-adk/agent-analytics/`:
+Every run creates a dedicated folder `watsonx-orchestrate-adk/agent-analytics/<agent_name>/<timestamp>/`:
 
 | File | What it contains |
 |---|---|
-| `session_traces_<ts>.json` | All matched traces with observations |
-| `session_context_<ts>.md` | Consolidated context — includes Production-Hardening Signals table (min/avg/max latency across all runs) |
-| `BOB_SESSION_ANALYTICS_REPORT_<ts>.md` | Bob's cross-run analysis report, including IBM Bob CLI Usage section |
+| `session_traces.json` | All matched traces with observations |
+| `session_context.md` | Consolidated context — includes Production-Hardening Signals table (min/avg/max latency across all runs) |
+| `BOB_SESSION_ANALYTICS_REPORT.md` | Bob's cross-run analysis report, including IBM Bob CLI Usage section |
 
 ### Options
 

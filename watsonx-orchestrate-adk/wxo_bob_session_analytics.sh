@@ -8,7 +8,7 @@
 #   2. For each trace, fetch its observations
 #   3. Build a consolidated context document (summary table + per-trace detail)
 #   4. bob run --mode <mode> "<context+question>"  → AI analysis
-#   5. Save report to <output-dir>/BOB_SESSION_ANALYTICS_REPORT_<ts>.md
+#   5. Save all files to <output-dir>/<agent_name>/<timestamp>/
 #
 # Usage:
 #   bash wxo_bob_session_analytics.sh [OPTIONS]
@@ -21,7 +21,7 @@
 #   --question   -q   Question for Bob. Default: standard session analysis question.
 #   --bob-mode        Bob run mode. Default: ask
 #   --export-file     Custom path for Bob report.
-#                     Default: <output-dir>/BOB_SESSION_ANALYTICS_REPORT_<ts>.md
+#                     Default: <output-dir>/<agent_name>/<timestamp>/BOB_SESSION_ANALYTICS_REPORT.md
 #   --env-file   -e   Path to a .env file. Default: .env
 #   --langfuse-url    Langfuse API base URL. Default: http://localhost:3010
 #   --langfuse-pk     Langfuse public key.  Default: pk-lf-orchestrate
@@ -156,11 +156,19 @@ if [ -f ".venv/bin/activate" ]; then
   source .venv/bin/activate
 fi
 
-# ── Verify Langfuse is reachable ───────────────────────────────────────────────
+# ── Verify Langfuse is reachable AND credentials are valid ────────────────────
+# /api/public/health accepts any credentials — use /api/public/projects instead,
+# which requires valid Basic Auth, to catch wrong keys early.
 LF_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" \
   -u "${LANGFUSE_PK}:${LANGFUSE_SK}" \
-  "${LANGFUSE_URL}/api/public/health" 2>/dev/null || echo "000")
+  "${LANGFUSE_URL}/api/public/projects" 2>/dev/null || echo "000")
 
+if [ "${LF_HEALTH}" = "401" ]; then
+  echo -e "${RED}ERROR: Langfuse credentials rejected (HTTP 401) at ${LANGFUSE_URL}.${NC}" >&2
+  echo -e "${YELLOW}Default keys: pk-lf-orchestrate / sk-lf-orchestrate${NC}" >&2
+  echo -e "${YELLOW}Override with: --langfuse-pk <key> --langfuse-sk <key>${NC}" >&2
+  exit 1
+fi
 if [ "${LF_HEALTH}" != "200" ]; then
   echo -e "${RED}ERROR: Langfuse not reachable at ${LANGFUSE_URL} (HTTP ${LF_HEALTH}).${NC}" >&2
   echo -e "${YELLOW}Ensure the Developer Edition was started with --with-ibm-telemetry (-i).${NC}" >&2
@@ -170,15 +178,16 @@ fi
 echo -e "${CYAN}Agent       : ${AGENT_NAME}${NC}"
 echo -e "${CYAN}From        : ${FROM_TIME}${NC}"
 echo -e "${CYAN}To          : ${TO_TIME}${NC}"
-echo -e "${CYAN}Langfuse    : ${LANGFUSE_URL} (reachable)${NC}"
+echo -e "${CYAN}Langfuse    : ${LANGFUSE_URL} (reachable + credentials valid)${NC}"
 
-# ── Prepare output directory ───────────────────────────────────────────────────
-mkdir -p "${OUTPUT_DIR}"
+# ── Prepare output directory — one sub-folder per agent per run ───────────────
 RUN_TS=$(date '+%Y%m%d_%H%M%S')
-TRACES_FILE="${OUTPUT_DIR}/session_traces_${RUN_TS}.json"
-CONTEXT_FILE="${OUTPUT_DIR}/session_context_${RUN_TS}.md"
+OUTPUT_DIR="${OUTPUT_DIR}/${AGENT_NAME}/${RUN_TS}"
+mkdir -p "${OUTPUT_DIR}"
+TRACES_FILE="${OUTPUT_DIR}/session_traces.json"
+CONTEXT_FILE="${OUTPUT_DIR}/session_context.md"
 if [ -z "${EXPORT_FILE}" ]; then
-  EXPORT_FILE="${OUTPUT_DIR}/BOB_SESSION_ANALYTICS_REPORT_${RUN_TS}.md"
+  EXPORT_FILE="${OUTPUT_DIR}/BOB_SESSION_ANALYTICS_REPORT.md"
 fi
 
 # ── Step 1: Fetch all matching traces from Langfuse ───────────────────────────
