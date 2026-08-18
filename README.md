@@ -132,13 +132,13 @@ The Bob configuration files in this repository are:
 
 `Build an AI Booking Agent with MCP — an update with IBM Bob 2.0 + watsonx Orchestrate 2.12.0`
 
-[![Related YouTube video](./images/youtube-01.jpg)](https://youtu.be/Ut5aXGEA9kA?si=b4c9jdcNUNBvPQXO)
+[![Related YouTube video](./images/youtube-02.jpg)](https://youtu.be/Ut5aXGEA9kA?si=b4c9jdcNUNBvPQXO)
 
 **Initial video** — Bob 1.0 + watsonx Orchestrate 2.2.0:
 
 `How to Use IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent?`
 
-[![Related YouTube video](./images/youtube-02.jpg)](https://youtu.be/QRb2_ZVlynE?si=MG6RmWewAlmGkSjn)
+[![Related YouTube video](./images/youtube-01.jpg)](https://youtu.be/QRb2_ZVlynE?si=MG6RmWewAlmGkSjn)
 
 **Initial blog post:** [Using IBM Bob, MCP, and watsonx Orchestrate to Generate an Agent](https://suedbroecker.net/2026/03/29/using-ibm-bob-mcp-and-watsonx-orchestrate-to-generate-an-agent/)
 
