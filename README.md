@@ -2,6 +2,11 @@
 
 This repository is a step-by-step guide to building a local AI travel booking agent using **watsonx Orchestrate Developer Edition** and **IBM Bob**. It walks you through every step — from infrastructure setup to agent creation — using the Galaxium Travels example application.
 
+Trials available:
+
+* [IBM Bob](https://bob.ibm.com/trial)
+* [watsonx Orchestrate](https://www.ibm.com/docs/en/watsonx/watson-orchestrate/base?topic=orchestrate-accessing-watsonx-trial-version)
+
 ## What You Will Build
 
 A local environment where:
