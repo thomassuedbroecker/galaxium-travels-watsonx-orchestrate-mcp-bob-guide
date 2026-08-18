@@ -40,7 +40,7 @@ The log inspection pipeline solves this in three steps:
 - Feed the captured report directly to IBM Bob for a structured health verdict —
   no watsonx Orchestrate agent deployment required.
 
-> **No system Docker required.**
+> **No system Docker required. (Because, we don't need the Galaxium Travels Example)**
 > The inspector uses the **bundled `limactl`** binary shipped inside the Python
 > package to query containers directly. No host-level Docker Desktop installation
 > is needed.
