@@ -81,9 +81,9 @@ python3 -m pip install ibm-watsonx-orchestrate
 orchestrate --version
 ```
 
-> **Tip:** This project was tested with `ibm-watsonx-orchestrate==2.12.0`.
+> **Tip:** This project was tested with `ibm-watsonx-orchestrate==2.14.0`.
 > Pin that version if you need a reproducible environment:
-> `python3 -m pip install ibm-watsonx-orchestrate==2.12.0`
+> `python3 -m pip install ibm-watsonx-orchestrate==2.14.0`
 
 ---
 
@@ -150,7 +150,7 @@ orchestrate server start \
   --env-file .env \
   --with-connections-ui \
   --accept-terms-and-conditions \
-  --with-langfuse
+  --with-ibm-telemetry
 ```
 
 This is the main startup command. It pulls (if needed) and starts all
@@ -161,7 +161,7 @@ the containers that make up the local platform:
 | `--env-file .env` | Passes your credentials and passwords to the containers |
 | `--with-connections-ui` | Enables the connections management UI |
 | `--accept-terms-and-conditions` | Non-interactive acceptance of the IBM terms |
-| `--with-langfuse` | Starts Langfuse alongside the server for LLM call tracing |
+| `--with-ibm-telemetry` | Starts Langfuse alongside the server for LLM call tracing |
 
 > **What is Langfuse?**  
 > Langfuse is an open-source LLM observability tool. When enabled it records

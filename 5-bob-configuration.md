@@ -69,12 +69,13 @@ setup.
 
 ## 5.3 The `.bob/mcp.json` File
 
-The file `.bob/mcp.json` currently configures four MCP server entries:
+The file `.bob/mcp.json` currently configures five MCP server entries:
 
 - `watsonx-orchestrate-documentation-mcp`
 - `watsonx-orchestrate-adk`
 - `watsonx-orchestrate-local-mcp`
 - `booking-mcp`
+- `bob-marketplace`
 
 The current file content is:
 
@@ -109,12 +110,28 @@ The current file content is:
       },
       "type": "streamable-http",
       "url": "http://192.168.2.53:8084/mcp"
+    },
+    "bob-marketplace": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:51877/mcp",
+      "headers": {
+        "Bob-Marketplace-Token": "bob-marketplace-local"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_assets",
+        "get_asset",
+        "list_installed",
+        "list_favorites",
+        "suggest_assets",
+        "list_updates"
+      ]
     }
   }
 }
 ```
 
-### What The Four Entries Do
+### What The Five Entries Do
 
 - `watsonx-orchestrate-documentation-mcp` connects Bob to the public
   `watsonx Orchestrate` documentation MCP endpoint.
@@ -124,6 +141,8 @@ The current file content is:
   `watsonx Orchestrate` MCP endpoint on port `8080`.
 - `booking-mcp` connects Bob to the Galaxium Travels MCP server on port `8084`
   and sends a Basic Auth header.
+- `bob-marketplace` connects Bob to the local Bob Marketplace server for
+  searching, installing, and listing assets.
 
 ### Local Values You May Need To Change
 

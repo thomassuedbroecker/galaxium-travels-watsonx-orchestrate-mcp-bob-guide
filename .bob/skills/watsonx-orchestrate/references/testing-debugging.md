@@ -39,6 +39,23 @@ it as a Python module). Unzip first, then import the contained source:
 unzip get_weather_export.zip -d /tmp/gw && \
   orchestrate tools import -k python -f /tmp/gw/get_weather.py -r /tmp/gw/requirements.txt
 ```
+> ⚠ The zip entries carry a **leading `//` absolute path spec** (`//get_weather.py`), so
+> `unzip` prints `warning: stripped absolute path spec from //get_weather.py` and **exits
+> non-zero**. The files extract correctly — but a restore script running under `set -e` dies
+> here. Use `unzip -oq … || true`, or check for the extracted files rather than the exit code.
+> (live-verified 2.13.0)
+
+**Round-trip fidelity (live-verified 2.13.0):** agent YAML round-trips cleanly —
+`collaborators:`, `skills:`, `tools:` all survive export → re-import. Two caveats:
+- **`display_name` is sticky.** Re-importing does not reset a display name set earlier
+  (e.g. in the UI), so an agent whose YAML says `name: dr_house` can keep showing as
+  "Dr. House (Diagnostics Lead)" in listings. Always reference agents by snake_case `name`.
+- Agent skills export as a **directory** (`<out>/<skill-name>/SKILL.md`) and re-import with
+  `skills import -f <that path> --upsert`.
+
+**Prove the restore, don't assume it.** A backup you have never restored is not a backup.
+Delete one tool and one agent from the target env and bring them back from the exported
+files alone before you call an environment reproducible.
 Use `--safe` on `tools`/`agents`/`knowledge-bases` import to be prompted before
 overwriting. *(Export/reimport behavior live-verified on IBM Cloud SaaS, ADK 2.12.0.)*
 
@@ -103,6 +120,15 @@ LLM output is non-deterministic — assert on behavior:
   not answered from the model's own memory when a tool was required.
 - **Multi-turn:** the follow-up answer **uses prior context** (the agent remembered
   the entity/state from turn 1).
+- **Routing (multi-agent):** the expected collaborator was delegated to — match the
+  `chat_with_collaborator_*` tool name by **prefix**, never equality (SKILL.md §3.3b).
+
+> **Encode ambiguity as an accepted SET, not a single expected value.** Some questions have
+> more than one correct route — a question that touches two specialties, or a broad framing
+> question the orchestrator may legitimately answer itself. A suite that allows exactly one
+> answer per question goes permanently red on those, and teams respond by loosening the whole
+> suite until it detects nothing. Let each case declare a set of acceptable outcomes
+> (including "no delegation" where that is valid) and keep everything else strict.
 
 ### Step 6 — safety (read-only by default)
 - Default to **read-only prompts**. If the agent exposes `READ_WRITE`/`ADMIN` tools
@@ -151,7 +177,43 @@ request."** For deeper, repeatable testing, escalate to the evaluations framewor
 | Flow won't compile | Signature must be `def build_<name>(aflow: Flow) -> Flow:`; `prompt` nodes need `system_prompt`; `map_*` expressions single-line. |
 | Doc flow can't get the uploaded file | Don't ask the agent to upload — the `docproc` node prompts the user. Agent just invokes the flow. |
 | Works locally, absent in prod | Wrong active env. `orchestrate env list` → activate the right one → re-import. |
+| **Orchestrator answers instead of delegating** | **Look in the orchestrator's own `instructions` first, not at the collaborators.** See the playbook below. |
+| Delegation assertion fails though it clearly delegated | The generated tool name has the specialty appended (`…_dr_wilson_oncology`) — and inconsistently. Match by **prefix** (SKILL.md §3.3b). |
+| `agents list` output is unreadable | The rich table wraps to ~1 character per column on a normal terminal. Use `orchestrate agents list -v` and **parse the JSON**; never read the table. |
 | Need server-side detail | `orchestrate server logs`. Reset corrupt local state with `orchestrate server reset`. |
+| **Agent refuses a request it used to answer** | Check for a bound **control** before you touch the prompt: `orchestrate controls list --agent <name>`. A PII/guardrail control rewrites or blocks the payload at `agent_pre_invoke`, so the model — which never sees the original text — produces what looks exactly like its own safety refusal. Confirm from the trace: redacted values appear as `[REDACTED]` in the LLM input (SKILL.md §4a). |
+| Control created but nothing changes | `--config` is not schema-validated, so a mistyped key leaves every detector on its default (**off**). Diff against `orchestrate controls get-type -n <artifact> -v`. Also check the binding actually landed: `controls get-details -n <name> -v` → `agent_ids`. |
+| `controls import` → `already exists` / `No agent found with name '<Display Name>'` | Import is create-only (remove first), and `controls export` writes **display** names that import cannot resolve — rewrite `agent_names` to snake_case (SKILL.md §4a). |
+| `agents import` → `At most 100 characters … Welcome message` | Real API limit in 2.15.0 despite the release note's "1000". Shorten `welcome_message`; move the prose to `description`. |
+| KB import → `Unsupported file type text/markdown` | Built-in ingestion rejects `.md`; rename to `.txt`. |
+| Agent searches only one of several KBs | Each KB is a separate retrieval tool routed on its `description`. Make descriptions mutually exclusive and tell the agent in `instructions:` that a cross-cutting question must consult both. |
+| `connections configure --name …` → `500 … column "name" of relation "application_connection_configs" does not exist` | The 2.15.0 custom API-key header is ahead of the SaaS backend schema. Drop `--name` (the update then succeeds) and set the header another way; re-test after a platform upgrade. |
+| Voice import → `<vendor>_config must be specified for <vendor>` | `provider` must be `<vendor>_stt` / `<vendor>_tts` (e.g. `deepgram_stt`), not the bare vendor. The ADK types `provider` as a free string, so only the platform catches it. |
+| Voice import raises a raw pydantic traceback | A required nested field is missing (e.g. Deepgram STT needs `api_url`). The CLI surfaces the `ValidationError` verbatim — read the `loc` path, it names the exact field. |
+| Flow with a docproc node won't import | Two near-certain causes: `classes=`/`fields=` was given the **class** instead of an **instance**, or `flow_builder.types` was imported before `flow_builder.flows` (circular import). See agents-tools-schemas.md. |
+
+### 2a. Playbook: the orchestrator answers instead of delegating
+
+The most common multi-agent failure, and the cause is almost never the model. Work in this
+order — the first step fixes it far more often than the last:
+
+1. **Search the orchestrator's `instructions` for any permission to self-answer and delete
+   it.** A single sentence like *"do not delegate a question you can answer with your own
+   tools"* is enough to suppress routing entirely. Live-verified: removing one such sentence
+   moved routing accuracy from **5/9 to 8/9** with no other change.
+2. **State that delegation is the default, not the exception**, and make routing the
+   orchestrator's stated primary job rather than step three of a list.
+3. **Add mandatory rules naming the domains that must always route** — especially ones the
+   orchestrator's *own* tools could plausibly cover ("a neurological finding goes to
+   `dr_foreman` even though you could reason about it yourself; your tool frames the case, it
+   does not replace the specialist") and ones that need no tool at all (non-clinical,
+   administrative), where nothing otherwise forces a handoff.
+4. **Only then tighten collaborator `description`s** so no two compete for the same trigger.
+5. **Give the orchestrator as few tools as possible.** Every tool it owns is a reason not to
+   route. An orchestrator with eight tools is a monolith wearing a supervisor's hat.
+
+Verify by re-running a fixed prompt set and diffing routing accuracy before/after — one
+instruction edit can swing it 30+ points, so measure rather than eyeball.
 
 ---
 
@@ -193,19 +255,38 @@ patterns. Run `orchestrate evaluations <cmd> --help` for current flags.
 - Inspect traces via `orchestrate observability traces` (subcommands: `search`, `export`)
   to see the agent's tool-call decisions, latencies, and errors — the best way to
   understand *why* an agent chose (or skipped) a tool.
-- **Capture the `trace_id` from the run response and export it directly** — this is the
-  reliable path:
+- **2.13.0 (live-verified):** `search` takes a relative window and user/session filters;
+  `export` returns **observations** (not spans):
   ```bash
-  orchestrate observability traces export --trace-id <trace_id>
+  orchestrate observability traces search --last 30m            # relative window (30m/3h/10d)
+  orchestrate observability traces search --last 3h --user-id <u> --session-id <s>
+  orchestrate observability traces export --trace-id <trace_id> # observations JSON; -o to save
   ```
-  On IBM Cloud SaaS (live-verified 2.12.0), `traces search --last 1h` returned **0 traces**
-  even when traces existed and were individually exportable — don't rely on `search`,
-  prefer `export --trace-id`. The `trace_id` is in every `/v1/orchestrate/runs` response.
-- **AgentOps v3 API** (rich trace JSON — observations, latency, scores, cost):
+  `search --last` **now returns results on SaaS** (in 2.12.0 it returned 0 traces even when
+  they existed — that regression is fixed). The old `--agent-name`/`--agent-id`/
+  `--service-name`/`--min-spans`/`--max-spans` filters are deprecated. The `trace_id` is in
+  every `/v1/orchestrate/runs` response; the `export` payload has
+  `{observations, total_count, exported_at, format, trace_id}`.
+- **AgentOps v3 API** — the rich surface, and the only one with per-span `latency`, the span
+  tree (`parentObservationId`), error `level`, and trace-level `scores[]`:
   ```bash
   curl -H "Authorization: Bearer $TOKEN" \
     "<instance-url>/v1/agentops-v3/traces/<trace_id>"     # 200; old /v1/agentops/… → 404
   ```
+  ⚠ **Fields are camelCase** here, unlike everywhere else in wxO — `startTime`, `totalCost`,
+  `parentObservationId`. Snake_case guesses silently return `None`.
+
+**Three facts that change how you build on this** (all live-verified 2.13.0 — full detail in
+[agentops-evaluations.md](agentops-evaluations.md) §4–§7):
+
+1. **`run.usage` is `null`.** Token counts are *not* on the runs API; they are in the trace
+   at `observation.usage` on `GENERATION` observations.
+2. **`trace.totalCost` is `0`.** Tokens are native and exact; **pricing is not**. Multiply by
+   your own rate card.
+3. **Error rate, tail latency, tool-call success and every dashboard are yours to derive.**
+   Nothing ships. Exclude the sub-second infrastructure traces (blank agent name) from any
+   statistic, and remember `traces search` still shows an `Agent Name` column even though
+   `--agent-name` is a deprecated no-op — filter client-side.
 
 ### Logs in Developer Edition
 

@@ -1,19 +1,48 @@
 # `orchestrate` CLI reference
 
-Verified against **`ibm-watsonx-orchestrate` 2.12.0** (groups/commands confirmed live;
-original catalog from 2.10.0). The CLI evolves — **always confirm with
-`orchestrate <group> --help` and `orchestrate <group> <cmd> --help`**. Short flags are
-shown in `()`.
+Verified against **`ibm-watsonx-orchestrate` 2.15.0** (groups/commands confirmed live on
+IBM Cloud SaaS, 2026-08-18; original catalog from 2.10.0). The CLI evolves — **always
+confirm with `orchestrate <group> --help` and `orchestrate <group> <cmd> --help`**. Short
+flags are shown in `()`.
 
-Top-level groups:
-`env`, `agents`, `tools`, `toolkits`, `knowledge-bases`, `connections`,
-`models`, `server`, `chat`, `channels`, `settings`, `evaluations`,
-`observability`, `voice-configs`, `phone`, `partners`, `workspaces`.
+Top-level groups (2.15.0, from `orchestrate --help`):
+`env`, `agents`, `tools`, **`skills`**, `toolkits`, `knowledge-bases`, `connections`,
+`voice-configs`, `server`, `chat`, `models`, `channels`, `phone`, `evaluations`,
+`settings`, `partners`, `observability`, **`controls`**, `workspaces`.
 
-> Note the plural **`toolkits`** and **`voice-configs`** group names.
+> Note the plural **`toolkits`** and **`voice-configs`** group names. **`controls` is new in
+> 2.15.0.** `agents list` also gains **Skills** and **Plugins** columns; `env activate`
+> now also prints the **active workspace** (`Active workspace: Global workspace`).
 
-> **2.11–2.12 additions (from release notes, not yet live-verified — confirm with
-> `--help`):**
+> **2.15.0 additions (live-verified):**
+> - **`controls` group** — bind policy artifacts to agents/tools/models. Ten commands
+>   (the release note lists five, and calls `remove` "delete"). Full section below.
+> - **`connections configure --name`** — custom API-key header name; `api_key` kind only.
+> - Agents may reference **multiple knowledge bases**; each becomes its own retrieval tool.
+> - **`welcome_content.is_user_barge_in_disabled`**, voice `user_idle_handler`
+>   `use_llm_generated_idle_message` / `repeat_previous_message`, and
+>   `agent_idle_handler.long_running_task_seconds`.
+> - Deepgram **`flux-general-en` / `flux-general-multi`** STT models no longer raise a
+>   spurious validation warning.
+>
+> **2.14.0 additions:**
+> - `language=` on every document-processing node; classifier hard-capped at **30 classes**.
+> - Google TTS (`google_tts_config`) and Deepgram `normalize_volume`.
+> - Flow lifecycle events **`on_flow_abort`**, **`on_flow_delete`**.
+> - KB credential validation at create/update time; `index_config.url` now **optional**
+>   (it may come from the connection instead).
+> - Model provider **`redhat-ai`**; external-agent provider **`msftstudio`**.
+> - Langflow → 1.10.0 (the 2.15.0 CLI reports **Langflow 1.11.2** in `orchestrate --version`).
+>
+> **2.13.0 additions (live-verified):**
+> - **`skills` group** — manage agent skills (`SKILL.md` packages). See the skills section below.
+> - **Agent `style` default is `react_core`**; `default`/`react`/`planner` deprecated.
+> - **Premier models** — `models config enable-premier-models` / `disable-premier-models` /
+>   `are-premier-models-enabled` (GPT-5.4 etc.).
+> - **Observability traces** reworked — `search --last`, `--user-id`/`--session-id`;
+>   agent/service/span filters deprecated; `export` returns *observations* (see below).
+>
+> **2.11–2.12 additions (from release notes, confirm with `--help`):**
 > - **Scheduling:** agents/flows support recurring runs via `is_schedulable` in YAML
 >   (internal scheduling tools then auto-appear); schedules themselves are created
 >   conversationally in chat, not via a dedicated CLI verb.
@@ -58,7 +87,7 @@ Local CLI config lives at `~/.config/orchestrate/config.yaml` (shows
 | `agents import` | `--file(-f)`, `--app-id(-a)` (external agents), `--safe` |
 | `agents create` | `--name(-n)`, `--kind(-k)`, `--description`, `--llm`, `--style`, `--instructions`, `--tools`, `--collaborators`, `--knowledge-bases`, `--output(-o)`, external: `--title(-t)`, `--api(-a)`, `--auth-scheme`, `--provider(-p)`, `--auth-config`, `--nickname`, `--app-id`, `--context-access-enabled`, `--context-variable(-v)` |
 | `agents list` | `--kind(-k)`, `--verbose(-v)` |
-| `agents export` | `--name(-n)`, `--kind(-k)`, `--output(-o)`, `--agent-only` |
+| `agents export` | `--name(-n)`, `--kind(-k)`, `--output(-o)`, `--agent-only` — ⚠ `--agent-only` requires a **`.yaml`** output; without it (full dependency bundle) the output must be **`.zip`**. Each rejects the other extension. |
 | `agents deploy` | `--name(-n)` |
 | `agents undeploy` | `--name(-n)` |
 | `agents remove` | `--name(-n)`, `--kind(-k)` |
@@ -95,6 +124,35 @@ orchestrate tools import -k flow -f tools/my_flow.py
 
 - `--package-root(-p)` when a python tool spans multiple files in a package dir.
 - `--auto-discover` (python only) generates docstrings/tools via an LLM (`--llm`, `--env-file`, `--function`).
+
+---
+
+## skills — agent skills (NEW in 2.13.0)
+
+Portable, version-controlled `SKILL.md` packages (optional sibling `WXO.yaml` is sent
+automatically). Attach to an agent via the YAML `skills:` field. **Skill `name` must be
+kebab-case** (agentskills.io spec) — underscores are rejected.
+
+| Command | Key options |
+|---------|-------------|
+| `skills import` | `--file(-f)` (path to `SKILL.md`), `--dir(-d)`, `--recursive(-r)` (with `--dir`), `--workspace-id(-w)`, `--upsert(-u)` |
+| `skills update` | update an existing skill with a new `SKILL.md` |
+| `skills list` | Name · Description · Mode · Tools · Scripts · ID |
+| `skills get` | `--skill-id(-s)` / `--skill-name(-n)` |
+| `skills export` | export a skill to a zip/dir |
+| `skills remove` | `--skill-id(-s)` / `--skill-name(-n)` |
+| `skills upload-script` | attach an executable script to a skill |
+| `skills upload-reference` | attach a reference doc to a skill |
+
+```bash
+orchestrate skills import -f skills/diagnostics_protocol/SKILL.md --upsert
+orchestrate skills list
+orchestrate skills get -n diagnostics-protocol
+orchestrate skills export -n diagnostics-protocol -o ./skills_out
+```
+
+Import is **upsert-by-name** (a skill with the same `name` is updated in place). See
+SKILL.md §3.3c for the `SKILL.md` frontmatter and the agent `skills:` field.
 
 ---
 
@@ -152,11 +210,11 @@ orchestrate knowledge-bases status -n my_kb       # check ingestion/indexing
 | Command | Key options |
 |---------|-------------|
 | `connections add` | `--app-id(-a)` *(required)*, `--component` (e.g. `knowledge`/`registry`), `--category` (e.g. `milvus`) |
-| `connections configure` | *Required:* `--app-id(-a)`, `--environment`/`--env` `[draft\|live]`, `--type(-t)` `[member\|team]`, `--kind(-k)` `[basic\|bearer\|api_key\|key_value\|kv\|oauth_*_flow]`. *Optional:* `--server-url`/`--url(-u)`, `--sso(-s)`, `--idp-token-use`, `--idp-token-type`, `--idp-token-header`, `--app-token-header`, `--config-entries(-e)` |
+| `connections configure` | *Required:* `--app-id(-a)`, `--environment`/`--env` `[draft\|live]`, `--type(-t)` `[member\|team]`, `--kind(-k)` `[basic\|bearer\|api_key\|key_value\|kv\|oauth_*_flow]`. *Optional:* `--server-url`/`--url(-u)`, `--sso(-s)`, `--idp-token-use`, `--idp-token-type`, `--idp-token-header`, `--app-token-header`, `--config-entries(-e)`, **`--name(-n)`** (2.15.0 — custom API-key header name; `api_key` kind only) |
 | `connections set-credentials` | *Required:* `--app-id(-a)`, `--environment`/`--env`. *Creds (by kind):* `--username(-u)`, `--password(-p)`, `--token`, `--api-key(-k)`, `--entries(-e)` `k=v`, `--token-entries(-t)`, `--auth-entries`; OAuth: `--client-id`, `--client-secret`, `--token-url`, `--auth-url`, `--scope`, `--grant-type`, `--send-via [header\|body]` |
 | `connections set-identity-provider` | `--idp-token-header`, `--idp-token-use`, `--idp-token-type`, `--app-token-header` |
 | `connections import` | `--file(-f)` |
-| `connections export` | `--output` |
+| `connections export` | `--app-id(-a)` *(required)*, `--output(-o)` *(required)* — exports **one** connection |
 | `connections list` | `--verbose(-v)` |
 | `connections remove` | `--app-id(-a)` |
 
@@ -173,6 +231,22 @@ oauth_auth_client_credentials_flow | oauth_auth_on_behalf_of_flow |
 oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow`.
 `--type`: `team` (shared) or `member` (per-user). `--env`: `draft` or `live`.
 
+**Custom API-key header (2.15.0) — ⚠ broken on IBM Cloud SaaS at 2.15.0:**
+```bash
+orchestrate connections configure -a my_api --env draft -t team -k api_key \
+  -u https://api.example.com --name "X-Auth-Token"     # instead of the default `api_key`
+```
+`--name` on any other `--kind` exits with *"Connection option 'name' is for custom API key
+header name and can only be used with connection kind 'api_key'."* — that guard works.
+The feature itself does not:
+- **Create** reports success but persists nothing — `connections export` emits no `name`.
+- **Update** returns `500 CM-UNKNOWN-001`,
+  `details: column "name" of relation "application_connection_configs" does not exist`.
+  The identical update **without** `--name` succeeds, isolating the flag as the trigger.
+
+Verify on the target tenant before relying on it; otherwise use `--kind key_value` with an
+explicit entry, or set the header in the tool code.
+
 ---
 
 ## models
@@ -184,7 +258,7 @@ oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow`.
 | `models add` | `--name(-n)` *(required)*, `--description(-d)`, `--display-name`, `--provider-config` (JSON), `--app-id(-a)`, `--type [chat\|chat_vision\|completion\|embedding]` (default `chat`) |
 | `models export` | `--name(-n)`, `--output(-o)` |
 | `models remove` | `--name(-n)` |
-| `models config` | tenant-level model selection subgroup: `list`, `default` (set default LLM), `denylist`, `reset`, `import`, `export` |
+| `models config` | tenant-level model selection subgroup: `list`, `default` (set default LLM), `denylist`, `reset`, `import`, `export`, plus **`enable-premier-models`** / **`disable-premier-models`** / **`are-premier-models-enabled`** (2.13.0) |
 | `models policy` | routing pseudo-models across downstream models: `add`, `remove`, `import`, `export` |
 
 ```bash
@@ -232,11 +306,94 @@ orchestrate chat ask -n weather_agent "And tomorrow?" -t <thread_id>   # continu
 
 ---
 
+## controls — policy guardrails (NEW in 2.15.0)
+
+Binds a **policy artifact** to **agents / tools / models** at an execution hook.
+Concepts, the artifact catalog, the enforcement proof and the traps are in SKILL.md §4a.
+
+| Command | Flags |
+|---|---|
+| `controls list-types` | `--verbose(-v)` |
+| `controls get-type` | `--name(-n)`*, `--verbose(-v)` |
+| `controls create` | `--artifact(-a)`*, `--name(-n)`*, `--display-name`, `--description(-d)`, `--hooks/--hook` (repeatable), `--priority(-p)` (default 100, lower first), `--config` (JSON string), `--agent`/`--tool`/`--model` (each repeatable) |
+| `controls list` | `--agent`, `--tool`, `--model`, `--artifact`, `--sort recent\|asc\|desc`, `--verbose(-v)` |
+| `controls count` | — |
+| `controls get-details` | `--name(-n)`*, `--verbose(-v)` |
+| `controls update` | `--name(-n)`*, `--artifact`, `--new-name`, `--display-name`, `--description(-d)`, `--hooks/--hook`, `--priority(-p)`, `--config`, `--agent`/`--tool`/`--model` |
+| `controls remove` | `--name(-n)`* |
+| `controls import` | `--file(-f)`* (YAML or JSON) |
+| `controls export` | `--name(-n)`*, `--output(-o)`* (YAML) |
+
+`*` = required. **`remove`, not `delete`.**
+
+Valid hooks (server-enforced; an invalid one returns a 422 that lists all six):
+`agent_pre_invoke`, `agent_post_invoke`, `tool_pre_invoke`, `tool_post_invoke`,
+`prompt_pre_fetch`, `prompt_post_fetch`.
+
+⚠ Behaviour worth memorising (all live-verified 2.15.0):
+- `--config` is **not** validated against the artifact's `config_schema` — typos are stored
+  and the control silently runs on defaults.
+- `--hooks` **is** validated. Asset-type mismatches and controls with **no** binding are
+  **not** — the latter inflate `count` totals without appearing under any asset.
+- `update` **replaces** each list it is given and preserves any flag you omit; `version` bumps.
+- `import` is **create-only** (400 on an existing name); there is no `--upsert`.
+- `export` writes agent **display** names, which `import` cannot resolve — rewrite them to
+  snake_case first.
+
+---
+
+## workspaces
+
+| Command | Purpose |
+|---|---|
+| `workspaces create` | Create or update a workspace |
+| `workspaces list` | List workspaces with activation status |
+| `workspaces remove` | Remove a workspace |
+| `workspaces activate` / `deactivate` | Switch the active workspace / reset to global |
+| `workspaces export` | Export all workspace resources to a zip |
+| `workspaces members` | Manage workspace members |
+
+Resources are scoped to the active workspace; `env activate` prints which one you are in,
+and `tools list -v` reports a `workspace` field per tool. If a resource you imported seems
+"missing", check you are in the same workspace.
+
+---
+
+## voice-configs
+
+`import -f <yaml>` · `list` · `get` (by ID or name) · `export -n <name> -o <yaml>` ·
+`remove`. Attach to an agent with `voice_configuration: <name>`. Schema and the 2.14/2.15
+field additions: SKILL.md §4b. Export strips API keys.
+
+---
+
 ## channels, evaluations, others
 
 - **channels**: `create`, `delete`, `get`, `list`, `list-channels`, `import`, `export`, `webchat` — expose a deployed agent on a channel (e.g. embedded web chat). See `orchestrate channels webchat --help`.
 - **evaluations**: `evaluate`, `quick-eval`, `generate`, `analyze`, `record`, `validate-native`, `validate-external`, `red-teaming` (see testing-debugging.md).
-- **observability**: `traces` and related — inspect agent execution traces.
+- **observability**: `traces search` / `traces export` — inspect agent execution traces.
+  **2.13.0:** `search` filters by `--last <30m|3h|10d>` (relative window) or
+  `--start-time`/`--end-time`, plus `--user-id` and `--session-id` (both repeatable),
+  `--sort-field`/`--sort-direction`. The old `--service-name`/`--agent-name`/`--agent-id`/
+  `--min-spans`/`--max-spans` filters are **deprecated / no longer supported** (the API no
+  longer filters by agent). `export -t <32-hex trace-id>` returns **observations** (not spans):
+  `{observations:[…], total_count, exported_at, format, trace_id}`; `--pretty` default,
+  `-o` to write a file. (`search --last` now returns results on SaaS — it returned 0 in 2.12.0.)
+
+  ```bash
+  orchestrate observability traces search --last 3h            # Timestamp · Trace ID · Agent Name · Latency
+  orchestrate observability traces export --trace-id <id> -o trace.json
+  ```
+  ⚠ **Three traps (live-verified 2.13.0):**
+  1. The results table **still renders a populated `Agent Name` column** although
+     `--agent-name` is a deprecated no-op — it reads as though the filter worked.
+     **Filter client-side.**
+  2. Results **mix sub-second infrastructure traces** (blank agent name, ~200–450ms) in with
+     real agent runs. Exclude them from any error-rate or latency statistic.
+  3. `export` returns a **strict subset** of the AgentOps v3 API — 11 fields, with **no
+     `latency`** and **no `parentObservationId`**, so you cannot rebuild the span tree from
+     it. For latency forensics use `GET /v1/agentops-v3/traces/{trace_id}`. See
+     [agentops-evaluations.md](agentops-evaluations.md) §4.
 - **settings**: configure the active env, including observability/Langfuse tracing.
 - **voice-configs** / **phone**: voice-enabled agents (`import`, `list`, `get`, `export`, `remove`). 2.11+ adds Deepgram **Flux** STT models (Flux General English is the new default).
 - **partners**: catalog/offering publishing. **workspaces**: multi-workspace management.

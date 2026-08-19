@@ -35,7 +35,7 @@ Reference: [Monitoring your LLMs with Langfuse](https://developer.watson-orchest
 
 ## 7.2 Prerequisites
 
-> **If you already ran `wxo_local_start.sh`, all prerequisites are satisfied — skip to §6.3.**
+> **If you already ran `wxo_local_start.sh`, all prerequisites are satisfied — skip to §7.3.**
 
 | Requirement | How it is satisfied |
 |---|---|

@@ -59,6 +59,29 @@ oauth_auth_code_flow | oauth_auth_password_flow |
 oauth_auth_client_credentials_flow | oauth_auth_on_behalf_of_flow |
 oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow`.
 
+**Custom API-key header name (2.15.0).** By default an `api_key` connection sends the
+credential in an `api_key` header. `--name` overrides that:
+```bash
+orchestrate connections configure -a my_api --env draft -t team -k api_key \
+  -u https://api.example.com --name "X-Auth-Token"
+```
+- The kind guard works: on any `--kind` other than `api_key` the CLI exits with
+  *"Connection option 'name' is for custom API key header name and can only be used with
+  connection kind 'api_key'."* (live-verified 2.15.0).
+- ⚠ **The feature itself did not work on IBM Cloud SaaS at 2.15.0.** Creating a
+  configuration with `--name` reports success but stores nothing — `connections export`
+  emits no `name`. **Updating** an existing configuration with `--name` fails outright:
+  ```
+  500 CM-UNKNOWN-001  {"details": "column \"name\" of relation
+       \"application_connection_configs\" does not exist"}
+  ```
+  The same update without `--name` succeeds, so the flag is the trigger: the CLI ships the
+  field, the backend schema does not have the column yet.
+- **Workarounds** until the tenant catches up: use `--kind key_value` with an explicit
+  entry and read it in the tool, or set the header from the tool code via
+  `ibm_watsonx_orchestrate.run.connections`. Re-test with a create + export after any
+  platform upgrade.
+
 **Tip:** keep secrets in a gitignored `.env`, `source ./.env`, and pass via
 `--api-key "$VAR"` / `--entries "k=$VAR"` so they stay out of shell history.
 
@@ -76,6 +99,22 @@ orchestrate models list
 ```
 Examples: `watsonx/meta-llama/llama-3-3-70b-instruct`,
 `watsonx/ibm/granite-3-3-8b-instruct`, `groq/openai/gpt-oss-120b`.
+
+**Provider enum (`ModelProvider`, 2.15.0)** — the value that goes in a `kind: model` YAML:
+`openai`, `openai-oauth2-client-creds`, `a21`, `anthropic`, `anyscale`, `azure-openai`,
+`azure-ai`, `bedrock`, `cerebras`, `cohere`, `google`, `vertex-ai`, `groq`, `huggingface`,
+`mistral-ai`, `jina`, `ollama`, `openrouter`, `stability-ai`, `together-ai`, `watsonx`,
+`x-ai`, **`redhat-ai`** (new in 2.14.0).
+⚠ The 2.14.0 release note calls the last one **`red_hat_ai`** — that string is **not** in
+the enum. Use `redhat-ai`.
+
+**Premier models (2.13.0)** — premier models (e.g. GPT-5.4) are **off by default** and are
+marked `$` in `models list`. Enable them tenant-wide first, or they won't be selectable:
+```bash
+orchestrate models config are-premier-models-enabled   # check state
+orchestrate models config enable-premier-models         # opt in
+orchestrate models config disable-premier-models
+```
 
 ### Adding your own watsonx.ai model
 
@@ -148,6 +187,10 @@ vector_index:
   embeddings_model_name: ibm/slate-125m-english-rtrvr-v2
 ```
 No external infra; supports PDF/DOCX/PPTX/XLSX/CSV/HTML/TXT.
+⚠ **`.md` is rejected** — `Unsupported file type text/markdown for file named x.md`
+(live-verified 2.15.0). Rename Markdown sources to `.txt` before ingesting. (Agent
+*skills* are the exception that confuses people: those are authored as `SKILL.md`, but
+they are not knowledge bases.)
 `orchestrate knowledge-bases import -f kb.yaml` then
 `orchestrate knowledge-bases status -n product_docs` to watch ingestion.
 
@@ -188,9 +231,28 @@ agents-tools-schemas.md.)
 
 ### Reference an agent to a KB
 ```yaml
-knowledge_base:
+knowledge_base:                # 2.15.0 — an agent may list SEVERAL knowledge bases
   - product_docs
+  - support_policies
 ```
+
+**Multiple KBs per agent (2.15.0).** Each KB is exposed as its **own retrieval tool named
+after the KB**, and the model chooses between them from the KB's `description` — exactly
+like tool routing. Live-verified: one question spanning two KBs produced two tool calls
+(`["ppth_formulary", "ppth_policy"]`) in `step_history` and two matching observations in
+the exported trace.
+
+Consequences for design:
+- Write each KB `description` as a **routing trigger**, mutually exclusive from its siblings.
+- State in the agent's `instructions:` which question class goes to which KB, and that a
+  cross-cutting question must consult **both** — otherwise the agent tends to stop at the
+  first hit.
+- Split only when the sub-corpora answer *different kinds of question*. A homogeneous
+  corpus should stay one KB.
+
+**2.14.0 changes:** credentials are now validated at KB create/update time, before
+indexing starts (a bad credential fails fast instead of after a long ingest); and
+`index_config.url` is **optional** — the URL may come from the connection instead.
 
 ### Decision tree
 ```

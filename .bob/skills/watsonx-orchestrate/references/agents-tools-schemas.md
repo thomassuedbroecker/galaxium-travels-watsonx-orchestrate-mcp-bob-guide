@@ -16,22 +16,30 @@ display_name: My Agent           # optional, UI label
 instructions: |                  # the system prompt / behavior
   You are ... When the user ..., call <tool>. Be concise.
 llm: watsonx/meta-llama/llama-3-3-70b-instruct   # defaults to tenant default if omitted
-llm_config:                      # optional (2.11+) — per-agent decoding params
-  temperature: 0                 # method/temperature/top_p/top_k/max_tokens/stop/
-  max_tokens: 2048               # seed/response_format/reasoning_effort + provider extensions
-style: react_intrinsic           # 2.12.0: react_intrinsic is the DEFAULT; `default` & `react` are DEPRECATED
-                                 #   (still run, but migrate). Source also exposes planner | custom |
-                                 #   experimental_customer_care. Omit `style` to take the tenant default.
+llm_config:                      # optional (2.11+) — per-agent decoding params. Full field
+  temperature: 0                 #   list below; anything you omit round-trips back as null.
+  max_tokens: 2048
+style: react_core                # 2.13.0: react_core is the DEFAULT. `default`, `react`, `planner` are
+                                 #   DEPRECATED (still import but log a warning → migrate to react_core:
+                                 #   https://www.ibm.com/docs/SSAVQO/agent_builder/agent-style-migration.html).
+                                 #   Source also exposes react_intrinsic | custom | experimental_customer_care.
 hide_reasoning: false
 tools:                           # by name; must be imported first
   - get_weather
+skills:                          # 2.13.0 — portable agent skills, by name (KEBAB-CASE, e.g. my-skill).
+  - diagnostics-protocol         #   Import first with `orchestrate skills import`. Round-trips on export.
 collaborators:                   # ORCHESTRATOR pattern: other agents used as agents (by name).
   - billing_agent               #   Import/deploy them FIRST. wxO auto-generates a
                                 #   chat_with_collaborator_<name> tool; routing is driven by
                                 #   each collaborator's `description`. See SKILL §3.3b. Not for
-                                #   experimental_customer_care style. (live-verified 2.12.0)
+                                #   experimental_customer_care style. (live-verified 2.13.0)
 knowledge_base:                  # curated RAG corpora (KB names), ingested by you — distinct
-  - product_docs                #   from chat_with_docs (end-user uploads docs in-chat)
+  - product_docs                #   from chat_with_docs (end-user uploads docs in-chat).
+  - support_policies            #   2.15.0: MULTIPLE KBs are allowed. Each becomes its OWN
+                                #   retrieval tool named after the KB, and the router picks
+                                #   between them from each KB's `description` — so write those
+                                #   as mutually-exclusive routing triggers. (live-verified 2.15.0:
+                                #   one question hit both, step_history showed two tool calls.)
 toolkits: []                     # only for experimental_customer_care style
 guidelines:                      # optional conditional behaviors
   - display_name: Escalate
@@ -57,18 +65,20 @@ compaction_settings:             # 2.11+ — conversation compaction (prevents c
   large_message_chunk_size: 30000
   large_message_target_summary: 10000
   large_message_detect_structured: true
-starter_prompts:
-  is_default_prompts: false
-  prompts:
-    - id: default0
-      title: Short action title
-      subtitle: optional
+starter_prompts:           # ⚠ valid fields ONLY: id, title, subtitle, prompt
+  prompts:                 #   DO NOT add `is_default_prompts:` or per-prompt `state:` —
+    - id: default0         #   both are silently ignored and cause tiles not to render in
+      title: Short action title   #   the UI. (live-verified 2.12.0 — confirmed via export
+      subtitle: optional          #   round-trip and UI regression)
       prompt: Example clickable prompt
-      state: active
 welcome_content:
+  welcome_message: Welcome to My Agent   # ⚠ HARD 100-char cap, enforced by the API with a
+                                         #   422. The 2.15.0 release note's "cap raised to
+                                         #   1000" changed the docs only. (live-verified 2.15.0)
+  description: One line on what it helps with   # put the long text here instead
   is_default_message: false
-  welcome_message: Welcome to My Agent
-  description: One line on what it helps with
+  is_user_barge_in_disabled: false  # 2.15.0 — true = user cannot interrupt the agent's
+                                    #   spoken opening message (voice). Round-trips on export.
 chat_with_docs:                  # let END USERS upload documents in-chat and ask over them
   enabled: true                  #   (RAG over user-uploaded files — no pre-ingestion). The
   supports_full_document: true   #   full block (seen on export) carries vector_index
@@ -89,10 +99,22 @@ icon: null
 is_schedulable: null
 ```
 
+**Full `llm_config` field list** (from a 2.15.0 export round-trip — everything unset comes
+back as `null`, so this is the complete accepted set):
+`model`, `decoding_method`, `prompt`, `max_tokens`, `max_completion_tokens`, `temperature`,
+`top_p`, `top_k`, `n`, `stream`, `logprobs`, `top_logprobs`, `echo`, `stop`,
+`presence_penalty`, `frequency_penalty`, `best_of`, `logit_bias`, `user`, `context`,
+`examples`, `response_format`, `seed`, `store`, `metadata`, `modalities`, `audio`,
+`service_tier`, `prediction`, `safety_settings`, `anthropic_beta`, `anthropic_version`,
+`thinking`, `space_id`, `project_id`, `reasoning_effort`, `parallel_tool_calls`,
+`disable_parallel_tool_use`, `disable_tool_validation`, `verbosity`, `thinking_level`.
+
 **Validation rules from source**
 - `kind` must equal `native` for a native agent (else `BadRequest`).
 - An agent cannot list itself as a collaborator (circular reference).
-- `planner` style: provide at most one of `custom_join_tool` / `structured_output`.
+- `style` default is `react_core` (2.13.0); `default`/`react`/`planner` are deprecated and
+  log a warning on import (`_raise_style_deprecation_warning`).
+- `planner` style (deprecated): provide at most one of `custom_join_tool` / `structured_output`.
 - `experimental_customer_care` style: expects `groq/openai/gpt-oss-120b`; does
   **not** support `tools`, `knowledge_base`, `plugins`, `guidelines`,
   `collaborators`, `custom_join_tool`, `chat_with_docs.enabled`.
@@ -102,8 +124,11 @@ is_schedulable: null
 ### External agent (`kind: external`)
 A2A / external chat agents. Key fields: `api_url` (required), `auth_scheme`
 (`BEARER_TOKEN | API_KEY | NONE`), `auth_config`, `provider`
-(`external_chat`, `external_chat/A2A/0.2.1`, `external_chat/A2A/0.3.0`,
-`salesforce`, …), `nickname`, `app_id`/`connection_id`, `chat_params`,
+(the `AgentProvider` enum, 2.15.0: `external_chat`, `external_chat/A2A/0.2.1`,
+`external_chat/A2A/0.3.0`, `wx.ai`, `watsonx`, `salesforce`, and **`msftstudio`** for
+Microsoft Copilot Studio — the 2.14 release note calls the last one
+`microsoft_copilot_studio`, which is **not** the enum value), `nickname`,
+`app_id`/`connection_id`, `chat_params`,
 `config.enable_cot`, `config.hidden`. Import with `orchestrate agents import -f … --app-id <conn>`.
 
 ### Assistant agent (`kind: assistant`)
@@ -260,8 +285,16 @@ with `flow.` and have ≥3 parts). Map a node input with
 - **Decision table** — `aflow.decisions(name=, rules=[DecisionsRule(conditions=[...],
   actions={...})], default_actions=...)` for compact rule→action tables.
 - **Callbacks** — `aflow.add_callback(tool="<tool_name>", events=[...], batch_interval=None)`.
-  Events (`FlowCallbackEventKind`): `ON_FLOW_START`, `ON_FLOW_END`, `ON_FLOW_ERROR`,
-  `ON_TASK_ERROR`, `ON_TASK_MESSAGE`, `ON_TASK_WAIT`.
+  Events (`FlowCallbackEventKind`) — **8 kinds, re-confirmed at 2.15.0**: `ON_FLOW_START`, `ON_FLOW_END`,
+  `ON_FLOW_ERROR`, **`ON_FLOW_ABORT`** *(new)*, **`ON_FLOW_DELETE`** *(new)*, `ON_TASK_WAIT`,
+  `ON_TASK_ERROR`, `ON_TASK_MESSAGE`. Callback tools now receive a structured
+  **`FlowCallbackEventsPayload`** (`events: [...]`); an `ON_TASK_WAIT` event carries an
+  `elicitation` block (mode / message / elicitationId / requestedSchema / meta) so external
+  systems and MCP clients can respond to a waiting task **without polling**.
+- **Suppress agent summarization (2.13.0)** — `@flow(..., suppress_agent_summarization=True)`
+  (or `aflow.suppress_agent_summarization(True)`) stops the agent from re-summarizing the flow
+  result in chat after the workflow ends (avoids duplicate output). **Default is `True`** in the
+  `@flow` decorator — pass `False` to keep the post-flow agent summary.
 - **Data masking** — `aflow.mask_property(property_path="flow.input.symptoms",
   masking_policy=MaskingPolicy.MASK_ALL)`. Policies: `MASK_ALL`, `MASK_FIRST4`,
   `MASK_LAST4`, `MASK_VIA_REGEX` (pass `regex_config=` for the last). Masked in chat,
@@ -273,8 +306,9 @@ with `flow.` and have ≥3 parts). Map a node input with
 - ⚠ Platform known issues: parallel branches **pause on user interaction**; multi-step
   user activities running in parallel can break chat prompts.
 
-A complete, compiling reference flow (parallel + decision + masking + prompts) is in the
-test project: `test/dr_house_advise/tools/house_triage_flow.py`.
+For a complete, compiling reference flow (parallel + decision + masking + prompts), see the
+public `examples/flow_builder/` directory in the ADK repo
+(https://github.com/IBM/ibm-watsonx-orchestrate-adk/tree/main/examples/flow_builder).
 
 Constraints:
 - Function name starts with `build_`, param is `aflow: Flow`, returns `Flow`.
@@ -313,11 +347,53 @@ or extract with a single-line list comprehension matching `semantic_label`.
 **Agents cannot pass user-uploaded files to a flow** — the docproc node prompts
 the user for the upload itself; agent instructions should just invoke the flow.
 
-**2.11–2.12 docproc updates** (verify flag names with the docs):
-- **Page-range extraction** — restrict extraction to specific pages (From/To) instead
-  of the whole document; useful for large files where only some pages matter.
-- **Default extractor model is now `mistral-small`** (was changed in 2.12); AI-Gateway
-  models can be used for KVP extraction.
+**docproc / doc-extractor updates (2.14.0–2.15.0, verified against 2.15.0 source; the flow
+below imported successfully live):**
+- **`language=` on every document-processing node** — `docproc`, `docext` and
+  `docclassifier` all take `language: LanguageCode | None`, an **ISO-639** code
+  (`LanguageCode.en`, `.fr`, `.de`, …). Defaults to English when omitted. There is also a
+  runtime override: `DocProcInput.language` overrides whatever the node spec carries.
+  Handwritten variants exist only for English and German.
+- **Classifier class cap** — `DocClassifierConfig.classes` is `max_length=30`. Exceeding it
+  fails at authoring time, not at run time.
+- **Default node LLM is now `watsonx/openai/gpt-oss-120b`** on the `docclassifier`/`docext`/
+  `docproc` builder signatures (`DocExtConfig`'s own default is still
+  `watsonx/mistralai/mistral-small-3-1-24b-instruct-2503` — the builder argument wins).
+
+⚠ **Two traps that cost real time when authoring a docproc flow (live-verified 2.15.0):**
+
+1. **`classes=` / `fields=` want a pydantic model INSTANCE, not the class.** The signatures
+   are type-hinted `type[BaseModel]`, but the builder calls **both**
+   `container.__dict__.values()` *and* `container.model_dump()` on the argument — which only
+   works on an instance. Passing the class (or a plain class, or a `SimpleNamespace`) fails
+   with a wall of `Input should be a valid dictionary or instance of DocClassifierClass`
+   errors naming `__module__` / `__weakref__`.
+
+   ```python
+   class ReferralFields(BaseModel):
+       patient_name: DocExtConfigField = DocExtConfigField(
+           name="patient_name", type="string", description="Patient's full name")
+       referring_physician: DocExtConfigField = DocExtConfigField(
+           name="referring_physician", type="string", description="Signing physician")
+
+   node, schema = aflow.docext(name="extract", fields=ReferralFields(),   # ← INSTANCE
+                               language=LanguageCode.en,
+                               field_extraction_method="layout",
+                               page_range=PageRange(start=1, end=2))
+   ```
+
+2. **Import `flow_builder.flows` BEFORE `flow_builder.types`.** Importing types first raises
+   `ImportError: cannot import name 'FlowContext' … (most likely due to a circular import)`.
+
+**docproc / doc-extractor updates (2.13.0 verified in source):**
+- **Page-range extraction** — both the document **text** extractor (`docproc`) and the
+  document **field** extractor (`docext`) take a **`page_range`** parameter, a
+  `PageRange(start=<int>, end=<int>)` (1-based, inclusive) that limits extraction to those
+  pages — useful for large files where only some pages matter. ⚠ On the **field** extractor,
+  `page_range` is **only supported when `field_extraction_method='layout'`** (a validator
+  rejects it otherwise).
+- **Default extractor model is `mistral-small`** (`watsonx/mistralai/mistral-small-3-1-24b-instruct-2503`);
+  AI-Gateway models can be used for KVP extraction.
 - **Structured (vision) vs Unstructured (text)** extractors: use structured/vision for
   forms and tables, unstructured/text for text-heavy documents.
 

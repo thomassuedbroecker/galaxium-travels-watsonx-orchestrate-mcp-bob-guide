@@ -11,6 +11,14 @@ description: >-
   embedding/consuming a deployed agent from a custom application via the wxO
   runtime REST API (`/chat/completions`, `/orchestrate/runs`, streaming) — as
   opposed to the drop-in embedded web-chat widget.
+  Also covers **operating** a deployed agent: multi-agent routing problems (an
+  orchestrator that answers instead of delegating, `chat_with_collaborator_*`),
+  observability traces and the AgentOps v3 trace API, diagnosing latency from a
+  trace, token counting and cost estimation, evaluations / LLM-as-judge scores,
+  and building the error-rate / tail-latency / tool-call-success metrics that wxO
+  does not ship. Use it for questions like "why is my wxO agent slow", "what does
+  this agent cost", "why didn't it call the right agent", or "where are the wxO
+  dashboards".
 metadata:
   enabled: true
 ---
@@ -22,15 +30,40 @@ Orchestrate with the Agent Development Kit (ADK). It is grounded in the real ADK
 source and CLI (`ibm-watsonx-orchestrate`), not guesswork.
 
 > **Golden rule:** the ADK changes fast. The CLI specifics here were
-> **live-verified against `ibm-watsonx-orchestrate` 2.12.0** (IBM Cloud SaaS,
-> 2026-06-29). When a command, flag, or YAML field is uncertain — or you're on a
-> different version —
+> **live-verified against `ibm-watsonx-orchestrate` 2.15.0** (IBM Cloud SaaS,
+> us-south, 2026-08-18). When a command, flag, or YAML field is uncertain — or
+> you're on a different version —
 > **verify against the live tool** with `orchestrate <group> --help` and
 > `orchestrate <group> <cmd> --help` before running it. Treat third-party blog
 > syntax as approximate; trust `--help` and this skill's references. Check your
 > version with `orchestrate --version` / `pip show ibm-watsonx-orchestrate`.
-> Upgrade with `pip install -U ibm-watsonx-orchestrate` (needs Python ≥3.11,
-> <3.15; 2.11+ adds Python 3.14 support).
+> Upgrade with `pip install -U ibm-watsonx-orchestrate` (needs Python ≥3.11, <3.15).
+
+> **What's new in 2.14 → 2.15** (live-verified on SaaS unless marked otherwise — evidence in
+> `test/house_clinic/`):
+> **`orchestrate controls`** binds policy artifacts (PII filter, guardrails, secrets
+> detector, rate limiter, …) to agents/tools/models at execution hooks — **the flagship
+> 2.15 feature, and it really fires at runtime** (§4a);
+> an agent may now reference **multiple knowledge bases**, and each one shows up as its own
+> retrieval tool (§3.3);
+> `welcome_content` gains **`is_user_barge_in_disabled`** (§3.3);
+> voice configs gain **Google TTS**, Deepgram **`normalize_volume`**, and finer idle control
+> (**`use_llm_generated_idle_message`**, **`repeat_previous_message`**,
+> **`long_running_task_seconds`**) (§4b);
+> `connections configure` accepts **`--name`** to override the `api_key` header (§5);
+> every document-processing node accepts **`language=`**, and the classifier is capped at
+> **30 classes** (§3.2/agents-tools ref);
+> flows gain **`on_flow_abort`** / **`on_flow_delete`** callbacks;
+> external agents can now **export traces** to the Analytics dashboard via OpenTelemetry or
+> the Observability SDK (§6b);
+> new model provider **`redhat-ai`** and external-agent provider **`msftstudio`** (§4).
+>
+> ⚠ **Three release-note claims do NOT match the live 2.15.0 build.** They are named
+> exactly as the release note words them, so you can recognise them:
+> the welcome-message cap is documented as *"100 → 1000 characters"* but the API still
+> **hard-rejects anything over 100** (422); the provider is documented as `red_hat_ai` but
+> the enum value is **`redhat-ai`**; the external-agent provider is documented as
+> `microsoft_copilot_studio` but the enum value is **`msftstudio`**. Use the enum values.
 
 ---
 
@@ -52,9 +85,11 @@ watsonx Orchestrate runs **agents** that route user requests to **tools**,
 | **Tool** | A capability the agent can call | Python `@tool`, OpenAPI spec, Flow, or Langflow |
 | **Flow** | A multi-step orchestrated workflow exposed as a tool | Python `@flow` (`build_<name>(aflow: Flow) -> Flow`) |
 | **Toolkit** | A bundle of tools from an **MCP server** | `orchestrate toolkits add -k mcp …` |
+| **Skill** *(2.13.0)* | A portable, version-controlled package of specialized knowledge/workflow attached to agents | `SKILL.md` (+ optional `WXO.yaml`) via `orchestrate skills import` |
 | **Connection** | Stored credentials/config for an external service | YAML (`kind: connection`) + `connections` CLI |
 | **Model** | An LLM made available to agents (e.g. watsonx.ai, Groq) | YAML (`kind: model`) via the AI Gateway |
-| **Knowledge base** | Documents for RAG/grounding | YAML (`kind: knowledge_base`) |
+| **Knowledge base** | Documents for RAG/grounding | YAML (`kind: knowledge_base`). An agent may reference **several** (2.15.0) |
+| **Control** *(2.15.0)* | A policy artifact (PII filter, guardrails, rate limiter…) bound to agents/tools/models at an execution hook | `orchestrate controls create` or YAML (`kind: control`) |
 
 The two surfaces you work through:
 
@@ -114,6 +149,15 @@ orchestrate env activate local
 orchestrate chat start            # local-only chat UI
 ```
 
+⚠ **Excel input to the Document Extractor is off by default in Developer Edition 2.15.0.**
+The node supports `.xlsx`, but you must opt in — add to `.env` and restart the server:
+```bash
+GLOBAL_WORKER_DOCLING_PIPELINE=true
+```
+Known limitation while that is on: **only one document at a time**. Uploading or ingesting
+several concurrently — via Document Processing tools *or* knowledge ingestion — can fail.
+Plan demos accordingly; IBM say this is temporary.
+
 ### Environment hygiene
 ```bash
 orchestrate env list                 # the active one is starred; that's where imports land
@@ -135,10 +179,10 @@ directory and the official docs are the canonical source — see §10.
 Follow this order. Dependencies must exist *before* the thing that references them.
 
 ```
-setup `orchestrate` CLI → scaffold project → write tools (+connections/models/KB) 
+setup `orchestrate` CLI → scaffold project → write tools (+connections/models/KB/skills) 
    → write agent YAML → run `import-all.sh` (1. import connections → 
-   2. import models → 3. import KB → 4. import tools/toolkits → 5. import agent) 
-   → run test (see 3.5 Test) → debug → re-import → deploy to production
+   2. import models → 3. import KB → 4. import tools/toolkits → 5. import skills → 
+   6. import agent) → run test (see 3.5 Test) → debug → re-import → deploy to production
 ```
 
 ### 3.1 Scaffold
@@ -150,6 +194,7 @@ my_agent/
 ├── tools/             *.py  (one @flow per file; @tool can be grouped)
 ├── connections/       *.yaml (kind: connection)
 ├── knowledge_base/    *.yaml + source docs
+├── skills/            <skill-name>/SKILL.md (+ optional WXO.yaml) — 2.13.0 agent skills
 ├── models/            *.yaml (kind: model) — only if adding a custom model
 ├── import-all.sh      orchestrate ... import commands, dependency-ordered
 ├── delete-all.sh      orchestrate ... delete commands, counter-part to import-all.sh
@@ -185,6 +230,17 @@ Decorator rules and docstring grammar are strict — getting them wrong is the
 most common import failure. See §5 and
 **[references/agents-tools-schemas.md](references/agents-tools-schemas.md)**.
 
+> ⚠ **You will see this on EVERY Python tool import — it is a false positive. Do not
+> "fix" it.**
+> ```
+> [WARNING] - Unable to properly parse parameter descriptions due to missing or incorrect
+>             type hints. This may result in degraded agent performance.
+> ```
+> It fires on correctly-annotated tools and the descriptions still parse fine (live-verified
+> 2.12.0 and 2.13.0). Chasing it wastes a lot of time and often makes the tool worse. Only
+> act if the **parsed schema is actually missing descriptions**; the real causes are a
+> genuinely missing type hint, or a blank line between the `Args:` and `Returns:` blocks.
+
 ### 3.3 Write the agent YAML
 
 ```yaml
@@ -196,21 +252,59 @@ instructions: >
   You are a helpful weather assistant. When the user asks about weather,
   call the get_weather tool with the city name and present the result clearly.
 llm: watsonx/meta-llama/llama-3-3-70b-instruct   # example only — pick one that EXISTS in `orchestrate models list` (§4)
-style: react_intrinsic                            # 2.12.0 default; `default` & `react` are DEPRECATED (omit to take the default)
+style: react_core                                 # 2.13.0 DEFAULT; `default`, `react`, `planner` are DEPRECATED (omit to take the default)
 tools:
   - get_weather
 starter_prompts:
-  is_default_prompts: false
   prompts:
     - id: default0
       title: Check weather
+      subtitle: Ask about any city        # optional — shown below the title
       prompt: What's the weather in Boston?
-      state: active
 welcome_content:
-  is_default_message: false
-  welcome_message: Welcome to the Weather Agent
+  welcome_message: Welcome to the Weather Agent      # ⚠ HARD 100-character limit (below)
   description: Ask me about the weather in any city.
+  is_user_barge_in_disabled: false   # 2.15.0 — true = the user cannot interrupt the
+                                     #   agent's spoken opening message (voice agents)
+knowledge_base:                      # 2.15.0 — an agent may reference MORE THAN ONE
+  - city_climate_notes
+  - regional_weather_policy
+# ⚠ starter_prompts: do NOT add `is_default_prompts:` or `state:` — they are
+#   silently ignored by the platform and cause prompts not to render in the UI.
+#   Valid fields per prompt: id, title, subtitle, prompt. (live-verified 2.12.0)
 ```
+
+⚠ **`welcome_message` is still capped at 100 characters** (live-verified 2.15.0). The
+2.15.0 release note says the cap moved from 100 to **1000**, but that changed only the
+*recommendation* in the docs — the API still rejects a longer message outright:
+
+```
+Failed to create agent: [{'type': 'value_error',
+  'loc': ['body','additional_properties','welcome_content','welcome_message'],
+  'msg': 'Value error, At most 100 characters are allowed for Welcome message.'}]
+```
+Put the long version in `description:` (uncapped in practice) and keep
+`welcome_message` short.
+
+#### Multiple knowledge bases (2.15.0) — how routing actually works
+
+Listing several KBs is not "one bigger corpus". **Each knowledge base is exposed to the
+agent as its own retrieval tool, named after the KB**, and the router picks between them
+the same way it picks any tool — **from the KB's `description`**. Live-verified: a single
+question spanning two KBs produced two separate tool calls in `step_history`
+(`["ppth_formulary", "ppth_policy"]`) and two matching observations in the trace.
+
+So, when splitting a corpus across KBs:
+- Write each KB `description` as a **routing trigger** ("drugs, dosing, what is
+  restricted"), not a summary. Make them mutually exclusive.
+- Say in `instructions:` which question goes to which KB, and that a question spanning
+  both must consult both — otherwise the agent will often stop after the first hit.
+- Splitting is worth it when the sub-corpora answer *different kinds of question*. One
+  homogeneous corpus should stay one KB; two KBs competing for the same trigger is a coin flip.
+
+⚠ **Built-in KB ingestion rejects `.md`.** `Unsupported file type text/markdown` —
+despite agent *skills* being authored as `SKILL.md`. Supported: PDF/DOCX/PPTX/XLSX/CSV/
+HTML/**TXT**. Rename `.md` → `.txt` (live-verified 2.15.0).
 
 Required fields: `spec_version`, `kind`, `name`, `description`. Strongly
 recommended: `instructions`, `llm`, `style`, `tools`, plus `starter_prompts` /
@@ -244,20 +338,22 @@ is_schedulable: true     # enables recurring runs; internal scheduling tools aut
 # restrictions: …        # access restrictions (see schema reference)
 ```
 
-### 3.3b Orchestrator / multi-agent (collaborators) — live-verified 2.12.0
+### 3.3b Orchestrator / multi-agent (collaborators) — live-verified 2.13.0
 
 A native agent becomes an **orchestrator (supervisor)** that uses *other agents as
 agents* by listing them under `collaborators:`. wxO's multi-agent pattern:
 
 ```yaml
-name: dr_house_advise
-style: react_intrinsic          # supports collaborators (experimental_customer_care does NOT)
+name: dr_house
+style: react_core               # 2.13.0 default; supports collaborators (experimental_customer_care does NOT)
 tools:                          # the orchestrator can still call its own tools
   - differential_diagnosis
 collaborators:                  # other agents, by snake_case name — imported FIRST
   - dr_wilson                   # oncology specialist agent
   - dr_cuddy                    # administration agent
   - dr_foreman                  # neurology agent
+skills:                         # 2.13.0 — attach agent skills by name (kebab-case!) — see §3.3c
+  - diagnostics-protocol
 ```
 
 How it works (verified end-to-end):
@@ -268,19 +364,36 @@ How it works (verified end-to-end):
   **from the collaborator's `description`.** So collaborator descriptions must be
   **distinct and routing-friendly** (lead with the specialty/trigger). The orchestrator
   then frames the collaborator's reply in its own voice.
-- Delegation is visible in the run `step_history` as a `tool_calls` step named
-  `chat_with_collaborator_<name>` (e.g. an oncology question routed to `dr_wilson`,
-  an approval question to `dr_cuddy` — confirmed in the `test/` project).
+- Delegation is visible in the run `step_history`/reasoning trace as a `tool_calls` step
+  named `chat_with_collaborator_<name>`.
+
+  > ⚠ **The specialty is appended to the name — inconsistently. Match by PREFIX, never by
+  > equality.** Live-verified 2.13.0 in a single run set:
+  > `dr_wilson` → `chat_with_collaborator_dr_wilson_oncology`,
+  > `dr_cuddy` → `chat_with_collaborator_dr_cuddy_administration`, but
+  > `dr_chase` → `chat_with_collaborator_dr_chase` (**no suffix**).
+  > An assertion written as `name == "chat_with_collaborator_dr_wilson"` reports a false
+  > failure on a run that routed perfectly. Use
+  > `name == f"chat_with_collaborator_{agent}" or name.startswith(f"chat_with_collaborator_{agent}_")`.
 - Collaborators are themselves full agents (own tools/KB/collaborators) — **nesting
   works**: live-verified a 3-level chain House → Foreman → Chase where the mid-tier agent
   (Foreman) used its *own* tool AND sub-delegated. The whole nested chain (sub-agent tool
   calls + sub-delegations) is flattened into the top-level run's `step_history`.
 - An agent **cannot list itself** as a collaborator (circular reference rejected).
 
-> **Routing tip:** if delegation goes to the wrong agent (or the orchestrator answers
-> itself instead of delegating), tighten the collaborator `description`s and name the
-> routing rules explicitly in the orchestrator's `instructions` — same discipline as
-> getting a tool to fire.
+> **Routing tip:** the router picks a collaborator from its **`description`**, so write that
+> field as a *routing trigger* — lead with the specialty and the concrete findings/keywords
+> that should land there — not as a personality blurb. Make the descriptions mutually
+> exclusive; two agents competing for the same trigger is a coin flip.
+>
+> **If the orchestrator answers instead of delegating, look at its OWN `instructions`
+> first.** A single permissive sentence (*"do not delegate a question you can answer with
+> your own tools"*) suppresses routing entirely — live-verified, removing one such sentence
+> moved routing accuracy from **5/9 to 8/9** with no other change. Make delegation the
+> stated default, add mandatory rules for domains the orchestrator's own tools could
+> plausibly cover, and give the orchestrator **as few tools as possible** — every tool it
+> owns is a reason not to route. Full playbook:
+> [references/testing-debugging.md](references/testing-debugging.md) §2a.
 
 ⚠ **Scheduling caveats (live-verified 2.12.0):**
 - `is_schedulable: true` set in YAML **did not persist** — import succeeded but the
@@ -290,6 +403,75 @@ How it works (verified end-to-end):
 - Once enabled, internal scheduling tools are **visible and deletable via the ADK CLI**
   (known issue) — don't remove them by hand.
 - Schedules themselves are created conversationally in chat, not in YAML.
+
+### 3.3c Agent skills (NEW in 2.13.0) — live-verified 2.13.0
+
+**Agent skills** are portable, version-controlled packages that equip agents with
+specialized knowledge and workflows. A skill is a **`SKILL.md`** file with YAML
+frontmatter, optionally accompanied by a sibling **`WXO.yaml`** (sent automatically on
+import) plus scripts/reference docs.
+
+#### Skill vs. Knowledge base vs. Tool — which to reach for
+
+These three attach to an agent but answer different questions. Picking wrong is the most
+common design mistake now that skills exist. Rule of thumb by what you're adding:
+
+| You're giving the agent… | Use | Why |
+|--------------------------|-----|-----|
+| **Procedural know-how** — *how to do the job*: a workflow, playbook, decision rules, conventions, when-to-escalate logic (prose/markdown the model reads) | **Skill** (`SKILL.md`) | Portable, versioned instructions. Extends `instructions:` with reusable, shareable procedure — no execution, no corpus. |
+| **A body of documents** to look up *facts* from — manuals, policies, PDFs, tickets — answered by retrieval/citation | **Knowledge base** | RAG over an ingested corpus. You pre-ingest documents; the agent grounds answers and cites them. |
+| **An action** — call an API, run a computation, read/write a system, return structured data | **Tool** (`@tool` / OpenAPI / flow / MCP) | Executable capability with typed I/O and permissions. The only one that *does* something. |
+
+Decision shortcuts:
+- "The agent keeps doing the steps in the wrong order / skipping a policy" → **skill** (encode the procedure), not a tool.
+- "The agent needs to *know facts* from our docs" → **knowledge base**, not a skill (don't paste a document corpus into `SKILL.md`).
+- "The agent must *fetch or change* something" → **tool**, always.
+- They compose: a skill can *describe when to call* a tool or search a KB; it doesn't replace either. The Dr. House team uses all three — `diagnostics-protocol` (skill: the differential workflow + escalation rules), `differential_diagnosis`/`lab_reference` (tools: the actions), and a KB would be the place for, say, an ingested formulary.
+- Skills vs. `instructions:` — put *stable, reusable, shareable* procedure in a skill (versioned, attachable to many agents); keep *this agent's* voice and one-off routing in `instructions:`.
+
+```markdown
+---
+name: diagnostics-protocol        # ⚠ kebab-case ONLY (agentskills.io spec) — see below
+description: >-
+  When and how to use this skill (used for relevance). Structured differential-diagnosis
+  protocol for the diagnostics team.
+version: 1.0.0
+---
+
+# Diagnostics Protocol
+...the procedure the agent should follow...
+```
+
+Lifecycle (group is **`skills`**):
+```bash
+orchestrate skills import -f skills/diagnostics_protocol/SKILL.md --upsert   # or -d <dir> [-r]
+orchestrate skills list                     # Name · Description · Mode · Tools · Scripts · ID
+orchestrate skills get -n diagnostics-protocol
+orchestrate skills upload-script    …       # attach an executable script to a skill
+orchestrate skills upload-reference …       # attach a reference doc
+orchestrate skills export -n diagnostics-protocol -o <dir|zip>
+orchestrate skills remove -n diagnostics-protocol
+```
+
+Attach to a native agent by name via the new **`skills:`** field (round-trips on export):
+```yaml
+skills:
+  - diagnostics-protocol
+```
+
+⚠ **Skills cost a turn at runtime (live-verified 2.13.0).** Attaching a skill adds a real
+**`load_skill`** tool call to the run — it shows up in `step_history` as
+`{"skill_name": "diagnostics-protocol", "params": {}}` followed by a `tool_response`, and the
+skill body is then loaded into the system prompt. So a skill is not free: it costs a turn,
+input tokens on every subsequent generation, and a little latency. Attaching six skills to
+one agent is a real cost. Budget for it, and don't be surprised to see `load_skill` in traces.
+
+⚠ **Naming gotcha (live-verified):** unlike every other wxO resource (which is
+snake_case), an **agent-skill `name` must be kebab-case** — lowercase letters, digits, and
+single hyphens only, no underscores, no leading/trailing/consecutive hyphens. Importing
+`diagnostics_protocol` fails with *"Skill name … is invalid … (agentskills.io spec)"*; use
+`diagnostics-protocol`. Import is **upsert-by-name** (same name updates in place; `--upsert`
+makes that explicit). `agents list` now shows **Skills** and **Plugins** columns.
 
 ### 3.4 Import (dependency-ordered)
 
@@ -315,8 +497,16 @@ orchestrate toolkits add -k mcp -n my_toolkit --description "My MCP tools" \
   --package-root ./mcp_server --language node \
   --command '["node","dist/index.js","--transport","stdio"]' --tools "*"
 
-# 5) the agent last
+# 5) agent skills (2.13.0) — before the agent that references them (§3.3c)
+orchestrate skills import -f skills/diagnostics_protocol/SKILL.md --upsert
+
+# 6) the agent
 orchestrate agents import -f agents/weather_agent.yaml
+
+# 7) controls LAST (2.15.0) — they bind to agents/tools/models by name, so those
+#    must exist first. `controls import` is create-only: remove before re-running.
+orchestrate controls remove -n weather_pii_guard 2>/dev/null || true
+orchestrate controls import -f controls/weather_pii_guard.yaml
 ```
 
 `tools import -k` accepts `python | openapi | flow | langflow`. Use `--safe` on
@@ -332,6 +522,11 @@ and run that script.
 orchestrate agents list                                 # confirm it imported; see real `name`s
 orchestrate agents list -v                              # full JSON incl. ids
 ```
+> **Always parse `agents list -v` as JSON — never read the table.** The rich table wraps
+> every column to roughly *one character per line* at normal terminal width, so a tenant with
+> more than a handful of agents produces hundreds of lines of unreadable output. The same
+> applies to `tools list`, `skills list` and `traces search`. Where a command has
+> `-f/--format json` use it; otherwise set `COLUMNS=200` to widen the render.
 - **Reference agents/tools by their `name` (snake_case), never the display name.**
   e.g. an agent shown as "FM - Aegis" may have `name: FM_3009a0` — `-n "FM - Aegis"`
   will fail. Find the real `name` with `agents list -v`, or export it:
@@ -410,8 +605,20 @@ record that the human declined) before §7 handover.**
   or a gateway provider like `groq/openai/gpt-oss-120b`.
 - Use `groq/openai/gpt-oss-120b` as default model if available.
 - The `experimental_customer_care` agent style expects `groq/openai/gpt-oss-120b`.
-- **Premier models are now disabled by default (2.12+)** — enable explicitly before
-  referencing one, or `models list` won't surface it.
+- **Premier models are disabled by default** — enable them at the tenant level before
+  referencing one, or `models list` won't surface it (the list legend marks premier with
+  `$`). 2.13.0 adds **GPT-5.4** and other premier models. Commands (live-verified 2.13.0):
+  ```bash
+  orchestrate models config are-premier-models-enabled   # → "Premier models enabled: False"
+  orchestrate models config enable-premier-models        # tenant-wide opt-in
+  orchestrate models config disable-premier-models
+  ```
+- **New provider `redhat-ai`** (2.14.0). The release note calls it `red_hat_ai`; the
+  actual `ModelProvider` enum value is **`redhat-ai`** — use that in `kind: model` YAML.
+  Full provider list in [references/connections-models-kb.md](references/connections-models-kb.md).
+- **External agents** gained the **`msftstudio`** provider (Microsoft Copilot Studio;
+  the release note calls it `microsoft_copilot_studio`) alongside `salesforce`,
+  `external_chat`, `wx.ai` and A2A `0.2.1`/`0.3.0`.
 - Prebuilt **domain agents are multi-provider**: `gpt-oss-120b` via Groq on
   AWS/IBM Cloud, via watsonx.ai on on-prem/GovCloud — pick the id that `models list`
   actually shows for your deployment.
@@ -419,6 +626,190 @@ record that the human declined) before §7 handover.**
   then a `kind: model` YAML, then `orchestrate models import`. Full walkthrough
   (provider schema, space/project/deployment, CPD on-prem) is in
   **[references/connections-models-kb.md](references/connections-models-kb.md)**.
+
+---
+
+## 4a. Controls — policy guardrails on agents, tools and models (NEW in 2.15.0)
+
+A **control** binds a *policy artifact* (a PII filter, a content guardrail, a rate
+limiter…) to one or more **agents, tools or models**, at a named **execution hook**.
+This is how you put a hard, platform-enforced boundary around an agent instead of
+asking the model nicely in `instructions:`.
+
+```bash
+orchestrate controls list-types                    # what policy artifacts exist here
+orchestrate controls get-type -n pii_filter -v     # → the artifact's JSON config_schema
+orchestrate controls create -a "PII Filter" -n house_pii_guard \
+  --hook agent_pre_invoke --hook agent_post_invoke --priority 50 \
+  --config '{"detect_ssn": true, "detect_email": true, "default_mask_strategy": "redact"}' \
+  --agent dr_house
+orchestrate controls list [--agent X|--tool Y|--model Z|--artifact A] [-v]
+orchestrate controls get-details -n house_pii_guard -v
+orchestrate controls count                         # totals per asset type
+orchestrate controls update  -n house_pii_guard --priority 10 --config '{…}'
+orchestrate controls export  -n house_pii_guard -o control.yaml
+orchestrate controls import  -f control.yaml
+orchestrate controls remove  -n house_pii_guard
+```
+
+> The release note lists `list`, `list-types`, `get-type`, `create`, `delete`. The real CLI
+> has **ten** commands and the delete verb is **`remove`**, not `delete`.
+
+**Execution hooks** (server-validated — an invalid one is a clean 422 naming all six):
+`agent_pre_invoke`, `agent_post_invoke`, `tool_pre_invoke`, `tool_post_invoke`,
+`prompt_pre_fetch`, `prompt_post_fetch`. `--priority` orders them; **lower runs first**
+(default 100).
+
+**Policy artifacts on IBM Cloud SaaS** (`list-types`, live 2.15.0). Each is valid only for
+the asset types listed — `get-type -n <name> -v` prints its `asset_type` and full
+`config_schema`:
+
+| Artifact (`name`) | Display | Binds to | Config highlights |
+|---|---|---|---|
+| `pii_filter` | PII Filter | agent | `detect_ssn/email/phone/credit_card/passport/medical_record/…`, `default_mask_strategy: redact\|partial\|hash\|tokenize\|remove`, `redaction_text`, `block_on_detection`, `custom_patterns`, `allowlist_patterns` |
+| `Guardrails` | Content Guardrails | agent, tool | `enabled.{sexual_content,violence,hap,harm,jailbreak,social_bias}`, `block_message` |
+| `RegexPattern` | Regex Pattern | agent | `regex_patterns[]` (required), `strategy: redact\|block`, `redaction_text` |
+| `SecretsDetection` | Secrets Detector | agent, tool | per-type toggles (`private_key_block`, `jwt_like`, `hex_secret_32`, …), `redact`, `block_on_detection`, `min_findings_to_block` |
+| `OutputLengthGuardPlugin` | Output Length Guard | agent, tool | `limit_mode: character\|token`, `strategy: truncate\|block`, `ellipsis`, `word_boundary` |
+| `RateLimiterPlugin` | Rate Limiter | tool | `by_tool` (req/min, default 30), `by_tenant` (default 3000) |
+| `SQLSanitizer` | SQLSanitizer | tool | detects risky SQL; strip comments or block |
+| `fallback` / `load_balance` / `retry_mode` | Fallback / Load Balance / Retry | model | failover, weighted distribution, retry-on-status |
+
+### It genuinely enforces — A/B proof (live-verified 2.15.0)
+
+Same agent, same prompt, control on vs. off:
+
+| | Control OFF | Control ON |
+|---|---|---|
+| Answer | repeated `SSN 123-45-6789`, the email and the phone verbatim | *"I'm sorry, but I can't repeat that personal health information."* |
+| Trace | raw identifiers present | `SSN [PHI-REDACTED]`, `email [PHI-REDACTED]` — **the raw values never reach the model** |
+
+The filter rewrites the payload at `agent_pre_invoke`, so the model never sees the PII and
+declines on its own. Two consequences worth knowing: the refusal **looks like a model
+refusal**, not a policy block (check the trace before you "fix" the prompt), and the
+redaction is visible in `observability traces export`, which is the fastest way to confirm
+a control is live.
+
+### Four things `controls` accepts silently — all live-verified
+
+These fail *quietly*, at create time, and only show up as a control that does nothing:
+
+1. **`--config` is NOT validated against `config_schema`.** A bogus key (`mask_strategy`
+   instead of `default_mask_strategy`) and a bogus enum value (`"NOT_AN_ENUM_VALUE"`) were
+   both stored verbatim, HTTP 200. **Read `get-type -n <artifact> -v` and copy the key
+   names exactly** — a typo means the control runs with schema defaults, i.e. everything
+   off. (Contrast: `--hooks` *is* validated.)
+2. **Asset-type mismatches are accepted.** `RateLimiterPlugin` is `asset_type: ["tool"]`,
+   yet binding it to an `--agent` on an agent hook succeeded. Check `asset_type` yourself.
+3. **A control with no binding at all is accepted** — it counts in `controls count` totals
+   but appears under no asset bucket. If `Total` exceeds `Agent + Tool + Model`, you have
+   orphans.
+4. **`controls import` is create-only, not upsert.** Re-running it fails with
+   `400 Policy binding with name "X" already exists` — there is no `--upsert`. In
+   `import-all.sh`, `controls remove -n X` first (ignoring failure) or use
+   `controls update`.
+
+### ⚠ `export` → `import` does not round-trip
+
+`controls export` writes the agent's **display name**:
+
+```yaml
+agent_names:
+- Dr. House (Diagnostics Lead)      # ← what export emits
+```
+
+…but `controls import` resolves `agent_names` against the **snake_case `name`**, so
+re-importing your own export fails:
+
+```
+No agent found with name 'Dr. House (Diagnostics Lead)'
+```
+
+**Fix: rewrite `agent_names` to snake_case before importing** (`- dr_house`). With that
+one substitution everything else round-trips faithfully — hooks, priority, config, and
+`artifact_name` given as either the display name (`PII Filter`) or the internal name
+(`pii_filter`). Keep hand-written control YAML in Git; treat `export` as a read-only
+inspection tool.
+
+Authoring format (what `import` actually wants):
+
+```yaml
+spec_version: v1
+kind: control
+control:
+  artifact_name: pii_filter          # internal name or display name
+  name: house_pii_guard
+  display_name: House PII Guard
+  description: Redact patient PHI on the diagnostics agent
+  hooks: [agent_pre_invoke, agent_post_invoke]
+  priority: 50
+  config:
+    detect_ssn: true
+    default_mask_strategy: redact
+    redaction_text: "[PHI-REDACTED]"
+  agent_names: [dr_house]            # snake_case! also tool_names / model_names
+```
+
+`controls update` **replaces** rather than merges: `--hooks`, `--config`, `--agent`,
+`--tool` and `--model` each overwrite the previous value wholesale, while any flag you
+*omit* is preserved. Each update bumps the control's `version`.
+
+---
+
+## 4b. Voice configuration (2.14 → 2.15 additions)
+
+`orchestrate voice-configs import|list|get|export|remove`. Attach to an agent with
+`voice_configuration: <name>`.
+
+⚠ **Provider strings are `<vendor>_stt` / `<vendor>_tts`, not the bare vendor.**
+`provider: deepgram` fails server-side with the misleading
+`deepgram_config must be specified for deepgram` — the correct value is `deepgram_stt`.
+The ADK models `provider` as a free string with no enum, so a wrong value only surfaces as
+a 422 from the platform.
+
+```yaml
+spec_version: v1
+kind: voice_configuration
+name: front_desk_voice
+speech_to_text:
+  provider: deepgram_stt
+  deepgram_stt_config:
+    api_key: …
+    api_url: wss://api.deepgram.com/v2/listen   # REQUIRED — omitting it is a pydantic error
+    model: flux-general-en          # 2.15.0 fix: flux-* no longer raises a false warning
+    language: en
+text_to_speech:
+  provider: deepgram_tts
+  deepgram_tts_config:
+    model: aura-2-zeus-en
+    normalize_volume: true          # 2.14.0 — auto-levels the output audio
+user_idle_handler:
+  enabled: true
+  idle_timeout: 8                   # seconds before the handler fires
+  idle_max_reprompts: 2
+  idle_timeout_message: Are you still there?
+  idle_hangup_message: I will close the line for now.
+  use_llm_generated_idle_message: false   # 2.15.0 — false = use the static message above
+  repeat_previous_message: false          # 2.15.0 — false = don't replay the last agent turn
+agent_idle_handler:
+  typing_enabled: true
+  typing_duration_seconds: 5
+  audio_clip_id: guitar_1           # guitar_1 | listen_1 | silence | custom
+  hold_audio_seconds: 15
+  long_running_task_seconds: 3      # 2.15.0 — processing time before the pre-hold message
+  pre_hold_message: Pulling the chart now, one moment.
+  hold_message: Still working on it. Thanks for your patience.
+```
+
+All of the above round-trips through `voice-configs export` (API keys are stripped).
+
+⚠ **Google TTS (2.14.0) was rejected by the SaaS backend at time of writing.** The ADK
+serialises `google_tts_config` correctly (verified against `TextToSpeechConfig`), but the
+platform answered `422 google_tts_config must be specified for google_tts`. Treat Google
+TTS as **doc-sourced, not live-verified**, and confirm on the target tenant before
+promising it. Its fields: `voice`, `language`, `speaking_rate` (0.25–4.0), `pitch`
+(-20–20), `volume_gain_db` (-96–16), `ssml_gender`, `effects_profile_id`, plus **exactly
+one** of `credentials_json` / `api_key`.
 
 ---
 
@@ -448,8 +839,12 @@ record that the human declined) before §7 handover.**
 
 **Agent YAML**
 - ✅ `spec_version: v1` and `kind: native` are mandatory — omitting them fails import.
-- ✅ `tools`/`collaborators`/`knowledge_base` list resources **by name**; the
+- ✅ `tools`/`collaborators`/`knowledge_base`/`skills` list resources **by name**; the
   referenced resources must already be imported.
+- ✅ `style`: default is **`react_core`** (2.13.0). `default`, `react`, `planner` still
+  import but log a deprecation warning — prefer `react_core`.
+- ✅ `skills:` names are **kebab-case** (agentskills.io spec) — every *other* resource name
+  is snake_case, but a skill named with an underscore is rejected (§3.3c).
 - ✅ `toolkits` are only valid for `experimental_customer_care` style (and the
   schedulable-agent exception).
 
@@ -459,6 +854,26 @@ record that the human declined) before §7 handover.**
 - ✅ OAuth2 needs `auth_type: oauth2_auth_code` (not `authorization_code`).
 - ✅ YAML defines *structure*; real secrets are set with
   `orchestrate connections set-credentials`. Never hardcode secrets.
+- ⚠ **Custom API-key header (2.15.0) — accepted by the CLI, BROKEN on the SaaS backend.**
+  `connections configure -a <app> --env draft -t team -k api_key -u <url> --name "X-Auth-Token"`
+  is supposed to replace the default `api_key` header. Live-verified 2.15.0 on IBM Cloud SaaS:
+  the **create** path reports success but stores nothing (`connections export` emits no
+  `name`), and the **update** path fails outright:
+  ```
+  500 CM-UNKNOWN-001 … details: column "name" of relation
+      "application_connection_configs" does not exist
+  ```
+  The same update **without** `--name` succeeds, so the flag itself is the trigger — the
+  backend schema has not caught up with the CLI. **Do not depend on a custom header name
+  until you have verified it on the target tenant.** If the API needs a non-default header,
+  fall back to `--kind key_value` with an explicit entry, or send the header from the tool
+  code. (`--name` is also rejected outright on any kind other than `api_key`.)
+
+**Controls (2.15.0)** — full section in §4a
+- ✅ `--config` is **not** validated: copy key names from `controls get-type -n <a> -v`.
+- ✅ `--hooks` **is** validated; `--priority` is lower-runs-first.
+- ✅ `controls import` is create-only — `remove` first when re-running an import script.
+- ✅ `controls export` emits agent **display** names; rewrite them to snake_case before import.
 
 Remember: After code generation always deploy/import and runs tests (see 3.5 Test)
 
@@ -472,18 +887,115 @@ Remember: After code generation always deploy/import and runs tests (see 3.5 Tes
 | Tool imports but agent never calls it | Vague tool `description`/docstring, or instructions don't mention it. Make the docstring action-oriented; name the tool in `instructions`. |
 | Type-hint / docstring parser warnings | **First check it's not a false positive.** In ADK 2.12 `tools import` prints `"Unable to properly parse parameter descriptions due to missing or incorrect type hints"` for *every* Python tool — even correct ones (the descriptions still parse fine; live-verified). Only act if the parsed schema is actually missing descriptions. *Real* causes: missing type hints, or a blank line between `Args:` and `Returns:` (§5). |
 | "name cannot contain spaces" | Tool/toolkit/agent `name` must be snake_case, no spaces. |
+| Skill import: "Skill name … is invalid … (agentskills.io spec)" | Agent-skill `name` must be **kebab-case** (lowercase/digits/single hyphens) — not snake_case. Rename `foo_bar` → `foo-bar` (§3.3c). |
+| Deprecation warning on agent import ("style … set to be deprecated") | You used `default`/`react`/`planner`. Switch `style:` to **`react_core`** (2.13.0 default). |
 | Missing dependency at tool runtime | Add it to the tool's `requirements.txt` and re-import with `-r` (never add `ibm-watsonx-orchestrate`). |
 | 401/403 on a tool call | Connection not configured/credentialed, or wrong `app_id`. `orchestrate connections list`; re-run `set-credentials`. |
 | Works locally, missing in prod | Wrong active env. `orchestrate env list` → `orchestrate env activate <remote>`, then re-import. |
 | `No agents with the name 'X' found` | You used the display name. Use the snake_case `name` from `orchestrate agents list -v` (display "FM - Aegis" → `name: FM_3009a0`). |
-| Need to see the agent's reasoning | `orchestrate chat ask -n <agent> "…" -r` (`-r` = reasoning, `-l` = capture logs for custom agents). |
+| Orchestrator answers instead of delegating | Look at the **orchestrator's own `instructions`** first — a sentence permitting self-answer suppresses routing. Playbook: [testing-debugging.md](references/testing-debugging.md) §2a. |
+| Routing assertion fails though delegation happened | The collaborator tool name gets the specialty appended, inconsistently. Match by **prefix** (§3.3b). |
+| Need to see the agent's reasoning | `orchestrate chat ask -n <agent> "…" -r` (`-r` = reasoning, `-l` = capture logs for custom agents). ⚠ `chat ask` **hangs on IBM Cloud SaaS** — use the runtime API or `wxo-chat.sh` there. |
+| Need token counts | **Not** on the runs API (`run.usage` is `null`). They are in the trace: `observation.usage` on `GENERATION` observations (§6a). |
+| Need to know why a run was slow | AgentOps v3 trace + the outer-vs-inner span rule (§6a). |
+| Control created but has no effect | `--config` isn't schema-validated — a mistyped key is stored verbatim and the artifact runs on defaults (everything off). Diff your config against `controls get-type -n <artifact> -v` (§4a). |
+| `controls import` → `400 … already exists` | Import is create-only, not upsert. `controls remove -n <name>` first (§4a). |
+| `controls import` → `No agent found with name 'Display Name'` | You re-imported a `controls export`, which writes **display** names. Rewrite `agent_names` to snake_case (§4a). |
+| Agent suddenly refuses a normal request | Check for a bound control before touching the prompt — a PII/guardrail control rewrites or blocks at `agent_pre_invoke`, and the model's refusal looks like a model refusal. `controls list --agent <name>`, then read the trace: redacted text shows up as `[REDACTED]` in the LLM input (§4a). |
+| `agents import` → `At most 100 characters … Welcome message` | The 2.15 release note's "cap raised to 1000" did not reach the API. Keep `welcome_message` ≤100 chars; put the long text in `description` (§3.3). |
+| KB import → `Unsupported file type text/markdown` | Built-in ingestion rejects `.md`. Rename to `.txt` (PDF/DOCX/PPTX/XLSX/CSV/HTML/TXT are accepted) (§3.3). |
+| Agent only searches one of several KBs | Each KB is a separate retrieval tool routed on its `description`. Make the descriptions mutually exclusive and tell the agent in `instructions:` that cross-cutting questions must consult both (§3.3). |
+| Voice config → `<vendor>_config must be specified for <vendor>` | The `provider` string must be `<vendor>_stt` / `<vendor>_tts` (e.g. `deepgram_stt`), not the bare vendor name (§4b). |
+| `agents export -o x.zip` or `-o x.yaml` rejected | `--agent-only` requires **`.yaml`**; the full dependency bundle (no `--agent-only`) requires **`.zip`**. The two are not interchangeable. |
+| `agents list` unreadable | Table wraps to ~1 char/column. Parse `agents list -v` JSON, or set `COLUMNS=200` (§3.5). |
 | Inspect server | `orchestrate server logs`; `orchestrate server reset` to wipe state; `orchestrate server stop`. |
+
+---
+
+## 6a. Observability & cost — what wxO gives you, and what it doesn't
+
+Every completed run carries a **`trace_id`**. That is your handle on everything below.
+Full field maps, the span-tree rule and the cost model:
+**[references/agentops-evaluations.md](references/agentops-evaluations.md) §4–§7**.
+
+**Three surfaces, increasing detail** — pick deliberately:
+
+| Surface | Gives you |
+|---|---|
+| `GET /v1/orchestrate/runs/{id}` | status, `trace_id`, `thread_id`, `step_history`. **No tokens, no timings.** |
+| `orchestrate observability traces export --trace-id` | 11 observation fields — fine for a token count or a quick look. **No `latency`, no span tree.** |
+| `GET /v1/agentops-v3/traces/{trace_id}` | +30 fields: `latency`, `parentObservationId`, `level`, cost fields, `scores[]`. **Use this to explain a number.** |
+
+**Native (just read it):** end-to-end and per-span latency · per-call token counts · model id ·
+`sessionId`/`userId` · the span tree · sampled LLM-judge `scores[]` · routing accuracy from
+`evaluations`.
+
+**Not native (you build it):**
+
+- **Cost.** `trace.totalCost` returns **`0`** — no price sheet is attached. **Tokens are
+  exact; pricing is yours.** Multiply `usage` by a rate card keyed on `observation.model`.
+  Expect input tokens to dominate (~**9:1** measured on a multi-agent session) — delegation
+  re-sends context, and loaded skills sit in every prompt.
+- **Error rate, tail latency, tool-call success.** Derive from runs and traces. Exclude the
+  sub-second infrastructure traces (blank agent name) that `traces search` returns.
+- **Dashboards.** **None ship.** No error-rate panel, no latency histogram, no tool-success
+  view. State this in scoping before a customer assumes otherwise.
+
+**Latency triage in one rule:** sort observations by `latency`, rebuild the tree with
+`parentObservationId`, then — *outer span ≫ inner span → the time is in the platform*
+(cold start, queueing); *outer ≈ inner → the time is in your code or what it calls*. The two
+have completely different fixes, and only the v3 API can tell them apart.
+
+⚠ Fields on the v3 API are **camelCase** (`startTime`, `totalCost`, `parentObservationId`) —
+unlike every other wxO payload. Snake_case guesses silently return `None`.
 
 Iterate fast: edit → re-`import` (overwrites by name) → re-test in chat. Use
 `orchestrate agents export -n <name> --kind native -o agent.yaml --agent-only` to
 snapshot a working definition into Git, and `--safe` on imports to avoid clobbering.
 
 More: **[references/testing-debugging.md](references/testing-debugging.md)**.
+
+---
+
+## 6b. Observability for agents running OUTSIDE wxO (2.14 → 2.15)
+
+An agent that runs on your own infrastructure (LangGraph, CrewAI, a plain script) can now
+push its execution traces **into the wxO Agent Analytics dashboard**, so external and
+native agents show up side by side. Two routes:
+
+**1. OpenTelemetry export** — any language, any framework, standard OTel SDK:
+```bash
+pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+```
+Point the OTLP/HTTP exporter at
+`<instance-url>/v1/orchestrate/inject/traces` with `Authorization: Bearer <token>`
+(exchange your API key at the IAM/MCSP token endpoint). Environment it expects:
+`TENANT_ID` (`<account-id>_<instance-id>`), `AGENT_ID`, `ENVIRONMENT_NAME` (`draft`/`live`),
+and `OTEL_RESOURCE_ATTRIBUTES="tenant.id=$TENANT_ID,deployment.environment=$ENVIRONMENT_NAME"`.
+Set `agent.id`, `langfuse.session.id` and `langfuse.user.id` on the **root span** — those are
+what the dashboard groups on. **Always `force_flush()` before the process exits** or the
+last trace is lost.
+
+**2. Observability SDK** — decorator-based, aimed at LangGraph:
+```bash
+pip install -i https://test.pypi.org/simple/ ibm-watsonx-orchestrate-sdk   # Test PyPI pre-release
+```
+```python
+from ibm_watsonx_orchestrate_sdk.client import Client
+from ibm_watsonx_orchestrate_sdk.observability import Tracer, TracerConfig, register_tracer
+from ibm_watsonx_orchestrate_sdk.observability.decorators import (
+    configure_tracing, trace_agent_call, trace_llm_call, trace_tool_call, trace_call,
+)
+```
+`TracerConfig(client=…, agent_id=…, workspace_id=…, environment="live", tenant_id=…)`, then
+`register_tracer(tracer)` once at module load. Decorate the graph factory with
+`@configure_tracing`, the top node with `@trace_agent_call`, and LLM/tool calls with
+`@trace_llm_call` / `@trace_tool_call`. Automatic token refresh, root-span creation, tool
+attributes and PII decorators are built in; export also works to any OTEL backend
+(Jaeger, Instana).
+
+⚠ **Both are doc-sourced, not live-verified here.** The SDK ships from **Test PyPI** as a
+pre-release — pin it and re-check the package name before putting it in a customer build.
 
 ---
 
@@ -531,9 +1043,30 @@ and then prompts interactively (aborts in scripts). The CRN is in the bearer tok
 `unique_instance_crns` claim — extract it and pipe it in:
 ```bash
 CRN=$(python -c "import yaml,os,json,base64;t=yaml.safe_load(open(os.path.expanduser('~/.cache/orchestrate/credentials.yaml')))['auth']['<env>']['wxo_mcsp_token'];p=t.split('.')[1];p+='='*(-len(p)%4);print(json.loads(base64.urlsafe_b64decode(p))['unique_instance_crns'][0])")
-echo "$CRN" | orchestrate channels webchat embed --agent-name <agent> --env live
+echo "$CRN" | COLUMNS=400 orchestrate channels webchat embed --agent-name <agent> --env live
 ```
-A working example page is in the test project: `test/webchat/dr_house_docs_webchat.html`.
+Paste the emitted snippet into any page with a `<div id="root">` to render the launcher.
+
+⚠ **Two more webchat gotchas (live-verified 2.13.0):**
+
+- **`COLUMNS=400` is not optional.** The CLI renders the snippet through rich at your
+  terminal width, so without it the JavaScript arrives **hard-wrapped mid-string** (the CRN
+  and `orchestrationID` split across lines) and the page fails silently. Always widen, then
+  extract with `sed -n '/<script>/,/<\/script>/p'`.
+- **The embed 401s from an unauthenticated origin.** The loader fetches, `wxoLoader.init()`
+  runs and the **launcher renders** — then every backend call returns `401` and the chat
+  never connects:
+  ```
+  [warn]  [WxOChat] Remote landing not available in this environment
+  [error] Failed to load resource: the server responded with a status of 401 ()
+  ```
+  This is **not** a missing channel: `channels create --type webchat` explicitly refuses with
+  *"Webchat channels cannot be created using the 'create' command. Webchat is automatically
+  available for all agents."*, and `channels list-channels` legitimately reports
+  *"No channels found"*. It is authentication — the embedded chat expects an authenticated
+  session against the tenant. **Serving it to anonymous users is configured in the watsonx
+  Orchestrate UI (web chat security / allowed origins); the ADK does not expose it.** Budget
+  for this: "paste the snippet and it works" holds only inside an authenticated context.
 
 ---
 
@@ -606,13 +1139,13 @@ MCP Server: `watsonx-orchestrate-adk` with tools like `chat_with_agent`, `list_a
 
 | File | Contents |
 |------|----------|
-| [references/cli-reference.md](references/cli-reference.md) | Every `orchestrate` group, subcommand, and flag |
-| [references/agents-tools-schemas.md](references/agents-tools-schemas.md) | Agent YAML schema (native/external/assistant), `@tool`/`@flow` decorators, flow nodes, doc-processing |
-| [references/connections-models-kb.md](references/connections-models-kb.md) | Connection auth schemes, watsonx.ai AI Gateway, KB providers (Milvus/AstraDB/Elasticsearch) & custom RAG tools |
+| [references/cli-reference.md](references/cli-reference.md) | Every `orchestrate` group, subcommand, and flag (incl. `controls`, `workspaces`, `phone`, `skills`, premier models, traces) |
+| [references/agents-tools-schemas.md](references/agents-tools-schemas.md) | Agent YAML schema (native/external/assistant, `skills:`, multi-KB, `welcome_content`, the full `llm_config` field list), `@tool`/`@flow` decorators, flow nodes (5 callback events, `suppress_agent_summarization`, `page_range`), doc-processing with `language=` |
+| [references/connections-models-kb.md](references/connections-models-kb.md) | Connection auth schemes (incl. the `--name` custom API-key header), model providers (incl. `redhat-ai`), watsonx.ai AI Gateway, KB providers (Milvus/AstraDB/Elasticsearch) & custom RAG tools |
 | [references/mcp-toolkits.md](references/mcp-toolkits.md) | Importing MCP servers as toolkits; building MCP servers for tools; the wxO MCP servers |
 | [references/runtime-api-embedding.md](references/runtime-api-embedding.md) | Consuming a deployed agent from your app via the runtime REST API (`/chat/completions`, `/orchestrate/runs`, streaming, model-only completions); auth, base URLs, `thread_id` multi-turn, app-backend proxy pattern |
-| [references/testing-debugging.md](references/testing-debugging.md) | Post-deploy verification gate (test before handover) + report template, evaluations, programmatic flow testing, failure-mode table |
-| [references/agentops-evaluations.md](references/agentops-evaluations.md) | **AgentOps**: the `[agentops]` extra, the `evaluations` CLI (generate/quick-eval/evaluate/analyze/validate/red-teaming), input formats (TSV/CSV/config), end-to-end eval workflow, and observability traces |
+| [references/testing-debugging.md](references/testing-debugging.md) | Post-deploy verification gate (test before handover) + report template, **routing playbook (§2a)**, export/restore round-trip, evaluations, programmatic flow testing, failure-mode table |
+| [references/agentops-evaluations.md](references/agentops-evaluations.md) | **AgentOps**: the `[agentops]` extra, the `evaluations` CLI + **what its metrics mean and which to trust**, input formats and the **keyword-matching trap**, the **three trace surfaces + full camelCase field map**, **latency triage**, **token/cost model (cost is NOT computed)**, **control-plane judge scores (async + sampled)**, and the **native-vs-derive boundary** |
 | [references/setup-venv.sh](references/setup-venv.sh) | Creates virtual Python environment with `orchestrate` CLI |
 | [references/wxo-chat.sh](references/wxo-chat.sh) | Tests single-turn and multi-turn conversations with agents if the MCP server `watsonx-orchestrate-adk` is not available |
 
@@ -626,11 +1159,68 @@ When you need a pattern this skill doesn't spell out, fetch a matching example
 from the public `examples/` directory rather than inventing one.
 
 **Always prefer live `orchestrate ... --help` over memory when a flag is in doubt.**
-This skill's CLI specifics were live-verified against `ibm-watsonx-orchestrate` on a
-live IBM Cloud SaaS instance — most recently **2.12.0 (2026-06-29)**, building the
-`dr_house_advise` agent end-to-end (build → import → single/multi-turn chat → export →
-reimport → observability), a `house_triage` **flow** (parallel + decision + masking,
-compiled and imported), and an **AgentOps** `validate-native` run — plus the 2.11–2.12
-schema additions (compaction, `llm_config`, `restrictions`). Evidence in the `test/`
-folder. The flow `decisions` table, callbacks, timer, and voice Flux remain
-release-notes-sourced (not yet exercised live).
+
+**Verification round 2 — 2026-08-05, ADK 2.13.0, IBM Cloud SaaS.** A 7-agent orchestrator +
+5 specialists + an in-graph observer agent, 6 Python tools and 2 agent skills were built,
+deployed and operated end to end (9 runs, 151k tokens). What that round *changed* in this
+skill, because the previous text was wrong or absent:
+
+- **`run.usage` is `null`** — the runs API does **not** carry tokens (§6a, runtime-api §4).
+  The old text listed "usage" as something `/orchestrate/runs` returns.
+- **`trace.totalCost` is `0`** — tokens are native, **pricing is not** (§6a, agentops §5).
+- **The AgentOps v3 field set** is now documented, including that it is **camelCase** and
+  that `parentObservationId` (v3-only) is what makes latency triage possible (agentops §4).
+- **The CLI trace export is a strict subset** of the v3 API — 11 fields, no `latency`,
+  no span tree (cli-reference, agentops §4a).
+- **Control-plane judge scores are async and sampled**, and score tool-grounded answers as
+  hallucinations because tool output is out of scope (agentops §6).
+- **`validate-native` keyword-matches literally** and fails semantically-correct answers;
+  `Orchestrate Agent Routing F1` is the metric to trust (agentops §2).
+- **The `[agentops]` extra did not require watsonx.ai credentials** on stock SaaS.
+- **Routing playbook** — the orchestrator's own `instructions` are the usual cause of missed
+  delegation; one sentence moved accuracy 5/9 → 8/9 (§3.3b, testing-debugging §2a).
+- **Collaborator tool names append the specialty inconsistently** — match by prefix (§3.3b).
+- **`load_skill` is a real runtime tool call** with a token and latency cost (§3.3c).
+- **Webchat** needs `COLUMNS` widened as well as the CRN pipe, and **401s from an
+  unauthenticated origin** — web chat security is a UI setting, not an ADK one (§7).
+- **No ops dashboards ship** — error rate, tail latency and tool-call success are all
+  customer-built (§6a).
+
+**Verification round 3 — 2026-08-18, ADK 2.15.0, IBM Cloud SaaS (us-south).** The skill was
+two releases behind (2.13.0); 2.14.0 and 2.15.0 were folded in after a live round in
+`test/house_clinic/` (see its `results/TEST_REPORT.md`). Built and exercised: a
+`pii_filter` **control** through full CRUD *plus an A/B proof that it enforces at runtime*
+(with the control on, the PII never reaches the model — confirmed in the exported trace); a
+`ppth_reference_desk` agent on **two knowledge bases**, both queried in a single turn; a
+voice config carrying the new idle-handler fields, Deepgram Flux STT and
+`normalize_volume`; and a document-processing **flow** with `language=` and all five flow
+lifecycle callbacks. What this round *changed*, because the release notes were wrong or the
+platform disagreed:
+
+- **`welcome_message` is still capped at 100 characters**, not 1000 (API 422) — §3.3.
+- The provider enums are **`redhat-ai`** and **`msftstudio`**, not `red_hat_ai` /
+  `microsoft_copilot_studio` — §4.
+- **`controls` has ten commands and the delete verb is `remove`**; `--config` is *not*
+  schema-validated, `import` is create-only, and `export` emits display names that `import`
+  cannot resolve — §4a.
+- **`connections configure --name` is broken on the SaaS backend** (500, missing DB
+  column) — §5.
+- **Google TTS was rejected** by the platform despite a correct ADK payload — §4b.
+- Voice `provider` strings are `<vendor>_stt` / `<vendor>_tts`, not the bare vendor — §4b.
+- Built-in KB ingestion **rejects `.md`** — §3.3.
+- docproc `classes=`/`fields=` need a pydantic **instance**, and `flow_builder.flows` must
+  be imported before `flow_builder.types` — agents-tools-schemas.md.
+
+Earlier rounds — this skill's CLI specifics were live-verified against
+`ibm-watsonx-orchestrate` on a live IBM Cloud SaaS instance at **2.13.0 (2026-07-25)**, building a
+**Dr. House diagnostics team** end-to-end: a `dr_house` orchestrator (`react_core` style)
+with three collaborators (`dr_wilson`/`dr_foreman`/`dr_cuddy`), a `differential_diagnosis`
+tool, and a **`diagnostics-protocol` agent skill** (import → attach via `skills:` → export
+round-trip). Verified live: single-turn tool call, multi-turn context + `chat_with_collaborator_*`
+delegation, and the reworked **observability traces** (`search --last`, observations export).
+Evidence in the `test/` folder (`test/results/TEST_REPORT.md`,
+`test/verification/FEATURE_VERIFICATION_2.13.0.md`). Also verified at 2.12.0: a `house_triage`
+**flow** (parallel + decision + masking) and an **AgentOps** `validate-native` run. The flow
+`decisions` table, the extended callbacks (`ON_FLOW_ABORT`/`ON_FLOW_DELETE`),
+`suppress_agent_summarization`, doc-extractor `page_range`, timer, and voice Flux are
+source-/release-notes-verified (not yet exercised in a live run).

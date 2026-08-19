@@ -50,7 +50,7 @@ agent's `id` (a UUID), **not** the display name and not the snake_case `name`.
 | Endpoint | Shape | Use it when |
 |----------|-------|-------------|
 | `POST /orchestrate/{agent_id}/chat/completions` | **OpenAI-compatible** | Drop-in for anything that already speaks OpenAI Chat Completions (IDEs, LangChain, existing chat UIs). Simplest. |
-| `POST /orchestrate/runs` (+ `GET /orchestrate/runs/{run_id}`) | **Rich, async** | You need tool-call/step outputs, fine-grained `llm_params` (e.g. greedy + `temperature: 0`), guardrails, usage, or async polling. |
+| `POST /orchestrate/runs` (+ `GET /orchestrate/runs/{run_id}`) | **Rich, async** | You need tool-call/step outputs, fine-grained `llm_params` (e.g. greedy + `temperature: 0`), guardrails, or async polling. **Not** for token usage — see the warning in §4. |
 | `POST /orchestrate/runs/stream` | Rich + SSE | Same richness, streamed token-by-token (identical to `runs?stream=true`). |
 | `POST /completions`, `POST /completions/chat` | **Model only, no agent** | Call a raw LLM through the AI Gateway without any agent/tool routing. |
 
@@ -92,6 +92,24 @@ curl -sX GET "$BASE/orchestrate/runs/$RUN_ID" -H "Authorization: Bearer $TOKEN"
 ```
 When `status: "completed"`, the reply text is at
 **`result.data.message.content[0].text`**. `step_history` carries tool outputs.
+
+The completed run also carries **`trace_id`** (32-hex) — capture it, it is your only handle
+on the telemetry in [agentops-evaluations.md](agentops-evaluations.md) §4.
+
+> ⚠ **`usage` is `null` — do NOT build token accounting on the runs API.** (live-verified
+> 2.13.0 SaaS, every completed run). Both `usage` and `llm_params` are present-but-empty on
+> the run object:
+> ```json
+> { "status": "completed", "trace_id": "291eb995…", "thread_id": "d2a6a5d6-…",
+>   "usage": null, "llm_params": null }
+> ```
+> Exact per-call token counts **do** exist — in the trace, at
+> `observation.usage.{input,output,total}` on `GENERATION` observations. Getting `null` here
+> is the #1 reason people wrongly conclude wxO does not report tokens.
+> Full field map: [agentops-evaluations.md](agentops-evaluations.md) §4.
+
+`step_history` also has **no per-step timestamps**, so you cannot derive per-step latency
+from it. That, too, lives in the trace (`observation.latency`).
 
 **Streaming** (`/orchestrate/runs/stream`, or `/orchestrate/runs?stream=true`)
 emits an SSE event sequence:
@@ -177,7 +195,11 @@ Checklist:
   `GET v1/agentops-v3/traces/{trace_id}`. Context-variable changes are now tracked
   per node; client apps can also consume intermediate context updates through
   embedded-chat runtime events. Use this for production debugging of agentic
-  workflows instead of the run `step_history` alone.
+  workflows instead of the run `step_history` alone — it is also the **only** place
+  token counts, per-span latency and the span tree exist. Field map and the
+  native-vs-derive boundary: [agentops-evaluations.md](agentops-evaluations.md) §4–§6.
+  ⚠ **Cost is not computed for you** — `totalCost` returns `0`; tokens are exact,
+  pricing is yours (§5 there).
 - **Sensitive-data masking** — values marked sensitive in a flow are masked in chat
   history, the flow inspector, and traces; don't expect to read them back from the
   trace/run output.
