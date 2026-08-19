@@ -10,7 +10,7 @@ echo -e "${YELLOW} Starting watsonx Orchestrate MCP Server ${NC}"
 clear 
 
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${YELLOW} Activating Pythonvirtual environment... ${NC}"
+echo -e "${YELLOW} Activating Python virtual environment... ${NC}"
 source .venv/bin/activate
 
 echo -e "\n${BLUE}========================================${NC}"

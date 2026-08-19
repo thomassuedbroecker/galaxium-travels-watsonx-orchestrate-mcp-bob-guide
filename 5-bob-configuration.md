@@ -252,7 +252,7 @@ currently contains two rules:
 
 > Any configuration must fit to the used watsonx Orchestrate ADK!
 
-> For watsonx Orchestrate ADK version 2.12.0 you must use
+> For watsonx Orchestrate ADK version 2.14.0 you must use
 > `llm: watsonx/meta-llama/llama-3-3-70b-instruct` for the agent
 > configuration.
 
