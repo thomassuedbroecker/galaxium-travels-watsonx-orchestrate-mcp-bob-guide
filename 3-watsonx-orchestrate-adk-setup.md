@@ -238,7 +238,7 @@ The two templates produce:
 
 ### Step 11 — Import the models
 
-```
+```sh
 orchestrate models import \
   --file ./model-configs/model-config_llama_3_3_70b_instruct.yaml \
   --app-id watsonx_credentials
@@ -257,7 +257,7 @@ so agents can reference them by name (e.g.
 
 ### Step 12 — Import the smoke-test agent
 
-```
+```sh
 orchestrate agents import -f ./agents/agent_hello_world.yaml
 ```
 
@@ -268,7 +268,7 @@ Llama 3.3 70B model and replies with a friendly greeting when you say hello.
 
 ### Step 13 — Start LiteChat
 
-```
+```sh
 orchestrate chat start
 ```
 

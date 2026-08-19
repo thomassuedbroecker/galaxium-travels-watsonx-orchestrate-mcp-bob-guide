@@ -69,13 +69,12 @@ setup.
 
 ## 5.3 The `.bob/mcp.json` File
 
-The file `.bob/mcp.json` currently configures five MCP server entries:
+The file `.bob/mcp.json` currently configures four MCP server entries:
 
 - `watsonx-orchestrate-documentation-mcp`
 - `watsonx-orchestrate-adk`
 - `watsonx-orchestrate-local-mcp`
 - `booking-mcp`
-- `bob-marketplace`
 
 The current file content is:
 
@@ -110,28 +109,12 @@ The current file content is:
       },
       "type": "streamable-http",
       "url": "http://192.168.2.53:8084/mcp"
-    },
-    "bob-marketplace": {
-      "type": "streamable-http",
-      "url": "http://127.0.0.1:51877/mcp",
-      "headers": {
-        "Bob-Marketplace-Token": "bob-marketplace-local"
-      },
-      "disabled": false,
-      "alwaysAllow": [
-        "search_assets",
-        "get_asset",
-        "list_installed",
-        "list_favorites",
-        "suggest_assets",
-        "list_updates"
-      ]
     }
   }
 }
 ```
 
-### What The Five Entries Do
+### What The Four Entries Do
 
 - `watsonx-orchestrate-documentation-mcp` connects Bob to the public
   `watsonx Orchestrate` documentation MCP endpoint.
@@ -141,8 +124,6 @@ The current file content is:
   `watsonx Orchestrate` MCP endpoint on port `8080`.
 - `booking-mcp` connects Bob to the Galaxium Travels MCP server on port `8084`
   and sends a Basic Auth header.
-- `bob-marketplace` connects Bob to the local Bob Marketplace server for
-  searching, installing, and listing assets.
 
 ### Local Values You May Need To Change
 
@@ -196,7 +177,7 @@ The current custom instructions tell Bob to:
 - favor simple, reproducible solutions over unnecessary complexity
 - consider configuration, testing, logging, and error handling when useful
 - align recommendations with real development tasks in the Galaxium Travels repository
-- use the `Galaxium Travels watsonx Orchestrate Customization Developer` skill when relevant
+- use the `watsonx-orchestrate` skill when relevant
 
 ## 5.5 The Skills In `.bob/skills`
 
@@ -287,8 +268,10 @@ The current file states these main rules:
 
 - minimize context usage wherever possible
 - provide an answer only when the accuracy of the sources can be verified, otherwise state `Insufficient information.`
-- use only approved libraries, especially open-source libraries or libraries provided by IBM
+- use only approved libraries, specifically those that are open source or provided by IBM
 - keep code documentation to the minimum necessary
+- always use the most suitable mode for the job
+- always use subagents when it makes sense to speed up the job
 
 These instructions complement the `.bob` and `.bobrules` files.
 

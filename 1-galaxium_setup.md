@@ -13,7 +13,7 @@ Use this guide to:
 - Docker Desktop, Rancher Desktop, or another working Docker runtime
 - `git`
 - `curl` and `jq`
-- `npx` if you plan to use MCP Inspector in guide `3`
+- `npx` if you plan to use MCP Inspector in guide `2`
 
 ## 1.2 Clone The Infrastructure Repository
 
@@ -33,7 +33,7 @@ cd infrastructure/galaxium-travels-infrastructure-tsuedbro
 
 ## 1.3. Basic Auth Stack For Guides 2 And 4
 
-Use this mode when you want:
+Use this stack when you want:
 
 - the MCP backend protected by shared Basic Auth
 - the manual backend verification from guide `2`
@@ -66,7 +66,7 @@ VM-style variant using the local network and not the host network:
 ```sh
 docker compose --env-file local-container/basic-auth.env \
   -f local-container/docker_compose.basic-auth-vm.yaml \
-  up --build 
+  up --build
 ```
 
 ### 1.3.4 Basic Auth URLs
