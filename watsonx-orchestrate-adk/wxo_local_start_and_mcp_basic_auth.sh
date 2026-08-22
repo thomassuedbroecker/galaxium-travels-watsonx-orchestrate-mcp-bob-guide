@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -39,7 +40,10 @@ orchestrate chat start
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} watsonx Orchestrate MCP Server config... ${NC}"
-echo "HOST:${WXO_MCP_HOST}\nPORT:\n${WXO_MCP_PORT}\nTRANPORT:${WXO_MCP_TRANSPORT}\nDIRECTORY:${WXO_MCP_WORKING_DIRECTORY}"
+echo "HOST:${WXO_MCP_HOST}"
+echo "PORT:${WXO_MCP_PORT}"
+echo "TRANSPORT:${WXO_MCP_TRANSPORT}"
+echo "DIRECTORY:${WXO_MCP_WORKING_DIRECTORY}"
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Activating local environment watsonx Orchestrate configuration ...${NC}"
@@ -72,7 +76,7 @@ echo "MCP_REMOTE_BASE_SERVER_URL: ${MCP_REMOTE_BASE_SERVER_URL}"
 orchestrate connections configure --app-id ${APP_ID} --env ${ENVIRONMENT} --kind ${KIND} --type ${TYPE} --url ${MCP_REMOTE_BASE_SERVER_URL}
 
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${YELLOW} 3. Configure basic authentication for the connection{NC}"
+echo -e "${YELLOW} 3. Configure basic authentication for the connection${NC}"
 export APP_ID="galaxium-mcp-remote-server"
 export ENVIRONMENT="draft"
 export SERVICE_USERNAME="demo-basic-user"
@@ -80,7 +84,7 @@ export SERVICE_PASSWORD="demo-basic-password"
 orchestrate connections set-credentials --app-id ${APP_ID} --environment ${ENVIRONMENT} --username ${SERVICE_USERNAME} --password ${SERVICE_PASSWORD}
 
 echo -e "\n${BLUE}========================================${NC}"
-echo -e "${YELLOW} 4. Import the tools from the MCP server{NC}"
+echo -e "${YELLOW} 4. Import the tools from the MCP server${NC}"
 export APP_ID="galaxium-mcp-remote-server"
 export NAME="Galaxium-Travels-Booking-MCP-remote"
 export DESCRIPTION="Galaxium import from 'MCP server'."

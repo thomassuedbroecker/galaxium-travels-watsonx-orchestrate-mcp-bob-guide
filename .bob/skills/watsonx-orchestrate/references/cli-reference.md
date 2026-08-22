@@ -330,7 +330,7 @@ Valid hooks (server-enforced; an invalid one returns a 422 that lists all six):
 `agent_pre_invoke`, `agent_post_invoke`, `tool_pre_invoke`, `tool_post_invoke`,
 `prompt_pre_fetch`, `prompt_post_fetch`.
 
-⚠ Behaviour worth memorising (all live-verified 2.15.0):
+⚠ Behavior worth memorising (all live-verified 2.15.0):
 - `--config` is **not** validated against the artifact's `config_schema` — typos are stored
   and the control silently runs on defaults.
 - `--hooks` **is** validated. Asset-type mismatches and controls with **no** binding are

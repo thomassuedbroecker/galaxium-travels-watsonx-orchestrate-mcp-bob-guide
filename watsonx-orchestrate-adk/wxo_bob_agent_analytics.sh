@@ -56,7 +56,7 @@
 #   # Write Bob's report to a specific file:
 #   bash wxo_bob_agent_analytics.sh --export-file ./reports/analytics_$(date +%Y%m%d).md
 
-# ── Colours ────────────────────────────────────────────────────────────────────
+# ── Colors ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
@@ -80,7 +80,7 @@ POLL_TIMEOUT=120
 POLL_INTERVAL=3
 OBS_LIMIT=50
 CTX_LINES=150
-QUESTION="You are analysing a watsonx Orchestrate Agent Analytics (Langfuse observability) JSON export.
+QUESTION="You are analyzing a watsonx Orchestrate Agent Analytics (Langfuse observability) JSON export.
 Provide a concise structured report with:
 1. Run summary — agent name, trace ID, overall status, total duration.
 2. Step-by-step trace — list each observation with type, name, duration, and status.
@@ -543,7 +543,7 @@ import sys, re
 with open(sys.argv[1]) as f:
     raw = f.read()
 
-# ── 0a. Strip ANSI escape codes (Bob CLI wraps terminal output in colour codes;
+# ── 0a. Strip ANSI escape codes (Bob CLI wraps terminal output in color codes;
 #        they prevent box-drawing detection from working correctly) ─────────────
 clean = re.sub(r'\x1b\[[0-9;]*[mK]', '', raw)
 

@@ -225,7 +225,7 @@ Location: `.bob/skills/wxo-agent-analytics/`
 
 - `SKILL.md` — the skill definition for Langfuse trace analysis
 
-Used in guide `7` to analyse single-run and session-window Langfuse traces via
+Used in guide `7` to analyze single-run and session-window Langfuse traces via
 `bob run`. The skill guides Bob through evaluating agent trace data exported by
 `wxo_bob_agent_analytics.sh` and `wxo_bob_session_analytics.sh`.
 

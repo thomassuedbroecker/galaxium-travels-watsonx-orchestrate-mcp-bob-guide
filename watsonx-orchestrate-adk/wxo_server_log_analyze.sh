@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wxo_server_log_analyze.sh
-# Analyse captured log files produced by wxo_server_log_inspector.sh.
+# Analyze captured log files produced by wxo_server_log_inspector.sh.
 # Produces a Sessions Overview: error counts, warning counts, top patterns,
 # and a Markdown summary report ready for agent tool consumption.
 #
@@ -11,14 +11,14 @@
 # Options:
 #   --log-dir   -d   Root directory that contains timestamped session folders.
 #                    Defaults to ./server-logs
-#   --session   -s   Specific session timestamp folder to analyse.
+#   --session   -s   Specific session timestamp folder to analyze.
 #                    Defaults to the most-recent session.
 #   --report    -r   Path for the Markdown report.
 #                    Defaults to <session-dir>/ANALYSIS_REPORT.md
 #   --tail      -t   Number of tail lines to include per container.  Default 50.
 #   --help           Show this message and exit.
 
-# ── Colours ───────────────────────────────────────────────────────────────────
+# ── Colors ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

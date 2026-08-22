@@ -17,7 +17,7 @@
 #                        stop it automatically. Requires --capture-seconds.
 #   --capture-seconds N  How many seconds to capture logs before stopping.
 #                        Default: 30. Only used with --capture.
-#   --session   -s       Specific session timestamp (YYYYMMDD_HHMMSS) to analyse.
+#   --session   -s       Specific session timestamp (YYYYMMDD_HHMMSS) to analyze.
 #                        Defaults to the most-recent session in --log-dir.
 #   --log-dir   -d       Root directory of session folders. Default: ./server-logs
 #   --question  -q       Question for Bob. Default: standard health question.
@@ -30,10 +30,10 @@
 #   --help               Show this message and exit.
 #
 # Examples:
-#   # Analyse the most-recent session and ask Bob about health:
+#   # Analyze the most-recent session and ask Bob about health:
 #   bash wxo_bob_log_inspect.sh
 #
-#   # Capture 60 s of logs, then analyse and ask Bob:
+#   # Capture 60 s of logs, then analyze and ask Bob:
 #   bash wxo_bob_log_inspect.sh --capture --capture-seconds 60
 #
 #   # Custom question:
@@ -45,7 +45,7 @@
 #   # Write Bob's response to a specific file:
 #   bash wxo_bob_log_inspect.sh -o ./my-report.md
 
-# ── Colours ───────────────────────────────────────────────────────────────────
+# ── Colors ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
@@ -62,7 +62,7 @@ SESSION=""
 BOB_MODE="ask"
 ENV_FILE=".env"
 EXPORT_FILE=""
-QUESTION="Analyse the watsonx Orchestrate server log report below. Provide: 1) Overall health status. 2) Sessions Overview table. 3) Top 5 containers by error count. 4) Root cause notes per error container — which are Developer Edition startup noise versus real issues. 5) Recommendation."
+QUESTION="Analyze the watsonx Orchestrate server log report below. Provide: 1) Overall health status. 2) Sessions Overview table. 3) Top 5 containers by error count. 4) Root cause notes per error container — which are Developer Edition startup noise versus real issues. 5) Recommendation."
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
@@ -229,7 +229,7 @@ SESSION_DIR="${LOG_DIR}/${SESSION}"
 echo -e "${GREEN}Session:   ${SESSION}${NC}"
 echo -e "${GREEN}Directory: ${SESSION_DIR}${NC}"
 
-# ── Step 3: Run the analyser (pre-analysis) ───────────────────────────────────
+# ── Step 3: Run the analyzer (pre-analysis) ───────────────────────────────────
 print_header "Step 3 — Pre-analysis (wxo_server_log_analyze.sh)"
 
 REPORT_FILE="${SESSION_DIR}/ANALYSIS_REPORT.md"

@@ -1,9 +1,9 @@
 ---
 name: wxo-agent-analytics
 description: >
-  Use when the user wants to inspect, analyse, or review watsonx Orchestrate
-  agent behaviour using Langfuse traces and IBM Bob. Handles both a single new
-  test run and bulk session history. Trigger phrases: "analyse agent behaviour",
+  Use when the user wants to inspect, analyze, or review watsonx Orchestrate
+  agent behavior using Langfuse traces and IBM Bob. Handles both a single new
+  test run and bulk session history. Trigger phrases: "analyze agent behavior",
   "review agent analytics", "inspect agent traces", "run agent analytics",
   "check agent performance", "review langfuse traces", "wxo_bob_agent_analytics",
   "wxo_bob_session_analytics", "agent trace analysis", "agent behavior review".
@@ -13,14 +13,14 @@ metadata:
 
 # wxo-agent-analytics
 
-Analyse watsonx Orchestrate agent behaviour by running a Langfuse trace pipeline
+Analyze watsonx Orchestrate agent behavior by running a Langfuse trace pipeline
 and asking IBM Bob to reason over the structured execution data.
 
 Two scripts are available:
 
 | Script | When to use |
 |---|---|
-| `wxo_bob_agent_analytics.sh` | Fire a **new test run**, capture its trace, analyse it immediately |
+| `wxo_bob_agent_analytics.sh` | Fire a **new test run**, capture its trace, analyze it immediately |
 | `wxo_bob_session_analytics.sh` | Inspect **all past runs** within a time window — no new run needed |
 
 ---
@@ -54,7 +54,7 @@ If `BOB_API_KEY` is not set, remind the user to fill it in
 
 Use `ask_followup_question` to determine the user's intent:
 
-> "Do you want to fire a **new test message** against the agent and analyse that
+> "Do you want to fire a **new test message** against the agent and analyze that
 > run, or inspect the agent's **past runs** from a specific time window?"
 
 - **New test run** → use `wxo_bob_agent_analytics.sh` (proceed to Step 3A).
@@ -173,7 +173,7 @@ wxo_bob_session_analytics.sh
 
 ## Step 4 — Present the analysis
 
-After `execute_command` completes, read and summarise the report with `read_file`.
+After `execute_command` completes, read and summarize the report with `read_file`.
 
 **Single-run report (`BOB_AGENT_ANALYTICS_REPORT.md`):**
 
@@ -194,7 +194,7 @@ After `execute_command` completes, read and summarise the report with `read_file
 |---|---|
 | Session Summary | Time window, total runs, overall success rate |
 | Run-by-run Table | Trace ID, duration, status, response snippet per run |
-| Behaviour Patterns | Consistency, tool usage variation, latency trends |
+| Behavior Patterns | Consistency, tool usage variation, latency trends |
 | Errors or Anomalies | Failed runs, latency outliers, unexpected observations |
 | Production-Hardening Checks | `service.name`, `ls_provider`, min/avg/max LLM and total latency across all runs |
 | Recommendation | Is the agent behaving correctly and consistently? |

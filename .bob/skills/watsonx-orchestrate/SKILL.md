@@ -59,7 +59,7 @@ source and CLI (`ibm-watsonx-orchestrate`), not guesswork.
 > new model provider **`redhat-ai`** and external-agent provider **`msftstudio`** (§4).
 >
 > ⚠ **Three release-note claims do NOT match the live 2.15.0 build.** They are named
-> exactly as the release note words them, so you can recognise them:
+> exactly as the release note words them, so you can recognize them:
 > the welcome-message cap is documented as *"100 → 1000 characters"* but the API still
 > **hard-rejects anything over 100** (422); the provider is documented as `red_hat_ai` but
 > the enum value is **`redhat-ai`**; the external-agent provider is documented as

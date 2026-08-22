@@ -42,8 +42,8 @@ Work through the guides in order. Each guide builds on the previous one.
 | 3 | [Set Up The watsonx Orchestrate ADK](./3-watsonx-orchestrate-adk-setup.md) | Install the ADK, start the Developer Edition server, import the hello-world agent |
 | 4 | [Add The Basic Auth MCP Server To watsonx Orchestrate](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) | Register the Galaxium MCP server as a toolkit in watsonx Orchestrate |
 | 5 | [Configure IBM Bob For This Repository](./5-bob-configuration.md) | Set up Bob modes, skills, and MCP connections for this project |
-| 6 | [Inspect The watsonx Orchestrate Server Logs](./6-watsonx-server-inspection.md) | Capture and analyse container logs using `wxo_bob_log_inspect.sh` and IBM Bob |
-| 7 | [Inspect Agent Analytics With IBM Bob](./7-watsonx-agent-analytics.md) | Analyse Langfuse traces for single runs and session windows using `wxo_bob_agent_analytics.sh` |
+| 6 | [Inspect The watsonx Orchestrate Server Logs](./6-watsonx-server-inspection.md) | Capture and analyze container logs using `wxo_bob_log_inspect.sh` and IBM Bob |
+| 7 | [Inspect Agent Analytics With IBM Bob](./7-watsonx-agent-analytics.md) | Analyze Langfuse traces for single runs and session windows using `wxo_bob_agent_analytics.sh` |
 | 8 | [Prompts For IBM Bob](./8-bob-prompts.md) | Use prepared prompts to ask Bob to build the Galaxium booking agent |
 | 9 | [watsonx Orchestrate Custom Agent Explorer](./watsonx-orchestrate-mcp-server/watsonx_orchestrate_custom_explorer/README.md) | Explore agents, tools, and connections as an interactive force-directed diagram |
 
@@ -93,11 +93,15 @@ cd <your-repo-name>
 ├── prompts/                        ← prepared Bob prompts
 ├── watsonx-orchestrate-adk/
 │   ├── wxo_local_start.sh              ← start the Developer Edition server
+│   ├── wxo_local_start_and_mcp_basic_auth.sh ← start server + wire up the basic-auth MCP toolkit
+│   ├── wxo_add_basic_auth_mcp_server.sh ← add the basic-auth MCP toolkit to a running server
+│   ├── get_ip-connection.sh            ← list local interface IPs for MCP host configuration
 │   ├── wxo_server_log_inspector.sh     ← parallel log capture from all containers
 │   ├── wxo_server_log_analyze.sh       ← sessions overview + ANALYSIS_REPORT.md
-│   ├── wxo_bob_log_inspect.sh          ← chains capture + analyse + bob run (guide 6)
+│   ├── wxo_bob_log_inspect.sh          ← chains capture + analyze + bob run (guide 6)
 │   ├── wxo_bob_agent_analytics.sh      ← single-run Langfuse trace analysis (guide 7)
 │   ├── wxo_bob_session_analytics.sh    ← time-window session analysis (guide 7)
+│   ├── agent-analytics/examples/       ← example trace + Bob report from a real run
 │   ├── agents/                         ← agent YAML files
 │   ├── model-configs/                  ← watsonx.ai model configuration templates
 │   └── .env_template                   ← copy to .env and fill in your credentials
@@ -109,8 +113,8 @@ cd <your-repo-name>
 
 IBM Bob is used throughout this guide for:
 
-- **Log inspection (guide 6):** `wxo_bob_log_inspect.sh` captures container logs, runs the analyser, and pipes the summary to `bob run` for a structured health report saved as `BOB_ANALYSIS_REPORT.md`.
-- **Agent analytics (guide 7):** `wxo_bob_agent_analytics.sh` fires a test run, exports the Langfuse trace, and asks Bob to analyse it. `wxo_bob_session_analytics.sh` does the same across a time window of past runs.
+- **Log inspection (guide 6):** `wxo_bob_log_inspect.sh` captures container logs, runs the analyzer, and pipes the summary to `bob run` for a structured health report saved as `BOB_ANALYSIS_REPORT.md`.
+- **Agent analytics (guide 7):** `wxo_bob_agent_analytics.sh` fires a test run, exports the Langfuse trace, and asks Bob to analyze it. `wxo_bob_session_analytics.sh` does the same across a time window of past runs.
 - **Agent builder (guide 8):** prepared prompts ask Bob to build the Galaxium booking agent end-to-end.
 - **Explorer app:** Bob generated the `watsonx_orchestrate_custom_explorer` Flask + D3.js application from scratch using the watsonx Orchestrate MCP server.
 

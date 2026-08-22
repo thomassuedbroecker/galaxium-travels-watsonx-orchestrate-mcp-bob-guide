@@ -62,9 +62,9 @@ Always confirm with `orchestrate evaluations <cmd> --help` for your version.
 > 1. **Write expected outcomes in the agent's own vocabulary.** Run the prompt once, read
 >    the answer, then write column 2 using words it actually emits.
 > 2. **Trust `Orchestrate Agent Routing F1` over the `*_match` metrics.** It is computed
->    from actual delegation behaviour, not string matching, so it is unaffected by phrasing.
+>    from actual delegation behavior, not string matching, so it is unaffected by phrasing.
 >    A useful sanity check: rewording column 2 should move `keyword_match` and leave routing
->    F1 **unchanged** — if routing F1 moves, your rewording changed the agent's behaviour,
+>    F1 **unchanged** — if routing F1 moves, your rewording changed the agent's behavior,
 >    not just the grading.
 
 **`generate` — stories CSV** with **`story` and `agent` columns**:
@@ -118,7 +118,7 @@ Results (metrics, per-test pass/fail, judge rationales) are written under `--out
 
 ```json
 { "Runs": 1.0,
-  "Orchestrate Agent Routing F1": 0.67,     // ← the behavioural metric; trust this one
+  "Orchestrate Agent Routing F1": 0.67,     // ← the behavioral metric; trust this one
   "Total Steps": 6.0,  "LLM Steps": 3.0,
   "Average Agent Response Time (s)": 2.24,
   "Total Tool Calls": 1.33, "Tool Match Success": 1.0,
@@ -131,7 +131,7 @@ Reading it:
 
 | Metric | What it means | Trust it? |
 |---|---|---|
-| `Orchestrate Agent Routing F1` | did the request reach the right agent | **yes** — behavioural |
+| `Orchestrate Agent Routing F1` | did the request reach the right agent | **yes** — behavioral |
 | `Tool Match Success` / `Tool Call Recall` / `Precision` | expected vs actual tool calls | yes, **if** you declared expected tools; `NaN` otherwise |
 | `Total Steps` / `LLM Steps` / `Average Agent Response Time` | cost & latency proxies | yes, descriptive |
 | `Keyword Match` / `Text Match` | literal string overlap | **no** — see the §2 warning |
@@ -267,7 +267,7 @@ Every other payload in wxO is snake_case; **this one is camelCase**, so the natu
 Only the **11** fields `id · traceId · type · name · model · input · output · usage ·
 startTime · endTime · metadata` appear in the CLI export. Everything else is v3-API-only.
 
-### 4c. Useful trace names to recognise
+### 4c. Useful trace names to recognize
 
 - `LangGraph` — the top-level agent graph; its latency ≈ the whole run
 - `collaborator` / `LangGraph[collaborator:<uuid>]` — a **delegation**; the sub-agent's whole
@@ -317,7 +317,7 @@ Two findings worth repeating to anyone sizing a deployment:
 
 - **Input tokens dominate.** A measured 9-run multi-agent session was ~**9:1** input to
   output (135,746 in / 15,415 out). Context re-sent on every delegation, loaded agent skills
-  and tool results fed back in are the bulk of the bill — optimising answer length optimises
+  and tool results fed back in are the bulk of the bill — optimizing answer length optimizes
   the small side.
 - **Delegation is not free.** A collaborator gets its own system prompt, context and
   generation calls, all flattened into the parent trace. Multi-agent routing quality costs
@@ -335,7 +335,7 @@ Group by `trace.sessionId` (and `trace.userId`) for session- and tenant-level ro
               the query, creating a plausible but unfounded scenario …" }
 ```
 
-Two behaviours that both cause wrong conclusions (live-verified 2.13.0):
+Two behaviors that both cause wrong conclusions (live-verified 2.13.0):
 
 - **It is asynchronous and it SAMPLES.** One trace was scored ~30s after the run; nine other
   traces from the same session re-fetched minutes later had **zero** scores. Never block a

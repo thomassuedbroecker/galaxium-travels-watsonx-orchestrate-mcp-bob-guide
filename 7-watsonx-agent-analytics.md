@@ -1,11 +1,11 @@
 # 7. Inspect Agent Analytics With IBM Bob
 
-This guide shows two ways to analyse `watsonx Orchestrate` agent behaviour using
+This guide shows two ways to analyze `watsonx Orchestrate` agent behavior using
 the local **Langfuse** observability backend and **IBM Bob**:
 
 | Script | When to use |
 |---|---|
-| [`wxo_bob_agent_analytics.sh`](./watsonx-orchestrate-adk/wxo_bob_agent_analytics.sh) | Fire a **new test run**, capture its trace, ask Bob to analyse it |
+| [`wxo_bob_agent_analytics.sh`](./watsonx-orchestrate-adk/wxo_bob_agent_analytics.sh) | Fire a **new test run**, capture its trace, ask Bob to analyze it |
 | [`wxo_bob_session_analytics.sh`](./watsonx-orchestrate-adk/wxo_bob_session_analytics.sh) | Inspect **all past runs** of an agent within a time window — no new run needed |
 
 Both scripts query the local Langfuse API at `http://localhost:3010`, build a
@@ -524,7 +524,7 @@ The context document contains:
 - A **per-run observations table** for each trace
 - A **JSON excerpt** (first `--ctx-lines` lines) for each trace
 
-#### Step 4 — Bob analyses all runs together
+#### Step 4 — Bob analyzes all runs together
 
 ```
 ════════════════════════════════════════
@@ -570,7 +570,7 @@ Bob's analysis contains:
 |---|---|
 | **Session Summary** | Agent name, time window, total runs, overall success rate |
 | **Run-by-run Table** | Trace ID, timestamp, duration, status, response snippet per run |
-| **Behaviour Patterns** | Consistency of responses, tool usage variation, latency trends |
+| **Behavior Patterns** | Consistency of responses, tool usage variation, latency trends |
 | **Errors or Anomalies** | Failed runs, unexpected observations, latency outliers |
 | **Production-Hardening Checks** | `service.name` presence, `ls_provider` label discrepancy, min/avg/max LLM and total latency across all runs, flags for threshold breaches |
 | **Recommendation** | Is the agent behaving correctly and consistently? |
@@ -684,7 +684,7 @@ local Langfuse instance and seeds it with:
 The analytics scripts use `pk-lf-orchestrate` / `sk-lf-orchestrate` — those keys
 are **bound to the `orchestrate-lite` project**. Every agent run is recorded there.
 
-### 7.8.2 Why a Second Organisation Appears (and How to Prevent It)
+### 7.8.2 Why a Second Organization Appears (and How to Prevent It)
 
 The `docker-compose.yml` seeds the Langfuse user with:
 
@@ -697,7 +697,7 @@ If `LANGFUSE_EMAIL` is **missing from `.env`**, it expands to an empty string.
 Langfuse seeds the `orchestrate-lite` project and user with no email. When you
 then log in to the UI with `orchestrate@ibm.com`, Langfuse cannot match that
 address to the existing empty-email account and **auto-creates a brand-new personal
-organisation** (`102b61a7-...` or similar UUID). Agent traces still go to
+organization** (`102b61a7-...` or similar UUID). Agent traces still go to
 `orchestrate-lite` (the API key is correct), but the UI user is logged into the
 wrong org and sees 0 traces there.
 
@@ -720,7 +720,7 @@ orchestrate server reset
 # then restart with wxo_local_start.sh
 ```
 
-After a clean start with `LANGFUSE_EMAIL` set, only the **IBM** organisation will
+After a clean start with `LANGFUSE_EMAIL` set, only the **IBM** organization will
 exist in the UI and the login `orchestrate@ibm.com` maps directly to the
 `Watsonx Orchestrate Lite Project`.
 
@@ -735,7 +735,7 @@ exist in the UI and the login `orchestrate@ibm.com` maps directly to the
    | **Password** | `LANGFUSE_PASSWORD` from your `.env` (default: `orchestrate`) |
 
 3. On the **Organizations** page click **"Go to project"** under the **IBM**
-   organisation to open the **Watsonx Orchestrate Lite Project**.
+   organization to open the **Watsonx Orchestrate Lite Project**.
 4. In the left sidebar click **Traces**.
 
 ### 7.8.4 Find and Open a Trace
@@ -799,8 +799,8 @@ Langfuse ingestion has a small delay.
 | `wxo_bob_agent_analytics.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_agent_analytics.sh) | Single-run: fire a test, capture trace, ask Bob |
 | `wxo_bob_session_analytics.sh` | [`watsonx-orchestrate-adk/`](./watsonx-orchestrate-adk/wxo_bob_session_analytics.sh) | Session: query past runs by time window, ask Bob |
 | `agent_hello_world.yaml` | [`watsonx-orchestrate-adk/agents/`](./watsonx-orchestrate-adk/agents/agent_hello_world.yaml) | Agent under test |
-| `trace_20260731_170044.json` | [`agent-analytics/`](./watsonx-orchestrate-adk/agent-analytics/trace_20260731_170044.json) | Real example single-run trace (4 observations) |
-| `BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md` | [`agent-analytics/`](./watsonx-orchestrate-adk/agent-analytics/BOB_AGENT_ANALYTICS_REPORT_20260731_170044.md) | Real example single-run Bob report |
+| `trace_20260810_175311.json` | [`agent-analytics/examples/`](./watsonx-orchestrate-adk/agent-analytics/examples/trace_20260810_175311.json) | Real example single-run trace (4 observations) |
+| `BOB_AGENT_ANALYTICS_REPORT_20260810_175311.md` | [`agent-analytics/examples/`](./watsonx-orchestrate-adk/agent-analytics/examples/BOB_AGENT_ANALYTICS_REPORT_20260810_175311.md) | Real example single-run Bob report |
 
 ---
 

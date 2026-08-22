@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -122,11 +123,19 @@ orchestrate chat start
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} watsonx Orchestrate MCP Server config... ${NC}"
-echo "HOST:${WXO_MCP_HOST}\nPORT:\n${WXO_MCP_PORT}\nTRANPORT:${WXO_MCP_TRANSPORT}\nDIRECTORY:${WXO_MCP_WORKING_DIRECTORY}"
+echo "HOST:${WXO_MCP_HOST}"
+echo "PORT:${WXO_MCP_PORT}"
+echo "TRANSPORT:${WXO_MCP_TRANSPORT}"
+echo "DIRECTORY:${WXO_MCP_WORKING_DIRECTORY}"
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Start watsonx Orchestrate MCP Server config... ${NC}"
-cd ../watsonx-orchestrate-mcp-server
+# Abort if this fails: the next step is `cp .env_template .env`, which would
+# otherwise overwrite THIS directory's .env (your filled-in credentials).
+cd ../watsonx-orchestrate-mcp-server || {
+  echo -e "${RED}ERROR: cannot cd to ../watsonx-orchestrate-mcp-server${NC}" >&2
+  exit 1
+}
 
 echo -e "\n${BLUE}========================================${NC}"
 echo -e "${YELLOW} Copying .env_template to .env... ${NC}"

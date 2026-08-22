@@ -14,7 +14,7 @@
 #   --name      -n   Capture a specific container by name instead of all.
 #   --help           Show this message and exit.
 
-# ── Colours ───────────────────────────────────────────────────────────────────
+# ── Colors ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -235,7 +235,7 @@ _inspector_stop() {
   echo -e "${BLUE}========================================${NC}"
   echo -e "${GREEN}Session directory: ${LOG_SESSION_DIR}${NC}"
   echo -e "${GREEN}Manifest:          ${MANIFEST}${NC}"
-  echo -e "${GREEN}To analyse:        bash wxo_server_log_analyze.sh${NC}"
+  echo -e "${GREEN}To analyze:        bash wxo_server_log_analyze.sh${NC}"
   exit 0
 }
 

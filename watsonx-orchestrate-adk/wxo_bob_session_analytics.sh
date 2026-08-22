@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wxo_bob_session_analytics.sh
-# Inspect a specific agent's behaviour across all runs in a time window.
+# Inspect a specific agent's behavior across all runs in a time window.
 # Queries the local Langfuse API directly — no new run is triggered.
 #
 # Pipeline:
@@ -54,7 +54,7 @@
 #   # Deeper analysis:
 #   bash wxo_bob_session_analytics.sh --from 2026-08-10 --bob-mode arch-review
 
-# ── Colours ────────────────────────────────────────────────────────────────────
+# ── Colors ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; NC='\033[0m'
 
@@ -78,12 +78,12 @@ LANGFUSE_SK="sk-lf-orchestrate"
 TRACE_LIMIT=100
 OBS_LIMIT=50
 CTX_LINES=80
-QUESTION="You are analysing a watsonx Orchestrate Agent Analytics session export.
+QUESTION="You are analyzing a watsonx Orchestrate Agent Analytics session export.
 This report covers ALL runs of the agent in a specific time window.
 Provide a structured analysis with:
 1. Session summary — agent name, time window, total runs, overall success rate.
 2. Run-by-run table — trace ID, timestamp, duration, status, final response snippet.
-3. Behaviour patterns — are responses consistent? Any variation in tool usage or latency?
+3. Behavior patterns — are responses consistent? Any variation in tool usage or latency?
 4. Errors or anomalies — failed runs, unexpected observations, latency outliers.
 5. Production-hardening checks (evaluate across all runs):
    a. service.name — is it set to a meaningful value (e.g. wxo-agent-runtime) or still default/missing? Recommend fixing if not set.
@@ -494,7 +494,7 @@ import sys, re
 with open(sys.argv[1]) as f:
     raw = f.read()
 
-# ── 0. Strip ANSI escape codes (Bob CLI wraps terminal output in colour codes;
+# ── 0. Strip ANSI escape codes (Bob CLI wraps terminal output in color codes;
 #       they prevent box-drawing detection from working correctly) ──────────────
 clean = re.sub(r'\x1b\[[0-9;]*[mK]', '', raw)
 
