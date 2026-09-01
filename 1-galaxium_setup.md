@@ -61,10 +61,24 @@ bash local-container/verify-basic-auth-frontends-and-inspector.sh
 
 ### 1.3.3 Start The Running Basic Auth Stack
 
-VM-style variant using the local network and not the host network:
+VM-style variant using the local network and not the host network.
+
+Docker:
 
 ```sh
 docker compose --env-file local-container/basic-auth.env \
+  -f local-container/docker_compose.basic-auth-vm.yaml \
+  up --build
+```
+
+Podman:
+
+```sh
+# If you hit docker-credential-osxkeychain errors, keep this DOCKER_CONFIG prefix.
+DOCKER_CONFIG="$(mktemp -d)"
+printf '{}' > "$DOCKER_CONFIG/config.json"
+export DOCKER_CONFIG
+podman compose --env-file local-container/basic-auth.env \
   -f local-container/docker_compose.basic-auth-vm.yaml \
   up --build
 ```
