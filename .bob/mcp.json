@@ -28,6 +28,22 @@
       },
       "type": "streamable-http",
       "url": "http://192.168.2.53:8084/mcp"
+    },
+    "bob-marketplace": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:63304/mcp",
+      "headers": {
+        "Bob-Marketplace-Token": "bob-marketplace-local"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_assets",
+        "get_asset",
+        "list_installed",
+        "list_favorites",
+        "suggest_assets",
+        "list_updates"
+      ]
     }
   }
 }

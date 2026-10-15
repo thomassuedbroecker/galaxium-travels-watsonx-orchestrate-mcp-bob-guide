@@ -23,19 +23,23 @@ The current Bob-related files in this repository are:
 ├── custom_modes.yaml
 ├── mcp.json
 └── skills
-    └── watsonx-orchestrate
-        ├── README.md
-        ├── SKILL.md
-        └── references
-            ├── agentops-evaluations.md
-            ├── agents-tools-schemas.md
-            ├── cli-reference.md
-            ├── connections-models-kb.md
-            ├── mcp-toolkits.md
-            ├── runtime-api-embedding.md
-            ├── setup-venv.sh
-            ├── testing-debugging.md
-            └── wxo-chat.sh
+    ├── watsonx-orchestrate
+    │   ├── README.md
+    │   ├── SKILL.md
+    │   └── references
+    │       ├── agentops-evaluations.md
+    │       ├── agents-tools-schemas.md
+    │       ├── cli-reference.md
+    │       ├── connections-models-kb.md
+    │       ├── mcp-toolkits.md
+    │       ├── runtime-api-embedding.md
+    │       ├── setup-venv.sh
+    │       ├── testing-debugging.md
+    │       └── wxo-chat.sh
+    ├── wxo-agent-analytics
+    │   └── SKILL.md
+    └── wxo-log-inspector
+        └── SKILL.md
 
 .bobrules/
 ├── rules-code/
@@ -69,12 +73,13 @@ setup.
 
 ## 5.3 The `.bob/mcp.json` File
 
-The file `.bob/mcp.json` currently configures four MCP server entries:
+The file `.bob/mcp.json` currently configures five MCP server entries:
 
 - `watsonx-orchestrate-documentation-mcp`
 - `watsonx-orchestrate-adk`
 - `watsonx-orchestrate-local-mcp`
 - `booking-mcp`
+- `bob-marketplace`
 
 The current file content is:
 
@@ -109,12 +114,28 @@ The current file content is:
       },
       "type": "streamable-http",
       "url": "http://192.168.2.53:8084/mcp"
+    },
+    "bob-marketplace": {
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:63304/mcp",
+      "headers": {
+        "Bob-Marketplace-Token": "bob-marketplace-local"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_assets",
+        "get_asset",
+        "list_installed",
+        "list_favorites",
+        "suggest_assets",
+        "list_updates"
+      ]
     }
   }
 }
 ```
 
-### What The Four Entries Do
+### What The Five Entries Do
 
 - `watsonx-orchestrate-documentation-mcp` connects Bob to the public
   `watsonx Orchestrate` documentation MCP endpoint.
@@ -124,6 +145,9 @@ The current file content is:
   `watsonx Orchestrate` MCP endpoint on port `8080`.
 - `booking-mcp` connects Bob to the Galaxium Travels MCP server on port `8084`
   and sends a Basic Auth header.
+- `bob-marketplace` connects Bob to the local Bob Marketplace MCP endpoint
+  (`127.0.0.1`, port assigned by the Bob application, so it may differ on your
+  machine).
 
 ### Local Values You May Need To Change
 
@@ -258,7 +282,12 @@ currently contains two rules:
 
 ## 5.7 The `.bobignore` File
 
-The file `.bobignore` exists in the repository, but it is currently empty.
+The file `.bobignore` excludes the separately cloned infrastructure repository
+from Bob:
+
+```text
+infrastructure/galaxium-travels-infrastructure-tsuedbro
+```
 
 ## 5.8 The `AGENTS.md` File
 
@@ -317,7 +346,7 @@ The Bob-related repository content is currently organized like this:
 
 - `.bob/` contains the active MCP, mode, and skill configuration
 - `.bobrules/` contains the active Bob rules
-- `.bobignore` exists and is currently empty
+- `.bobignore` excludes `infrastructure/galaxium-travels-infrastructure-tsuedbro`
 - `AGENTS.md` contains repository-level agent guidance
 - `bob-modes-exports/` is currently a placeholder folder for future export files
 

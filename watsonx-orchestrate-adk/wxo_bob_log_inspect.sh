@@ -13,8 +13,8 @@
 #   bash wxo_bob_log_inspect.sh [OPTIONS]
 #
 # Options:
-#   --capture            Run wxo_server_log_inspector.sh first for <seconds> then
-#                        stop it automatically. Requires --capture-seconds.
+#   --capture            Capture fresh container logs first (waits --capture-seconds,
+#                        then fetches the logs and exits).
 #   --capture-seconds N  How many seconds to capture logs before stopping.
 #                        Default: 30. Only used with --capture.
 #   --session   -s       Specific session timestamp (YYYYMMDD_HHMMSS) to analyze.

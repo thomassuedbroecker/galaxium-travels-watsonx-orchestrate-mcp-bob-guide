@@ -83,7 +83,7 @@ This example imports `list_flights` first to keep the initial toolkit small.
 export NAME="Galaxium-Travels-Booking-MCP-remote"
 export DESCRIPTION="Galaxium Travels Booking MCP imported through Basic Auth."
 export KIND="mcp"
-export MCP_REMOTE_SERVER_URL="${MCP_REMOTE_BASE_SERVER_URL}/mcp/"
+export MCP_REMOTE_SERVER_URL="${MCP_REMOTE_BASE_SERVER_URL}/mcp"
 export TRANSPORT="streamable_http"
 export TOOLS="list_flights"
 

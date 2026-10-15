@@ -87,7 +87,11 @@ cd <your-repo-name>
 ├── 6-watsonx-server-inspection.md
 ├── 7-watsonx-agent-analytics.md
 ├── 8-bob-prompts.md
+├── DEPENDENCY_LICENSE_TRANSPARENCY.md
+├── THIRD_PARTY_NOTICES.md
+├── LICENSE
 ├── architecture/                   ← Draw.io infrastructure diagram
+├── bob-modes-exports/              ← exported Bob mode definitions
 ├── images/                         ← screenshots and GIFs
 ├── infrastructure/                 ← clone the Galaxium Travels repo here
 ├── prompts/                        ← prepared Bob prompts
@@ -106,6 +110,9 @@ cd <your-repo-name>
 │   ├── model-configs/                  ← watsonx.ai model configuration templates
 │   └── .env_template                   ← copy to .env and fill in your credentials
 └── watsonx-orchestrate-mcp-server/
+    ├── README.md
+    ├── .env_template
+    ├── wxo_mcp_local_start.sh                 ← start the local watsonx Orchestrate MCP server
     └── watsonx_orchestrate_custom_explorer/   ← Flask + D3.js agent explorer app
 ```
 

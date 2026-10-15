@@ -43,7 +43,7 @@ Confirm:
 - The active `orchestrate` environment is `local`.
 
 If Langfuse is unreachable or no environment is active, tell the user to run
-`bash wxo_local_start.sh` first (guide §6.2).
+`bash wxo_local_start.sh` first (guide §7.2).
 
 If `BOB_API_KEY` is not set, remind the user to fill it in
 `watsonx-orchestrate-adk/.env` (guide §6.3).
@@ -160,13 +160,13 @@ wxo_bob_session_analytics.sh
 ├─ Step 1 ── Query Langfuse traces in [--from, --to]
 │            Filter by agent name (input.current_agent)
 │            Fetch observations for each matched trace
-│            → session_traces_<ts>.json
+│            → agent-analytics/<agent>/<ts>/session_traces.json
 ├─ Step 2 ── Build consolidated context document
 │            Production-Hardening Signals (min/avg/max latency across all runs)
 │            + run summary table + per-run observation tables + JSON excerpts
-│            → session_context_<ts>.md
+│            → agent-analytics/<agent>/<ts>/session_context.md
 └─ Step 3 ── bob run --mode ask "<context+question>"
-             → BOB_SESSION_ANALYTICS_REPORT_<ts>.md  (clean GFM + IBM Bob CLI Usage)
+             → agent-analytics/<agent>/<ts>/BOB_SESSION_ANALYTICS_REPORT.md  (clean GFM + IBM Bob CLI Usage)
 ```
 
 ---
@@ -188,7 +188,7 @@ After `execute_command` completes, read and summarize the report with `read_file
 | Verdict | Pass/fail per health criterion |
 | IBM Bob CLI Usage | Wall-clock time, prompt size, cost note |
 
-**Session report (`BOB_SESSION_ANALYTICS_REPORT_<ts>.md`):**
+**Session report (`BOB_SESSION_ANALYTICS_REPORT.md`):**
 
 | Section | What to highlight |
 |---|---|

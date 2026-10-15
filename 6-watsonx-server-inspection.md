@@ -454,7 +454,7 @@ List each distinct error message and state whether it is actionable or startup n
 >    Each call fetches the full log buffer and exits immediately — all 29 containers are
 >    fetched sequentially in a few seconds. No background jobs, nothing to kill.
 > 3. `wxo_server_log_analyze.sh` reads the new session and writes `ANALYSIS_REPORT.md`.
-> 4. The 44-line summary (metadata table + Sessions Overview) is extracted and
+> 4. The summary extract (metadata table + Sessions Overview) is extracted and
 >    passed to `bob run --mode ask` together with your question.
 > 5. Bob's response streams to the terminal and is written to `BOB_ANALYSIS_REPORT.md`.
 
@@ -499,11 +499,13 @@ will appear in the captured files alongside any startup entries.
 ════════════════════════════════════════
   Step 1 — Capturing logs for 60s
 ════════════════════════════════════════
-Starting wxo_server_log_inspector.sh in background...
-Capturing... (60s)
+limactl: .../limactl
+Waiting 60s then fetching logs...
+
+[FETCH] <container> → ./server-logs/20260816_162515/<container>.log
+        <N> lines
 ...
-Stopping capture (PID 12345)...
-Capture complete.
+Capture complete → ./server-logs/20260816_162515
 
 ════════════════════════════════════════
   Step 2 — Resolving session
@@ -674,7 +676,7 @@ size, cost note).
 
 ```
 Options:
-  --capture              Capture fresh logs first (background, stops automatically)
+  --capture              Capture fresh logs first (waits, then fetches; exits on its own)
   --capture-seconds N    How long to capture in seconds (default: 30)
   --session   -s         Specific session timestamp (YYYYMMDD_HHMMSS) to analyze
                          Defaults to the most-recent session
@@ -685,7 +687,7 @@ Options:
                          Default: <session-dir>/BOB_ANALYSIS_REPORT.md
   --env-file  -e         Path to a .env file. Default: .env
   --full-report          Send the complete ANALYSIS_REPORT.md to Bob instead of
-                         the 44-line summary. Slower but gives Bob full log detail.
+                         the summary extract. Slower but gives Bob full log detail.
   --help                 Show this message and exit.
 ```
 
@@ -711,7 +713,7 @@ and are they actionable?"
 bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 --mode arch-review
 
 # Objective: send the complete report to Bob (all containers, all log tails)
-# when the 44-line summary is not enough detail.
+# when the summary extract is not enough detail.
 bash wxo_bob_log_inspect.sh --capture --capture-seconds 60 --full-report
 
 # Objective: save Bob's response to a dated archive path for a nightly
