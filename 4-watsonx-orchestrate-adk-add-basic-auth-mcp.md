@@ -115,7 +115,7 @@ If LiteChat is not already running:
 orchestrate chat start
 ```
 
-Open `http://localhost:3000` and verify that the imported toolkit is available
+Open `http://localhost:3000/chat-lite` and verify that the imported toolkit is available
 when you manage agents or tools.
 
 ## 4.7 Optional Automation Script

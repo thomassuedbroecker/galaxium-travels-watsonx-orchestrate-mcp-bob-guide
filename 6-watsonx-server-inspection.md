@@ -472,7 +472,7 @@ While the 60-second capture window is running, open a browser and send a message
 to the watsonx Orchestrate chat UI:
 
 ```
-http://localhost:3000/chat
+http://localhost:3000/chat-lite
 ```
 
 Type a short greeting — for example `"Hello, are you working?"` — and submit it.

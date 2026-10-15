@@ -81,9 +81,9 @@ python3 -m pip install ibm-watsonx-orchestrate
 orchestrate --version
 ```
 
-> **Tip:** This project was tested with `ibm-watsonx-orchestrate==2.14.0`.
+> **Tip:** This project was tested with `ibm-watsonx-orchestrate==2.18.2`.
 > Pin that version if you need a reproducible environment:
-> `python3 -m pip install ibm-watsonx-orchestrate==2.14.0`
+> `python3 -m pip install ibm-watsonx-orchestrate==2.18.2`
 
 ---
 
@@ -100,45 +100,31 @@ bash wxo_local_start.sh
 The script guides you through each step with colored status messages.
 Here is what it does, in order:
 
-### Step 1 — Activate the Python virtual environment
+### Step 1 — Activate venv, load credentials, and verify version
 
 ```sh
 source .venv/bin/activate
-```
-
-The `orchestrate` CLI and all Python dependencies are isolated inside
-`.venv`. Activating it makes the `orchestrate` command available in the
-current shell.
-
-### Step 2 — Verify the ADK version
-
-```sh
+source .env
 orchestrate --version
 ```
 
-A quick sanity check to confirm the correct version is installed.
+Activates the Python virtual environment so the `orchestrate` CLI is available,
+reads your credentials and service passwords into the shell, then prints the
+installed ADK version as a quick sanity check.
 
-### Step 3 — Load environment variables
+The script also warns if `OTEL_SERVICE_NAME` is not set in `.env`
+(trace spans would then show `unknown_service`).
 
-```sh
-source .env
-```
-
-Reads your credentials and service passwords into the shell so every
-subsequent `orchestrate` command can use them without you having to pass
-flags manually.
-
-### Step 4 — Reset the server configuration
+### Step 2 — Reset the server configuration
 
 ```sh
 orchestrate server reset
 ```
 
 Clears any leftover server configuration from a previous run (cached
-endpoints, tokens, etc.). The script also warns if `OTEL_SERVICE_NAME` is
-not set in `.env` (trace spans would then show `unknown_service`).
+endpoints, tokens, etc.).
 
-### Step 5 — Start the Developer Edition containers
+### Step 3 — Start the Developer Edition containers
 
 ```sh
 orchestrate server start \
@@ -154,116 +140,104 @@ the containers that make up the local platform:
 | Flag | Purpose |
 |---|---|
 | `--env-file .env` | Passes your credentials and passwords to the containers |
-| `--with-connections-ui` | Enables the connections management UI |
+| `--with-connections-ui` | Starts the Connections UI at **`http://localhost:3412/connectors`** for managing app credentials |
 | `--accept-terms-and-conditions` | Non-interactive acceptance of the IBM terms |
 | `--with-ibm-telemetry` | Starts Langfuse alongside the server for LLM call tracing |
 
-> **What is Langfuse?**  
+> **Two UIs, two ports**
+> `--with-connections-ui` starts the *connections management* UI (`:3412/connectors`) — used to manage app credentials.
+> The *chat* UI (`:3000/chat-lite`) is a separate service started in step 7 below.
+
+> **What is Langfuse?**
 > Langfuse is an open-source LLM observability tool. When enabled it records
 > every model call made by your agents so you can inspect prompts, responses,
 > latency, and token counts. See <https://langfuse.com>.
 
-### Step 6 — Wait for the server to become ready
+### Step 4 — Wait for the server to become ready
 
-The script polls `http://localhost:4321/api/v1/auth/token` every 5 seconds,
-up to 12 attempts (60 s). When the endpoint responds the server is ready. If all
-12 attempts fail the script exits with a hint to run `orchestrate server purge`
-(which removes the containers and their data so you can start fresh).
+The script polls the official readiness endpoint `http://localhost:4321/v1/health/ready`
+every 10 seconds, up to 20 attempts (200 s). When the endpoint returns HTTP 200 the
+server is ready. If all 20 attempts fail the script exits with a hint to run
+`orchestrate server purge` (which removes the containers and their data so you
+can start fresh).
 
-### Step 7 — Activate the local environment
+> **Why 200 s?**
+> The Developer Edition starts 42 containers (including Elasticsearch, OpenSearch,
+> Milvus, Langfuse, and the wxO server itself) inside a Lima VM on arm64. On a
+> typical MacBook with default Lima memory, all services need up to ~90–120 s to
+> become healthy after the CLI exits.
+
+### Step 5 — Activate the local environment and configure the watsonx.ai connection
 
 ```sh
 orchestrate env activate local
-```
 
-Tells the `orchestrate` CLI to point at your local Developer Edition
-instance instead of any IBM Cloud environment. All subsequent commands
-(model imports, agent imports, chat) operate on the local server.
-
-> See the environments documentation:
-> <https://developer.watson-orchestrate.ibm.com/getting_started/environments>
-
-### Step 8 — Create the watsonx.ai credentials connection
-
-```sh
 orchestrate connections add -a watsonx_credentials 2>/dev/null || true
-orchestrate connections configure -a watsonx_credentials \
-  --env draft -k key_value -t team
-orchestrate connections set-credentials -a watsonx_credentials \
-  --env draft -e "api_key=${WATSONX_APIKEY}"
+orchestrate connections configure -a watsonx_credentials --env draft -k key_value -t team
+orchestrate connections set-credentials -a watsonx_credentials --env draft -e "api_key=${WATSONX_APIKEY}"
 ```
 
-A *connection* is how watsonx Orchestrate stores and uses external
-credentials securely. These commands create a connection named
-`watsonx_credentials`, configure it as a team-scoped key-value store
-in the `draft` environment, and inject your `WATSONX_APIKEY` into it.
+`orchestrate env activate local` tells the CLI to point at your local Developer
+Edition instance instead of any IBM Cloud environment.
 
-> **Why a connection?**  
-> Agents and models reference a connection by name instead of embedding
-> credentials directly in their YAML files. This keeps secrets out of source
-> control. See:
+The three `connections` commands create a connection named `watsonx_credentials`,
+configure it as a team-scoped key-value store in the `draft` environment, and
+inject your `WATSONX_APIKEY` into it. Agents and models reference this connection
+by name instead of embedding credentials directly in their YAML files.
+
+> See the environments and connections documentation:
+> <https://developer.watson-orchestrate.ibm.com/getting_started/environments>
 > <https://developer.watson-orchestrate.ibm.com/connections/overview>
 
-### Step 9 — Generate model YAML files from templates
+### Step 6 — Generate model YAMLs, import models, and import the smoke-test agent
 
 ```sh
-for template in ./model-configs/*.yaml_template; do
-  yaml="${template%_template}"
-  sed "s/YOUR_SPACE_ID/${WATSONX_SPACE_ID}/g" "$template" > "$yaml"
+# Expand templates
+for tmpl in ./model-configs/*.yaml_template; do
+  yaml="${tmpl%_template}"
+  sed "s/YOUR_SPACE_ID/${WATSONX_SPACE_ID}/g" "$tmpl" > "$yaml"
 done
+
+# Import models
+orchestrate models import --file ./model-configs/model-config_llama_3_3_70b_instruct.yaml --app-id watsonx_credentials
+orchestrate models import --file ./model-configs/model-config_openai_gpt_oss_120b.yaml     --app-id watsonx_credentials
+
+# Import hello-world agent
+orchestrate agents import -f ./agents/agent_hello_world.yaml
 ```
 
-The model config templates in
-[`watsonx-orchestrate-adk/model-configs/`](./watsonx-orchestrate-adk/model-configs/)
-contain the placeholder `YOUR_SPACE_ID`. This loop replaces the placeholder
-with your actual `WATSONX_SPACE_ID` and writes the final `.yaml` files.
-The two templates produce:
+The template loop replaces the `YOUR_SPACE_ID` placeholder with your actual
+`WATSONX_SPACE_ID` and writes the final `.yaml` files. The two templates produce:
 
 - `model-config_llama_3_3_70b_instruct.yaml` — Meta Llama 3.3 70B Instruct
-- `model-config_openai_gpt_oss_120b.yaml` — OpenAI GPT OSS 120B (`watsonx/openai/gpt-oss-120b`)
+- `model-config_openai_gpt_oss_120b.yaml` — OpenAI GPT OSS 120B
 
-### Step 10 — Import the models
+Both models are registered in the local Developer Edition so agents can reference
+them by name (e.g. `watsonx/meta-llama/llama-3-3-70b-instruct`).
 
-```sh
-orchestrate models import \
-  --file ./model-configs/model-config_llama_3_3_70b_instruct.yaml \
-  --app-id watsonx_credentials
-
-orchestrate models import \
-  --file ./model-configs/model-config_openai_gpt_oss_120b.yaml \
-  --app-id watsonx_credentials
-```
-
-Registers the two watsonx.ai-hosted models in the local Developer Edition
-so agents can reference them by name (e.g.
-`watsonx/meta-llama/llama-3-3-70b-instruct`).
+The hello-world agent in
+[`watsonx-orchestrate-adk/agents/agent_hello_world.yaml`](./watsonx-orchestrate-adk/agents/agent_hello_world.yaml)
+is a minimal smoke-test that confirms agent creation works end-to-end.
 
 > See the model management documentation:
 > <https://developer.watson-orchestrate.ibm.com/agents/models>
 
-### Step 11 — Import the smoke-test agent
-
-```sh
-orchestrate agents import -f ./agents/agent_hello_world.yaml
-```
-
-Imports a minimal "hello world" agent defined in
-[`watsonx-orchestrate-adk/agents/agent_hello_world.yaml`](./watsonx-orchestrate-adk/agents/agent_hello_world.yaml)
-to verify that agent creation works end-to-end. The agent is backed by the
-Llama 3.3 70B model and replies with a friendly greeting when you say hello.
-
-### Step 12 — Open LiteChat
-
-The script ends with `Stack is up — open http://localhost:3000 to chat` and
-prints a hint to run:
+### Step 7 — Start the Chat UI
 
 ```sh
 orchestrate chat start
 ```
 
-Run it yourself to open the LiteChat web interface at **`http://localhost:3000`**.
+The script runs this command automatically after importing the smoke-test agent.
+It starts the LiteChat web interface and opens it at:
+
+**`http://localhost:3000/chat-lite`**
+
 This is the built-in developer UI for chatting with your agents locally,
 without needing the full watsonx Orchestrate cloud UI.
+
+> **Note:** `orchestrate chat start` starts the *chat* UI (`:3000/chat-lite`).
+> It is separate from the Connections UI (`:3412/connectors`) started earlier by `--with-connections-ui`.
 
 ---
 

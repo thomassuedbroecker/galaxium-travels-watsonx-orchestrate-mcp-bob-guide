@@ -30,10 +30,10 @@ orchestrate server start \
 
 # ── 3. wait for ready ─────────────────────────────────────────────────────────
 info "Waiting for server on :4321"
-for i in {1..12}; do
-  curl -sf http://localhost:4321/api/v1/auth/token >/dev/null && break
-  [[ $i -eq 12 ]] && fail "Server not ready after 60 s — run: orchestrate server purge"
-  echo "  attempt $i/12…"; sleep 5
+for i in {1..20}; do
+  curl -sf http://localhost:4321/v1/health/ready >/dev/null && break
+  [[ $i -eq 20 ]] && fail "Server not ready after 200 s — run: orchestrate server purge"
+  echo "  attempt $i/20…"; sleep 10
 done
 ok "Server ready"
 
@@ -59,7 +59,10 @@ ok "Models imported"
 orchestrate agents import -f ./agents/agent_hello_world.yaml
 ok "Hello-world agent imported"
 
-# ── 7. done ───────────────────────────────────────────────────────────────────
+# ── 7. start chat UI ─────────────────────────────────────────────────────────
+info "Starting Chat UI"
+orchestrate chat start
+
+# ── 8. done ───────────────────────────────────────────────────────────────────
 echo ""
-ok "Stack is up — open http://localhost:3000 to chat"
-echo "   Run 'orchestrate chat start' to open LiteChat in the browser"
+ok "Stack is up — open http://localhost:3000/chat-lite to chat"
