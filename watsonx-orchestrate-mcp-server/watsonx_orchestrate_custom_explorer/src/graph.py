@@ -43,7 +43,9 @@ def build_graph(agents: list, tools: list, connections: list, toolkits: list) ->
 
     def add_link(source: str, target: str, relation: str):
         if source in seen_ids and target in seen_ids:
-            links.append({"source": source, "target": target, "relation": relation})
+            entry = {"source": source, "target": target, "relation": relation}
+            if entry not in links:
+                links.append(entry)
 
     # ── toolkits ─────────────────────────────────────────────────────────
     for tk in toolkits:
@@ -60,7 +62,7 @@ def build_graph(agents: list, tools: list, connections: list, toolkits: list) ->
         if tk_name:
             tk_id = f"toolkit::{tk_name}"
             add_node(tk_id, tk_name, "toolkit")
-            add_link(tk_id, t_id, "contains")
+            # link deferred to second pass to avoid duplicates
 
     # ── connections ───────────────────────────────────────────────────────
     for c in connections:

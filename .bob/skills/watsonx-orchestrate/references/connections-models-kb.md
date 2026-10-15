@@ -2,6 +2,15 @@
 
 ---
 
+> 🔐 **This file covers connection *mechanics*.** For *which* auth kind to choose, the
+> access-surface constraints that decide it, `member` vs `team` policy, RBAC, and identity
+> propagation to downstream systems, load the companion skill
+> **[`watsonx-orchestrate-aaa`](../../watsonx-orchestrate-aaa/SKILL.md)**.
+>
+> ⚠ Two corrections it carries that matter here: `oauth_auth_implicit_flow` **does not
+> exist** in the shipped ADK (it is commented out), and two undocumented kinds do —
+> `oauth_auth_token_exchange_flow` and `oauth_auth_direct_access_flow`.
+
 ## 1. Connections
 
 A connection stores credentials/config for an external service, referenced by
@@ -57,7 +66,31 @@ orchestrate connections list
 `--kind` (configure) values: `basic | bearer | api_key | key_value | kv |
 oauth_auth_code_flow | oauth_auth_password_flow |
 oauth_auth_client_credentials_flow | oauth_auth_on_behalf_of_flow |
-oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow`.
+oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow |
+oauth_auth_jwt_bearer_flow`.
+
+**OAuth 2.0 JWT Bearer (2.16.0), live-verified 2.18.0.** Service-to-service auth: wxO signs
+a JWT assertion with your private key and exchanges it at the token URL.
+```bash
+orchestrate connections add -a lab_api
+orchestrate connections configure -a lab_api --env draft -t team -k oauth_auth_jwt_bearer_flow \
+  -u https://lab.example.com
+orchestrate connections set-credentials -a lab_api --env draft \
+  --client-id my-client --token-url https://idp.example.com/oauth/token \
+  --alg RS256 --private-key "$(cat key.pem)" [--private-key-password "$PW"] \
+  [--kid key-1] [--iss …] [--aud …] [--exp 900] [--include-jti] [--claims dept=x --claims site=y]
+```
+- `-t member` is rejected: *"Connection kind 'oauth_auth_jwt_bearer_flow' can only be used
+  with '--type team'"*.
+- `--private-key` is the **PEM text**. A file path gets `400 Invalid private_key: error:1E08010C:DECODER
+  routines::unsupported`.
+- `--alg` is **RS256 / RS384 / RS512** only (`HS256` → `alg "HS256" is not permitted`).
+- `--iss` defaults to the client id, `--aud` to the token URL, and `--exp` to 3600 s.
+- The backend **performs a token request during `set-credentials`**. An unreachable token URL
+  logs `503 … getaddrinfo ENOTFOUND`, then *"Credentials successfully set"*, so a failed probe
+  does not block storage. Test against the real IdP to know the exchange works.
+- `connections export` shows only `kind`, `type` and `server_url`; key material is never
+  exported.
 
 **Custom API-key header name (2.15.0).** By default an `api_key` connection sends the
 credential in an `api_key` header. `--name` overrides that:
@@ -100,13 +133,34 @@ orchestrate models list
 Examples: `watsonx/meta-llama/llama-3-3-70b-instruct`,
 `watsonx/ibm/granite-3-3-8b-instruct`, `groq/openai/gpt-oss-120b`.
 
-**Provider enum (`ModelProvider`, 2.15.0)** — the value that goes in a `kind: model` YAML:
+**Provider enum (`ModelProvider`, unchanged 2.15.0 → 2.18.0)** — the value that goes in a `kind: model` YAML:
 `openai`, `openai-oauth2-client-creds`, `a21`, `anthropic`, `anyscale`, `azure-openai`,
 `azure-ai`, `bedrock`, `cerebras`, `cohere`, `google`, `vertex-ai`, `groq`, `huggingface`,
 `mistral-ai`, `jina`, `ollama`, `openrouter`, `stability-ai`, `together-ai`, `watsonx`,
 `x-ai`, **`redhat-ai`** (new in 2.14.0).
 ⚠ The 2.14.0 release note calls the last one **`red_hat_ai`** — that string is **not** in
 the enum. Use `redhat-ai`.
+
+**`models list` is not the whole story (live-verified 2.18.0).** A tenant whose list showed
+only `groq/openai/gpt-oss-120b`, `bedrock/openai.gpt-oss-120b-1:0` and
+`watsonx-orchestrate/frontier` still served **`bedrock-mantle/google.gemma-4-31b`** (Gemma 4
+31B, 2.18.0 public preview; ReAct Core is applied automatically). The agent imported,
+deployed and answered, and the trace showed `model: google.gemma-4-31b`. `agents import` does
+not validate `llm`, so prove a model with one real chat.
+
+**Azure authentication modes (2.17.0).** API key, managed identity and Microsoft Entra ID.
+In the 2.18.0 ADK the auth fields are accepted on **`azure-ai`** only:
+
+| Provider | Accepted `provider_config` keys (besides `api_key`, `custom_host`, …) |
+|---|---|
+| `azure-openai` | `azure_resource_name`, `azure_deployment_id`, `azure_api_version`, `azure_model_name` |
+| `azure-ai` | the above + `ad_auth`, **`azure_auth_mode`**, **`azure_managed_client_id`**, **`azure_entra_client_id`**, **`azure_entra_client_secret`**, **`azure_entra_tenant_id`**, `azure_ad_token`, `azure_inference_deployment_name`, `azure_inference_api_version`, `azure_inference_extra_params`, `azure_inference_foundry_url` |
+
+Putting the auth keys on `azure-openai` only triggers *"The config option 'azure_auth_mode'
+is not used by provider 'azure-openai'"* and the setting is ignored (source-verified; the
+accepted `azure_auth_mode` string values are not enumerated in the ADK, so check the
+platform docs). In Developer Edition, `AZURE_OPENAI_API_KEY` adds `azure-openai/gpt-5.4`, but
+Azure cannot be the *only* provider configured.
 
 **Premier models (2.13.0)** — premier models (e.g. GPT-5.4) are **off by default** and are
 marked `$` in `models list`. Enable them tenant-wide first, or they won't be selectable:

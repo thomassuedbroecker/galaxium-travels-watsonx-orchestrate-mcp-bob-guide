@@ -74,7 +74,7 @@ A `404` response from the MCP server path confirms the server process is up and 
 Use an MCP client or the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) for a full handshake test:
 
 ```sh
-npx @modelcontextprotocol/inspector
+npx -y @modelcontextprotocol/inspector@latest
 ```
 
 ---

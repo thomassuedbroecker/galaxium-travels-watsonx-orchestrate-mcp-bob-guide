@@ -18,6 +18,11 @@
 #   Override active environment:
 #     ./wxo-chat.sh -n <agent-name> -e local "Your message"
 #
+#   Test the DEPLOYED (live) version instead of the draft (ADK 2.17+ agent versioning):
+#     ./wxo-chat.sh -n <agent-name> --live "Your message"
+#   Without --live the runs API targets the agent's DRAFT (live-verified 2.18.0) —
+#   so a default test proves the draft works, not what users of the deployed agent get.
+#
 # Output (JSON, always to stdout):
 #   {
 #     "status":          "success" | "error",
@@ -128,6 +133,7 @@ AGENT_NAME=""
 THREAD_ID=""
 ENVIRONMENT=""
 INCLUDE_REASONING=false
+TARGET_LIVE=false
 POLL_INTERVAL=2
 POLL_TIMEOUT=300
 MESSAGE=""
@@ -138,6 +144,7 @@ while [[ $# -gt 0 ]]; do
     --thread-id)        THREAD_ID="$2";     shift 2 ;;
     -e|--environment)   ENVIRONMENT="$2";   shift 2 ;;
     -r|--reasoning|--include-reasoning) INCLUDE_REASONING=true; shift ;;
+    --live)             TARGET_LIVE=true;   shift ;;
     --poll-interval)    POLL_INTERVAL="$2"; shift 2 ;;
     --timeout)          POLL_TIMEOUT="$2";  shift 2 ;;
     -h|--help)          usage ;;
@@ -243,18 +250,38 @@ PYEOF
 
 [[ -n "$AGENT_ID" ]] || die "Agent '${AGENT_NAME}' not found. Run: orchestrate agents list"
 
+# ─── Resolve the live environment id (only with --live) ─────────────────────────
+# The runs API defaults to the agent's draft. To hit the deployed version, pass the
+# agent's `live` environment UUID as `environment_id` (live-verified 2.18.0).
+
+ENVIRONMENT_ID=""
+if [[ "$TARGET_LIVE" == true ]]; then
+  ENVS_FILE="${_TMPDIR}/agent_envs.json"
+  curl -sf -H "Authorization: Bearer ${TOKEN}" \
+    "${AGENTS_ENDPOINT}/${AGENT_ID}/environment" -o "$ENVS_FILE" \
+    || die "Failed to read environments for agent '${AGENT_NAME}'"
+  ENVIRONMENT_ID=$(python3 -c "
+import sys, json
+envs = json.load(open(sys.argv[1]))
+live = [e for e in envs if e.get('name') == 'live']
+print(live[0]['id'] if live and live[0].get('current_version') else '')
+" "$ENVS_FILE")
+  [[ -n "$ENVIRONMENT_ID" ]] || die "Agent '${AGENT_NAME}' has no deployed live version. Run: orchestrate agents deploy -n ${AGENT_NAME}"
+fi
+
 # ─── Create run ──────────────────────────────────────────────────────────────────
 
 RUN_PAYLOAD_FILE="${_TMPDIR}/run_payload.json"
 RUN_RESPONSE_FILE="${_TMPDIR}/run_response.json"
 
-python3 - "$AGENT_ID" "$THREAD_ID" "$MESSAGE" "$RUN_PAYLOAD_FILE" <<'PYEOF'
+python3 - "$AGENT_ID" "$THREAD_ID" "$MESSAGE" "$RUN_PAYLOAD_FILE" "$ENVIRONMENT_ID" <<'PYEOF'
 import sys, json
 
 agent_id       = sys.argv[1]
 thread_id      = sys.argv[2]
 message        = sys.argv[3]
 output_file    = sys.argv[4]
+environment_id = sys.argv[5]
 
 payload = {
     "message":      {"role": "user", "content": message},
@@ -263,6 +290,8 @@ payload = {
 }
 if thread_id:
     payload["thread_id"] = thread_id
+if environment_id:
+    payload["environment_id"] = environment_id
 
 with open(output_file, "w") as fh:
     json.dump(payload, fh)

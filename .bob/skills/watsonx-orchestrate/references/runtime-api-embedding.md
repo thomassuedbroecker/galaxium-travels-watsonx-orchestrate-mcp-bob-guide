@@ -49,12 +49,20 @@ agent's `id` (a UUID), **not** the display name and not the snake_case `name`.
 
 | Endpoint | Shape | Use it when |
 |----------|-------|-------------|
-| `POST /orchestrate/{agent_id}/chat/completions` | **OpenAI-compatible** | Drop-in for anything that already speaks OpenAI Chat Completions (IDEs, LangChain, existing chat UIs). Simplest. |
-| `POST /orchestrate/runs` (+ `GET /orchestrate/runs/{run_id}`) | **Rich, async** | You need tool-call/step outputs, fine-grained `llm_params` (e.g. greedy + `temperature: 0`), guardrails, or async polling. **Not** for token usage — see the warning in §4. |
+| `POST /orchestrate/{agent_id}/chat/completions` | **OpenAI-compatible** | Drop-in for anything that already speaks OpenAI Chat Completions (IDEs, LangChain, existing chat UIs). Simplest. Returns `usage` + `trace_id` + `run_id` (2.18.0). |
+| `POST /v2/orchestrate/{agent_id}/chat/completions` *(path is `/v2`, not `/v1`)* | OpenAI-compatible + `data`, `context` | The only path where **`tool_shortlisting`** takes effect (live-verified 2.18.0). **No `usage` field.** |
+| `POST /orchestrate/runs` (+ `GET /orchestrate/runs/{run_id}`) | **Rich, async** | You need tool-call/step outputs, fine-grained `llm_params` (e.g. greedy + `temperature: 0`), guardrails, async polling, or **the deployed (`live`) version** via `environment_id` (§4a). |
 | `POST /orchestrate/runs/stream` | Rich + SSE | Same richness, streamed token-by-token (identical to `runs?stream=true`). |
 | `POST /completions`, `POST /completions/chat` | **Model only, no agent** | Call a raw LLM through the AI Gateway without any agent/tool routing. |
 
 Rule of thumb: **`chat/completions` for portability, `orchestrate/runs` for fidelity.**
+
+> ⚠ **Every endpoint above runs the agent's DRAFT unless told otherwise** (live-verified
+> 2.18.0, with draft and live deliberately different). Only `/orchestrate/runs` accepted a
+> live target (`"environment_id"` in the body, §4a). `chat/completions` (v1 and v2) still
+> answered from the draft, even with `?environment_id=<live>`. If your app must serve exactly
+> the deployed version, use the runs API with `environment_id`, or keep the draft identical
+> to live (don't `agents import` to a production tenant without deploying).
 
 ---
 
@@ -96,17 +104,44 @@ When `status: "completed"`, the reply text is at
 The completed run also carries **`trace_id`** (32-hex) — capture it, it is your only handle
 on the telemetry in [agentops-evaluations.md](agentops-evaluations.md) §4.
 
-> ⚠ **`usage` is `null` — do NOT build token accounting on the runs API.** (live-verified
-> 2.13.0 SaaS, every completed run). Both `usage` and `llm_params` are present-but-empty on
-> the run object:
+> **`usage` on the run: populated since 2.18.0** (it was `null` on every 2.13.0 run).
+> Live-verified 2.18.0:
 > ```json
-> { "status": "completed", "trace_id": "291eb995…", "thread_id": "d2a6a5d6-…",
->   "usage": null, "llm_params": null }
+> "usage": { "model_name": "groq/openai/gpt-oss-120b",
+>   "model_usage": [{ "provider": "groq", "model_name": "openai/gpt-oss-120b",
+>                     "token_usage": { "prompt_tokens": 1432, "completion_tokens": 103,
+>                                      "total_tokens": 1535,
+>                                      "prompt_tokens_details": { "cached_tokens": 512 } } }],
+>   "token_usage": { "prompt_tokens": 1432, "completion_tokens": 103, "total_tokens": 1535, … } }
 > ```
-> Exact per-call token counts **do** exist — in the trace, at
-> `observation.usage.{input,output,total}` on `GENERATION` observations. Getting `null` here
-> is the #1 reason people wrongly conclude wxO does not report tokens.
+> `prompt_tokens` is the **sum over all LLM calls in the run** (here 672 + 760 from two
+> `GENERATION` observations), and `cached_tokens` is something the trace does not show. For
+> *per-call* tokens use the trace (`observation.usage` on `GENERATION`). On an older tenant
+> `usage` may still be `null`, so code defensively.
 > Full field map: [agentops-evaluations.md](agentops-evaluations.md) §4.
+
+### 4a. Targeting draft vs live (agent versioning, 2.17+), live-verified 2.18.0
+
+```bash
+# the agent's environments: draft + live, each with current_version
+curl -s "$BASE/orchestrate/agents/$AGENT_ID/environment" -H "Authorization: Bearer $TOKEN"
+# run against the DEPLOYED version
+curl -sX POST "$BASE/orchestrate/runs" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"agent_id":"'"$AGENT_ID"'","environment_id":"'"$LIVE_ENV_ID"'","message":{"role":"user","content":"Hi"}}'
+```
+Omit `environment_id` → **draft**. The same `thread_id` can be resumed with
+`environment_id` on each call (verified multi-turn on live). Release/switch/rollback
+endpoints: SKILL.md §3.3d. `wxo-chat.sh --live` does this lookup for you.
+
+### 4b. Answering user-activity flows over the API (2.18.0)
+
+When an agent starts a flow with user activities, the run returns *"A new flow has
+started… This chat session is currently dedicated to the flow"*, and the thread is blocked.
+Read `GET /v1/orchestrate/threads/{thread_id}/messages`: each pending activity is a message
+with `content[0].response_type == "multiturn_form"` (prompt at `json_schema.description`,
+`activity_info.action_status: "pending"`). **Answer it by posting a plain-text run on the same
+`thread_id`.** The flow replies *"Thanks for your input, continuing the flow now"* and posts
+the next form. When the flow ends, the agent resumes and summarizes.
 
 `step_history` also has **no per-step timestamps**, so you cannot derive per-step latency
 from it. That, too, lives in the trace (`observation.latency`).

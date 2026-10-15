@@ -134,7 +134,7 @@ echo "── Step 2: .venv ─────────────────�
 if [[ -d ".venv" ]]; then
     _ok ".venv already exists — skipping creation"
 else
-    # Pick the newest available Python in the range 3.11–3.14 (2.15.0 supports 3.14).
+    # Pick the newest available Python in the range 3.11–3.14 (2.18.0 supports 3.14).
     _PYTHON_VER=""
     for _try_ver in "3.14" "3.13" "3.12" "3.11"; do
         if uv python find "${_try_ver}" &>/dev/null; then
@@ -177,9 +177,9 @@ if [[ ! -f "${_VENV_PYTHON}" ]]; then
 fi
 
 echo "Installing / verifying ibm-watsonx-orchestrate..."
-# Pinned to 2.15.0 — the version this skill's guidance was live-verified against
-# (IBM Cloud SaaS, 2026-07-25). Bump deliberately; do not let it silently fall behind.
-if uv pip install --python "${_VENV_PYTHON}" ibm-watsonx-orchestrate==2.15.0; then
+# Pinned to 2.18.0 — the version this skill's guidance was live-verified against
+# (IBM Cloud SaaS, 2026-10-01). Bump deliberately; do not let it silently fall behind.
+if uv pip install --python "${_VENV_PYTHON}" ibm-watsonx-orchestrate==2.18.0; then
     _ok "ibm-watsonx-orchestrate ready"
 else
     _err "Failed to install ibm-watsonx-orchestrate"

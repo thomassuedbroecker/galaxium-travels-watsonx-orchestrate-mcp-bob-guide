@@ -45,13 +45,23 @@ unzip get_weather_export.zip -d /tmp/gw && \
 > here. Use `unzip -oq … || true`, or check for the extracted files rather than the exit code.
 > (live-verified 2.13.0)
 
-**Round-trip fidelity (live-verified 2.13.0):** agent YAML round-trips cleanly —
-`collaborators:`, `skills:`, `tools:` all survive export → re-import. Two caveats:
+**Round-trip fidelity (live-verified 2.13.0; 2.18.0 regression below):** agent YAML
+round-trips cleanly — `collaborators:`, `skills:`, `tools:` all survive export → re-import.
+
+> ⚠ **2.18.0: `agents export` aborts for any agent that has `skills:`**, with
+> `Failed to find skill. No skill found with the id '<skill-name>'`. The CLI now stores
+> skill *names* on import but still maps IDs→names on export. A backup script that loops
+> `agents export` over every agent silently skips these. Keep agent YAML in Git as the source
+> of truth until it's fixed. `tool_shortlisting` and `custom_agents_metadata` (native) do
+> round-trip; the latter comes back with six reserved `null` keys the server adds.
+
+Further caveats:
 - **`display_name` is sticky.** Re-importing does not reset a display name set earlier
   (e.g. in the UI), so an agent whose YAML says `name: dr_house` can keep showing as
   "Dr. House (Diagnostics Lead)" in listings. Always reference agents by snake_case `name`.
-- Agent skills export as a **directory** (`<out>/<skill-name>/SKILL.md`) and re-import with
-  `skills import -f <that path> --upsert`.
+- Agent skills export as a **directory** (`<out>/<skill-name>/SKILL.md`, plus a generated
+  `WXO.yaml`, `scripts/` and `references/` on 2.18) and re-import with
+  `skills import -d <that dir> --upsert` (`-f` would drop the scripts).
 
 **Prove the restore, don't assume it.** A backup you have never restored is not a backup.
 Delete one tool and one agent from the target env and bring them back from the exported
@@ -102,16 +112,22 @@ Run the MCP server `watsonx-orchestrate-adk` tool `chat_with_agent` for single-t
 
 #### 2. `watsonx-orchestrate-adk` MCP server is not available
 ```bash
-# Turn 1 — single-turn
-./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> "<derived prompt>"
+# Turn 1 — single-turn. --live = the DEPLOYED version; omit it to test the draft
+./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --live "<derived prompt>"
 # → { "thread_id": "3f92692d-...", "final_message": "...", ... }
 
 # Turn 2 — resume
-./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --thread-id <thread-id> -r "<derived prompt>"
+./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --live --thread-id <thread-id> -r "<derived prompt>"
 # → { "thread_id": "3f92692d-...", "final_message": "...", "reasoning_trace": {"steps": [...]}, ... }
 ```
 
 The follow-up must NOT restate the entity (e.g. "and what about the second one?").
+
+> ⚠ **Draft vs live (2.18.0):** without `--live`, the runs API executes the **draft**. After
+> `agents deploy` the two are identical, so a default test passes. But any later
+> `agents import` changes the draft only, and then a default test no longer proves what
+> users of the deployed agent see. In the report, say which one you tested
+> ("tested on live, v3"). SKILL.md §3.5 / §3.3d.
 
 ### Step 5 — judge by behavior, not exact text
 LLM output is non-deterministic — assert on behavior:
@@ -120,8 +136,10 @@ LLM output is non-deterministic — assert on behavior:
   not answered from the model's own memory when a tool was required.
 - **Multi-turn:** the follow-up answer **uses prior context** (the agent remembered
   the entity/state from turn 1).
-- **Routing (multi-agent):** the expected collaborator was delegated to — match the
-  `chat_with_collaborator_*` tool name by **prefix**, never equality (SKILL.md §3.3b).
+- **Routing (multi-agent):** the expected collaborator was delegated to. On 2.18.0 the tool is
+  `chat_with_collaborator_<slug of the collaborator's DISPLAY name>` (e.g.
+  `…_dr_james_wilson_oncology` for `dr_wilson`), so match on the display-name slug or on the
+  **`agent` field of the following tool call**, never on `…_<name>` equality (SKILL.md §3.3b).
 
 > **Encode ambiguity as an accepted SET, not a single expected value.** Some questions have
 > more than one correct route — a question that touches two specialties, or a broad framing
@@ -178,13 +196,13 @@ request."** For deeper, repeatable testing, escalate to the evaluations framewor
 | Doc flow can't get the uploaded file | Don't ask the agent to upload — the `docproc` node prompts the user. Agent just invokes the flow. |
 | Works locally, absent in prod | Wrong active env. `orchestrate env list` → activate the right one → re-import. |
 | **Orchestrator answers instead of delegating** | **Look in the orchestrator's own `instructions` first, not at the collaborators.** See the playbook below. |
-| Delegation assertion fails though it clearly delegated | The generated tool name has the specialty appended (`…_dr_wilson_oncology`) — and inconsistently. Match by **prefix** (SKILL.md §3.3b). |
+| Delegation assertion fails though it clearly delegated | 2.13: the specialty was appended inconsistently (`…_dr_wilson_oncology`). 2.18: the name is a slug of the **display name** (`…_dr_james_wilson_oncology`). Match the display-name slug or the next step's `agent` field (SKILL.md §3.3b). |
 | `agents list` output is unreadable | The rich table wraps to ~1 character per column on a normal terminal. Use `orchestrate agents list -v` and **parse the JSON**; never read the table. |
 | Need server-side detail | `orchestrate server logs`. Reset corrupt local state with `orchestrate server reset`. |
 | **Agent refuses a request it used to answer** | Check for a bound **control** before you touch the prompt: `orchestrate controls list --agent <name>`. A PII/guardrail control rewrites or blocks the payload at `agent_pre_invoke`, so the model — which never sees the original text — produces what looks exactly like its own safety refusal. Confirm from the trace: redacted values appear as `[REDACTED]` in the LLM input (SKILL.md §4a). |
 | Control created but nothing changes | `--config` is not schema-validated, so a mistyped key leaves every detector on its default (**off**). Diff against `orchestrate controls get-type -n <artifact> -v`. Also check the binding actually landed: `controls get-details -n <name> -v` → `agent_ids`. |
 | `controls import` → `already exists` / `No agent found with name '<Display Name>'` | Import is create-only (remove first), and `controls export` writes **display** names that import cannot resolve — rewrite `agent_names` to snake_case (SKILL.md §4a). |
-| `agents import` → `At most 100 characters … Welcome message` | Real API limit in 2.15.0 despite the release note's "1000". Shorten `welcome_message`; move the prose to `description`. |
+| `agents import` → `At most 100 characters … Welcome message` | Older tenant (2.15.0 enforced it). 2.18.0 accepts longer messages. On an old tenant, shorten `welcome_message` and move the prose to `description`. |
 | KB import → `Unsupported file type text/markdown` | Built-in ingestion rejects `.md`; rename to `.txt`. |
 | Agent searches only one of several KBs | Each KB is a separate retrieval tool routed on its `description`. Make descriptions mutually exclusive and tell the agent in `instructions:` that a cross-cutting question must consult both. |
 | `connections configure --name …` → `500 … column "name" of relation "application_connection_configs" does not exist` | The 2.15.0 custom API-key header is ahead of the SaaS backend schema. Drop `--name` (the update then succeeds) and set the header another way; re-test after a platform upgrade. |
@@ -276,11 +294,12 @@ patterns. Run `orchestrate evaluations <cmd> --help` for current flags.
   ⚠ **Fields are camelCase** here, unlike everywhere else in wxO — `startTime`, `totalCost`,
   `parentObservationId`. Snake_case guesses silently return `None`.
 
-**Three facts that change how you build on this** (all live-verified 2.13.0 — full detail in
-[agentops-evaluations.md](agentops-evaluations.md) §4–§7):
+**Three facts that change how you build on this** (live-verified 2.13.0, item 1 updated
+2.18.0. Full detail in [agentops-evaluations.md](agentops-evaluations.md) §4–§7):
 
-1. **`run.usage` is `null`.** Token counts are *not* on the runs API; they are in the trace
-   at `observation.usage` on `GENERATION` observations.
+1. **Run-level tokens are on the runs API since 2.18.0** (`run.usage.token_usage`, incl.
+   `cached_tokens`; it was `null` on 2.13.0). **Per-call** tokens are only in the trace, at
+   `observation.usage` on `GENERATION` observations.
 2. **`trace.totalCost` is `0`.** Tokens are native and exact; **pricing is not**. Multiply by
    your own rate card.
 3. **Error rate, tail latency, tool-call success and every dashboard are yours to derive.**

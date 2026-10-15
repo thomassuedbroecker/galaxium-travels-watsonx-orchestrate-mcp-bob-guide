@@ -52,7 +52,17 @@ structured_output:               # optional JSON schema to force structured repl
     answer: { type: string }
 custom_join_tool: null           # planner style only (mutually exclusive w/ structured_output)
 context_access_enabled: true
-context_variables: []            # list of non-empty strings
+context_variables: []            # ⚠ NOT just "a list of strings" — this is the ALLOWLIST
+                                 #   controlling which context fields are injected into
+                                 #   your tools at runtime, and it is EXCLUSIVE: it filters
+                                 #   the platform's own keys too. Leave it empty and tools
+                                 #   see only wxo_run_id/wxo_tenant_id/wxo_thread_id/
+                                 #   wxo_user_name. List [roles, email] and those four
+                                 #   DISAPPEAR unless you list them as well. Callers supply
+                                 #   values via `context` (or `context_variables`) in the
+                                 #   /v1/orchestrate/runs body. (live-verified 2.15.0)
+                                 #   → identity, RBAC and audit implications: the
+                                 #     `watsonx-orchestrate-aaa` companion skill §2.4
 memory_enabled: null             # agentic memory (retain history/context across a session)
 is_schedulable: null             # 2.11+ — true enables recurring runs; internal scheduling
                                  #   tools auto-appear (and are visible/deletable via ADK CLI — known issue)
@@ -65,6 +75,16 @@ compaction_settings:             # 2.11+ — conversation compaction (prevents c
   large_message_chunk_size: 30000
   large_message_target_summary: 10000
   large_message_detect_structured: true
+tool_shortlisting:               # 2.18.0 — narrow the toolset before planning (retrieval step)
+  enabled: true                  #   omit either field → the style's default; max_tools > 0
+  max_tools: 5                   #   ⚠ ONLY acts on /v2/orchestrate/{id}/chat/completions — no
+                                 #   effect via /orchestrate/runs or v1 (live-verified 2.18.0,
+                                 #   708 → 288 input tokens on v2; unchanged on runs/v1)
+custom_agents_metadata:          # 2.17.0 — free-form key/value labels (any agent kind on paper)
+  team: diagnostics              #   ⚠ native: server adds 6 reserved null keys (language,
+                                 #   framework, tool_count, tool_names, tool_parameters,
+                                 #   connection_requirements); external: DROPPED server-side
+                                 #   (live-verified 2.18.0). CLI: --custom-agents-metadata '{…}'
 starter_prompts:           # ⚠ valid fields ONLY: id, title, subtitle, prompt
   prompts:                 #   DO NOT add `is_default_prompts:` or per-prompt `state:` —
     - id: default0         #   both are silently ignored and cause tiles not to render in
@@ -72,9 +92,9 @@ starter_prompts:           # ⚠ valid fields ONLY: id, title, subtitle, prompt
       subtitle: optional          #   round-trip and UI regression)
       prompt: Example clickable prompt
 welcome_content:
-  welcome_message: Welcome to My Agent   # ⚠ HARD 100-char cap, enforced by the API with a
-                                         #   422. The 2.15.0 release note's "cap raised to
-                                         #   1000" changed the docs only. (live-verified 2.15.0)
+  welcome_message: Welcome to My Agent   # 2.18.0: a 164-char message was stored intact, so
+                                         #   the 100-char cap that 2.15.0 still enforced (422)
+                                         #   is gone. Keep ≤100 only for older tenants.
   description: One line on what it helps with   # put the long text here instead
   is_default_message: false
   is_user_barge_in_disabled: false  # 2.15.0 — true = user cannot interrupt the agent's
@@ -129,7 +149,12 @@ A2A / external chat agents. Key fields: `api_url` (required), `auth_scheme`
 Microsoft Copilot Studio — the 2.14 release note calls the last one
 `microsoft_copilot_studio`, which is **not** the enum value), `nickname`,
 `app_id`/`connection_id`, `chat_params`,
-`config.enable_cot`, `config.hidden`. Import with `orchestrate agents import -f … --app-id <conn>`.
+`config.enable_cot`, `config.hidden`, `tags`. Import with `orchestrate agents import -f … --app-id <conn>`.
+
+**As a collaborator (2.17.0, import-verified 2.18.0):** list the external agent's `name` under a
+native agent's `collaborators:`; import the external agent first. **`custom_agents_metadata` is
+not stored for external agents** on 2.18.0 SaaS, so use `tags:` for labels. Export shows
+`api_url: <hidden>`.
 
 ### Assistant agent (`kind: assistant`)
 Wraps a watsonx Assistant. `config` carries `assistant_id`, `crn`,
@@ -259,9 +284,11 @@ def build_weather_flow(aflow: Flow) -> Flow:        # signature is mandatory
     return aflow
 ```
 
-**Node builders**: `aflow.tool(fn)`, `aflow.prompt(...)`, `aflow.user_activity(...)`,
-`aflow.docproc(...)`, `aflow.script(...)`, `aflow.agent(...)`, `aflow.if_else(...)`,
-`aflow.foreach(...)`. **Wiring**: `aflow.sequence(START, n1, n2, END)` or
+**Node builders** (2.18.0 `Flow` methods): `aflow.tool(fn)`, `aflow.prompt(...)`,
+`aflow.script(...)`, `aflow.agent(...)`, `aflow.docproc(...)`, `aflow.docext(...)`,
+`aflow.docclassifier(...)`, `aflow.decisions(...)`, `aflow.timer(...)`, `aflow.userflow(...)`
+(user activities live inside it), `aflow.branch(...)`/`aflow.conditions(...)`,
+`aflow.parallel(...)`/`aflow.parallel_conditions(...)`, `aflow.foreach(...)`, `aflow.loop(...)`. **Wiring**: `aflow.sequence(START, n1, n2, END)` or
 `aflow.edge(a, b)`. **Data**: `node.map_input(...)`, `aflow.map_output(...)`.
 
 **New in 2.11–2.12 — flow-builder API (live-verified against ADK 2.12.0 source +
@@ -305,6 +332,53 @@ with `flow.` and have ≥3 parts). Map a node input with
   `branch(evaluator=<function>)`; Branch `MatchPolicy.ANY_MATCH`. Avoid these.
 - ⚠ Platform known issues: parallel branches **pause on user interaction**; multi-step
   user activities running in parallel can break chat prompts.
+
+**New in 2.16 → 2.18 (live-verified 2.18.0 on SaaS):**
+
+- **Agent node threading (2.16)**: `aflow.agent(name, agent, title=, message=, description=,
+  input_schema=, output_schema=, guidelines=, thread_control_policy=)`.
+  `thread_control_policy: Literal["REUSE_AND_CORRELATE", "CREATE_ALWAYS"]`.
+  `REUSE_AND_CORRELATE` (default) reuses the correlated thread across invocations;
+  `CREATE_ALWAYS` gives every invocation an isolated thread. Omitting it logs
+  `No valid thread_control_policy specified … Defaulting to 'REUSE_AND_CORRELATE'`. Any other
+  value raises `ValueError`. Both values are stored in the exported spec and ran correctly.
+  The agent must already be imported.
+- **User activity nodes (2.18)**: a single-widget interaction inside a userflow
+  (`spec_version 2.0`):
+  ```python
+  uf = aflow.userflow(display_name="Admission", label="Admitting {flow.input.patient_name}")
+  a = uf.activity(name="consent", display_name="Consent", description=None)
+  a.boolean_input_field(name="ok", label="Consent", agent_message="Does {flow.input.patient_name} consent?",
+                        true_label="Yes", false_label="No", required=True)
+  ```
+  Widget methods on an activity: `text_input_field(name, label, agent_message, required,
+  single_line, placeholder_text, help_text, default, regex, regex_error_message)`,
+  `boolean_input_field(…, single_checkbox, true_label, false_label)`, `number_input_field`,
+  `date_input_field`, `datetime_input_field`, `file_upload_field` (supported in source but
+  missing from the release note), and `message_output_field(name, text=…)` (on an activity,
+  `label` is ignored and `text`/`message` becomes the output). **Exactly one widget per
+  activity**; a second call raises `ValueError` ("A UserActivity holds a single widget").
+  Other `form()` widgets (choice, list, …) raise as well, so use `uf.form(...)` for those.
+  **Runtime shape:** each activity is a thread message with `response_type:
+  "multiturn_form"`, a `json_schema` (`title` = `label`, `description` = substituted
+  `agent_message`), a `ui_schema`, and `activity_info.{action_status, activity_title}`.
+  `activity_title` is the userflow's `display_name`, **not** its `label`. A plain-text user reply
+  on the thread answers the pending activity. Output widgets arrive as an already-`completed`
+  form with `form_data` filled.
+- **Doc-processing (2.16 → 2.18)**:
+  - `aflow.docproc(..., output_content_types=[OutputContentType.text|markdown|html, …])`
+    (2.18). The response (`TextExtractionResponse` / `TextExtractionObjectResponse`) carries
+    `text`, `markdown`, `html`, each present only if requested. `None` defaults to `["text"]`;
+    **`[]` skips text extraction** (KVP-only). `DocProcInput.output_content_types` is a runtime
+    override. Pair it with `output_format=DocProcOutputFormat.object` to get inline fields.
+  - `aflow.docclassifier(..., page_range=PageRange(start=1, end=2))` (2.18) classifies from
+    that page range only.
+  - `error_handler_config=NodeErrorHandlerConfig(error_message=, max_retries=,
+    retry_interval=, on_error="show_message"|"branch", error_edge_id=)` on `docproc`,
+    `docext` and `docclassifier` (2.16).
+  - Classifier and field extractor are **GA** (2.16).
+  - Verified: all of the above are stored in the exported flow JSON (`tools export -n <flow>
+    -o x.zip`). Running them needs an uploaded document, so they were not executed here.
 
 For a complete, compiling reference flow (parallel + decision + masking + prompts), see the
 public `examples/flow_builder/` directory in the ADK repo

@@ -160,7 +160,7 @@ Expected result:
 
 ```sh
 export DANGEROUSLY_OMIT_AUTH=true   
-npx @modelcontextprotocol/inspector
+npx -y @modelcontextprotocol/inspector@latest
 ```
 
 Use these Inspector settings:

@@ -1,11 +1,11 @@
 # `orchestrate` CLI reference
 
-Verified against **`ibm-watsonx-orchestrate` 2.15.0** (groups/commands confirmed live on
-IBM Cloud SaaS, 2026-08-18; original catalog from 2.10.0). The CLI evolves — **always
+Verified against **`ibm-watsonx-orchestrate` 2.18.0** (groups/commands confirmed live on
+IBM Cloud SaaS, 2026-10-01; original catalog from 2.10.0). The CLI evolves — **always
 confirm with `orchestrate <group> --help` and `orchestrate <group> <cmd> --help`**. Short
 flags are shown in `()`.
 
-Top-level groups (2.15.0, from `orchestrate --help`):
+Top-level groups (unchanged 2.15.0 → 2.18.0, from `orchestrate --help`):
 `env`, `agents`, `tools`, **`skills`**, `toolkits`, `knowledge-bases`, `connections`,
 `voice-configs`, `server`, `chat`, `models`, `channels`, `phone`, `evaluations`,
 `settings`, `partners`, `observability`, **`controls`**, `workspaces`.
@@ -14,6 +14,26 @@ Top-level groups (2.15.0, from `orchestrate --help`):
 > 2.15.0.** `agents list` also gains **Skills** and **Plugins** columns; `env activate`
 > now also prints the **active workspace** (`Active workspace: Global workspace`).
 
+> **2.16 → 2.18 additions (live-verified 2.18.0 unless noted):**
+> - **No new top-level groups.** Agent versioning (2.17) has **no CLI verbs** beyond
+>   `agents deploy`/`undeploy`. List/switch/delete versions through the REST releases API
+>   (SKILL.md §3.3d).
+> - `agents create --custom-agents-metadata '{"k":"v"}'` (2.17). It is stored for native agents
+>   only; the server drops it for external ones.
+> - `connections configure -k oauth_auth_jwt_bearer_flow` (2.16, **`-t team` only**) plus new
+>   `set-credentials` flags `--alg`, `--private-key` (**PEM contents**), `--kid`,
+>   `--private-key-password`, `--iss`, `--aud`, `--exp`, `--include-jti/--no-include-jti`,
+>   `--claims k=v` (repeatable).
+> - `env add --iam-url(-i)` (2.16) for HIPAA / MCSP V2. It is **hidden** from `--help` and **not**
+>   on `env activate`, despite the release note. `--type` gains **`k8s`** (EKS, 2.16).
+> - `skills import -d <dir>` now uploads `scripts/` and `references/` too and reports the counts
+>   (2.18 hello-world pattern); `skills export` writes SKILL.md, a generated `WXO.yaml`
+>   (`scripts:` list), scripts and references.
+> - ⚠ `agents export` **fails for any agent with `skills:`** on 2.18.0
+>   (`No skill found with the id '<name>'`).
+> - `knowledge-bases export --help` text fixed (2.18). The custom-agent config summary now lists
+>   Python requirements (2.18, not tested).
+>
 > **2.15.0 additions (live-verified):**
 > - **`controls` group** — bind policy artifacts to agents/tools/models. Ten commands
 >   (the release note lists five, and calls `remove` "delete"). Full section below.
@@ -63,7 +83,7 @@ Top-level groups (2.15.0, from `orchestrate --help`):
 | Command | Key options |
 |---------|-------------|
 | `env list` | — |
-| `env add` | `--name(-n)`, `--url(-u)`, `--type(-t)`, `--iam-url(-i)`, `--activate(-a)`, `--insecure`, `--verify` |
+| `env add` | `--name(-n)`, `--url(-u)`, `--type(-t)` `[ibm_iam\|mcsp\|mcsp_v1\|mcsp_v2\|cpd\|k8s]`, `--iam-url(-i)` *(hidden from `--help`)*, `--activate(-a)`, `--insecure`, `--verify` |
 | `env activate <name>` | *(name is positional)* `--api-key(-a)` (WXO/CPD; blank for local), `--username(-u)` (CPD), `--password(-p)` (CPD), `--skip-version-check`/`--enable-version-check` |
 | `env remove` | `--name(-n)` |
 
@@ -85,11 +105,13 @@ Local CLI config lives at `~/.config/orchestrate/config.yaml` (shows
 | Command | Key options |
 |---------|-------------|
 | `agents import` | `--file(-f)`, `--app-id(-a)` (external agents), `--safe` |
-| `agents create` | `--name(-n)`, `--kind(-k)`, `--description`, `--llm`, `--style`, `--instructions`, `--tools`, `--collaborators`, `--knowledge-bases`, `--output(-o)`, external: `--title(-t)`, `--api(-a)`, `--auth-scheme`, `--provider(-p)`, `--auth-config`, `--nickname`, `--app-id`, `--context-access-enabled`, `--context-variable(-v)` |
+| `agents create` | `--name(-n)`, `--kind(-k)`, `--description`, `--llm`, `--style`, `--instructions`, `--tools`, `--collaborators`, `--knowledge-bases`, `--output(-o)`, external: `--title(-t)`, `--api(-a)`, `--auth-scheme`, `--provider(-p)`, `--auth-config`, `--tags`, `--chat-params`, `--config`, `--nickname`, `--app-id`, `--context-access-enabled`, `--context-variable(-v)`, **`--custom-agents-metadata`** (JSON dict, 2.17), custom agents: `--package-root`, `--config-file`, `--file(-f)` (ZIP) |
 | `agents list` | `--kind(-k)`, `--verbose(-v)` |
 | `agents export` | `--name(-n)`, `--kind(-k)`, `--output(-o)`, `--agent-only` — ⚠ `--agent-only` requires a **`.yaml`** output; without it (full dependency bundle) the output must be **`.zip`**. Each rejects the other extension. |
-| `agents deploy` | `--name(-n)` |
+| `agents deploy` | `--name(-n)` — releases the draft as a **new version** and points `live` at it |
 | `agents undeploy` | `--name(-n)` |
+| *(versions)* | **No CLI verbs.** REST: `GET/POST /v1/orchestrate/agents/{id}/releases`, `POST …/releases/{v}/environment/{env_id}` (switch), `POST …/releases/{v}/undeploy`, `DELETE …/releases/{v}` (SKILL.md §3.3d) |
+| `agents connect` | add application connections to a custom agent |
 | `agents remove` | `--name(-n)`, `--kind(-k)` |
 | `agents copy` | `--name(-n)`, `--destination(-d)`, `--source(-s)` |
 | `agents discover` | A2A discovery: `--url(-u)`, `--endpoint(-e)` (default `.well-known/agent-card.json`), `--name(-n)`, `--app-id(-a)` |
@@ -211,7 +233,7 @@ orchestrate knowledge-bases status -n my_kb       # check ingestion/indexing
 |---------|-------------|
 | `connections add` | `--app-id(-a)` *(required)*, `--component` (e.g. `knowledge`/`registry`), `--category` (e.g. `milvus`) |
 | `connections configure` | *Required:* `--app-id(-a)`, `--environment`/`--env` `[draft\|live]`, `--type(-t)` `[member\|team]`, `--kind(-k)` `[basic\|bearer\|api_key\|key_value\|kv\|oauth_*_flow]`. *Optional:* `--server-url`/`--url(-u)`, `--sso(-s)`, `--idp-token-use`, `--idp-token-type`, `--idp-token-header`, `--app-token-header`, `--config-entries(-e)`, **`--name(-n)`** (2.15.0 — custom API-key header name; `api_key` kind only) |
-| `connections set-credentials` | *Required:* `--app-id(-a)`, `--environment`/`--env`. *Creds (by kind):* `--username(-u)`, `--password(-p)`, `--token`, `--api-key(-k)`, `--entries(-e)` `k=v`, `--token-entries(-t)`, `--auth-entries`; OAuth: `--client-id`, `--client-secret`, `--token-url`, `--auth-url`, `--scope`, `--grant-type`, `--send-via [header\|body]` |
+| `connections set-credentials` | *Required:* `--app-id(-a)`, `--environment`/`--env`. *Creds (by kind):* `--username(-u)`, `--password(-p)`, `--token`, `--api-key(-k)`, `--entries(-e)` `k=v`, `--token-entries(-t)`, `--auth-entries`; OAuth: `--client-id`, `--client-secret`, `--token-url`, `--auth-url`, `--scope`, `--grant-type`, `--send-via [header\|body]`; JWT Bearer (2.16): `--alg [RS256\|RS384\|RS512]`, `--private-key` (PEM **contents**), `--kid`, `--private-key-password`, `--iss`, `--aud`, `--exp`, `--include-jti`, `--claims k=v` |
 | `connections set-identity-provider` | `--idp-token-header`, `--idp-token-use`, `--idp-token-type`, `--app-token-header` |
 | `connections import` | `--file(-f)` |
 | `connections export` | `--app-id(-a)` *(required)*, `--output(-o)` *(required)* — exports **one** connection |
@@ -228,7 +250,8 @@ orchestrate connections list
 `--kind` (configure): `basic | bearer | api_key | key_value | kv |
 oauth_auth_code_flow | oauth_auth_password_flow |
 oauth_auth_client_credentials_flow | oauth_auth_on_behalf_of_flow |
-oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow`.
+oauth_auth_token_exchange_flow | oauth_auth_direct_access_flow |
+oauth_auth_jwt_bearer_flow` (2.16; team only).
 `--type`: `team` (shared) or `member` (per-user). `--env`: `draft` or `live`.
 
 **Custom API-key header (2.15.0) — ⚠ broken on IBM Cloud SaaS at 2.15.0:**
@@ -330,7 +353,7 @@ Valid hooks (server-enforced; an invalid one returns a 422 that lists all six):
 `agent_pre_invoke`, `agent_post_invoke`, `tool_pre_invoke`, `tool_post_invoke`,
 `prompt_pre_fetch`, `prompt_post_fetch`.
 
-⚠ Behavior worth memorising (all live-verified 2.15.0):
+⚠ Behaviour worth memorising (all live-verified 2.15.0):
 - `--config` is **not** validated against the artifact's `config_schema` — typos are stored
   and the control silently runs on defaults.
 - `--hooks` **is** validated. Asset-type mismatches and controls with **no** binding are

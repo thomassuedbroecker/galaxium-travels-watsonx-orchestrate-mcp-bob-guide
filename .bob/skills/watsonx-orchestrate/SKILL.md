@@ -7,7 +7,9 @@ description: >-
   Use this whenever the user mentions watsonx Orchestrate, wxO, the orchestrate
   CLI, the ADK, `ibm-watsonx-orchestrate`, native/external/assistant agents,
   agent YAML, the `@tool` / `@flow` decorators, the Developer Edition, or wants
-  to create / import / chat-test / deploy a wxO agent or tool. Also covers
+  to create / import / chat-test / deploy a wxO agent or tool — including agent
+  versions/releases and rollback, tool shortlisting, user activity flows, agent
+  skills with scripts, and document-processing flows. Also covers
   embedding/consuming a deployed agent from a custom application via the wxO
   runtime REST API (`/chat/completions`, `/orchestrate/runs`, streaming) — as
   opposed to the drop-in embedded web-chat widget.
@@ -30,8 +32,8 @@ Orchestrate with the Agent Development Kit (ADK). It is grounded in the real ADK
 source and CLI (`ibm-watsonx-orchestrate`), not guesswork.
 
 > **Golden rule:** the ADK changes fast. The CLI specifics here were
-> **live-verified against `ibm-watsonx-orchestrate` 2.15.0** (IBM Cloud SaaS,
-> us-south, 2026-08-18). When a command, flag, or YAML field is uncertain — or
+> **live-verified against `ibm-watsonx-orchestrate` 2.18.0** (IBM Cloud SaaS,
+> us-south, 2026-10-01). When a command, flag, or YAML field is uncertain — or
 > you're on a different version —
 > **verify against the live tool** with `orchestrate <group> --help` and
 > `orchestrate <group> <cmd> --help` before running it. Treat third-party blog
@@ -39,8 +41,38 @@ source and CLI (`ibm-watsonx-orchestrate`), not guesswork.
 > version with `orchestrate --version` / `pip show ibm-watsonx-orchestrate`.
 > Upgrade with `pip install -U ibm-watsonx-orchestrate` (needs Python ≥3.11, <3.15).
 
-> **What's new in 2.14 → 2.15** (live-verified on SaaS unless marked otherwise — evidence in
-> `test/house_clinic/`):
+> **What's new in 2.16 → 2.18** (live-verified on SaaS unless marked — evidence in
+> `test/house_hospital/results/TEST_REPORT.md`):
+> - **Tool shortlisting** (2.18) — `tool_shortlisting: {enabled, max_tools}` on a native agent.
+>   **Only acts on the v2 chat-completions API**: −59 % input tokens there, *zero* effect via
+>   `/orchestrate/runs` or v1 (§3.3a).
+> - **User activity nodes** (2.18) — `userflow.activity()` + one widget, `label` +
+>   `agent_message` with `{flow.input.*}` (§3.2a).
+> - Doc processing: text extractor **`output_content_types`** (`text|markdown|html`, `[]` = skip)
+>   (2.18), classifier **`page_range`** (2.18), **`error_handler_config`** on every node (2.16);
+>   classifier/field extractor are GA (2.16) (agents-tools ref).
+> - **Agent skills with scripts** (2.18 hello-world) — `skills import --dir` uploads
+>   `scripts/` + `references/`; the runtime calls a function named **`run`** (§3.3c).
+> - **Gemma 4 31B** `bedrock-mantle/google.gemma-4-31b` (2.18) — works even when `models list`
+>   does not show it (§4).
+> - **Agent versioning** (2.17) — release / switch / undeploy / delete versions. **REST only, no
+>   CLI verbs** (§3.3d).
+> - **External agents as collaborators** (2.17), **`custom_agents_metadata`** (2.17, native only
+>   in practice), **Azure auth modes** (2.17, on `azure-ai`), multi-turn widgets, Slack SSO.
+> - **AgentNode `thread_control_policy`** (2.16), **JWT Bearer connections** (2.16, §5),
+>   hidden **`env add --iam-url`** (2.16), `k8s` (EKS) env type (2.16).
+>
+> ⚠ **2.18.0 behaviour changes that break older advice** (all live-verified):
+> 1. **Tests hit the DRAFT by default.** `/orchestrate/runs` and chat completions run the draft
+>    unless you pass the live `environment_id` → use `wxo-chat.sh --live` after deploy (§3.5).
+> 2. **Collaborator tool names are a slug of the `display_name`**, not the `name`:
+>    `dr_wilson` → `chat_with_collaborator_dr_james_wilson_oncology` (§3.3b).
+> 3. **`agents export` fails for any agent with `skills:`** (the CLI stores raw names on import
+>    but expects UUIDs on export). Runtime is fine (§3.3c).
+> 4. **`run.usage` is now populated** and the **`welcome_message` 100-char cap is gone** — both
+>    reverse what 2.15 said.
+
+> **2.14 → 2.15 recap** (live-verified in `test/house_clinic/`):
 > **`orchestrate controls`** binds policy artifacts (PII filter, guardrails, secrets
 > detector, rate limiter, …) to agents/tools/models at execution hooks — **the flagship
 > 2.15 feature, and it really fires at runtime** (§4a);
@@ -58,12 +90,10 @@ source and CLI (`ibm-watsonx-orchestrate`), not guesswork.
 > the Observability SDK (§6b);
 > new model provider **`redhat-ai`** and external-agent provider **`msftstudio`** (§4).
 >
-> ⚠ **Three release-note claims do NOT match the live 2.15.0 build.** They are named
-> exactly as the release note words them, so you can recognize them:
-> the welcome-message cap is documented as *"100 → 1000 characters"* but the API still
-> **hard-rejects anything over 100** (422); the provider is documented as `red_hat_ai` but
-> the enum value is **`redhat-ai`**; the external-agent provider is documented as
-> `microsoft_copilot_studio` but the enum value is **`msftstudio`**. Use the enum values.
+> ⚠ **Two release-note names still do NOT match the enums:** the provider documented as
+> `red_hat_ai` is **`redhat-ai`**, and the external-agent provider documented as
+> `microsoft_copilot_studio` is **`msftstudio`**. Use the enum values. (The third 2.15
+> mismatch, the 100-character welcome cap, is fixed by 2.18.0.)
 
 ---
 
@@ -90,6 +120,7 @@ watsonx Orchestrate runs **agents** that route user requests to **tools**,
 | **Model** | An LLM made available to agents (e.g. watsonx.ai, Groq) | YAML (`kind: model`) via the AI Gateway |
 | **Knowledge base** | Documents for RAG/grounding | YAML (`kind: knowledge_base`). An agent may reference **several** (2.15.0) |
 | **Control** *(2.15.0)* | A policy artifact (PII filter, guardrails, rate limiter…) bound to agents/tools/models at an execution hook | `orchestrate controls create` or YAML (`kind: control`) |
+| **Agent version** *(2.17.0)* | An immutable release of an agent; each environment (`draft`/`live`) points at one | `orchestrate agents deploy` (creates one) + the REST releases API (§3.3d) |
 
 The two surfaces you work through:
 
@@ -129,7 +160,13 @@ orchestrate env activate my-saas --api-key "$IBM_CLOUD_API_KEY"
 orchestrate agents list          # confirm you're connected
 ```
 Auth type is auto-inferred (typically `ibm_iam` for IBM Cloud SaaS). If inference
-is wrong, set it explicitly on `env add` with `--type [ibm_iam|mcsp|mcsp_v1|mcsp_v2|cpd]`.
+is wrong, set it explicitly on `env add` with `--type [ibm_iam|mcsp|mcsp_v1|mcsp_v2|cpd|k8s]`
+(`k8s` = EKS, 2.16.0).
+
+**HIPAA clusters / MCSP V2 (2.16.0):** pass the IAM token URL on **`env add`**:
+`orchestrate env add -n hipaa -u <url> --type mcsp_v2 --iam-url <iam-token-url>`.
+⚠ Live-checked 2.18.0: the flag is **hidden** from `env add --help` (it still works) and does
+**not exist on `env activate`**, although the release note lists both commands.
 
 ### On-prem (Cloud Pak for Data / CPD)
 ```bash
@@ -241,6 +278,50 @@ most common import failure. See §5 and
 > act if the **parsed schema is actually missing descriptions**; the real causes are a
 > genuinely missing type hint, or a blank line between the `Args:` and `Returns:` blocks.
 
+### 3.2a Flows: 2.16 → 2.18 node features (live-verified 2.18.0)
+
+Full signatures are in [references/agents-tools-schemas.md](references/agents-tools-schemas.md).
+These are the parts that changed:
+
+**User activity nodes (2.18).** A single-widget user interaction. Create it inside a
+`userflow`, then attach **exactly one** widget (a second widget raises `ValueError`):
+```python
+intake = aflow.userflow(display_name="Admission", label="Admitting {flow.input.patient_name}")
+consent = intake.activity(name="consent", display_name="Consent")
+consent.boolean_input_field(name="consent_given", label="Consent to treatment",
+    agent_message="Does {flow.input.patient_name} consent to admission?",
+    true_label="Yes", false_label="No", required=True)
+done = intake.activity(name="confirmation")
+done.message_output_field(name="msg", text="{flow.input.patient_name} is queued.")  # use text=, label is ignored
+intake.edge(START, consent); intake.edge(consent, done); intake.edge(done, END)
+aflow.sequence(START, intake, END)
+```
+Widgets: `text_input_field`, `boolean_input_field`, `number_input_field`, `date_input_field`,
+`datetime_input_field`, `message_output_field`, plus `file_upload_field` (in the 2.18 source,
+not the release note). Choice/list widgets need `form()`. At runtime each activity arrives as a
+`response_type: "multiturn_form"` message on the thread. `label` becomes the field title, and
+`agent_message` becomes the prompt, with `{flow.input.*}` substituted. A **plain-text reply
+on the thread answers it**, so the runs API can drive the whole flow. The thread is blocked
+until the flow ends. ⚠ `activity_info.activity_title` shows the userflow's **`display_name`**,
+not its `label`.
+
+**Agent nodes with `thread_control_policy` (2.16):**
+`aflow.agent(name=…, agent="dr_wilson", …, thread_control_policy="CREATE_ALWAYS")`. The
+values are `"REUSE_AND_CORRELATE"` (default: reuse the correlated thread) and
+`"CREATE_ALWAYS"` (an isolated thread on every invocation). Omitting it logs a warning.
+Import the agents **before** the flow that calls them.
+
+**Document processing (2.16 → 2.18):**
+- `aflow.docproc(..., output_content_types=[OutputContentType.markdown, OutputContentType.html])`
+  (2.18). The response then carries `.markdown` / `.html` / `.text`. `None` defaults to
+  `["text"]`; **`[]` skips text extraction entirely** (KVP-only runs).
+- `aflow.docclassifier(..., page_range=PageRange(start=1, end=2))` (2.18) classifies from those
+  pages only. Classifier and field extractor are **GA** as of 2.16.
+- Every doc node accepts `error_handler_config=NodeErrorHandlerConfig(max_retries=2,
+  retry_interval=5, on_error="show_message"|"branch", error_message="…")` (2.16).
+- These nodes need an uploaded document to run, so they could only be verified at the spec
+  level here: export the flow (`tools export -n <flow> -o x.zip`) and grep for the keys.
+
 ### 3.3 Write the agent YAML
 
 ```yaml
@@ -262,7 +343,7 @@ starter_prompts:
       subtitle: Ask about any city        # optional — shown below the title
       prompt: What's the weather in Boston?
 welcome_content:
-  welcome_message: Welcome to the Weather Agent      # ⚠ HARD 100-character limit (below)
+  welcome_message: Welcome to the Weather Agent      # 100-char cap lifted by 2.18.0 (below)
   description: Ask me about the weather in any city.
   is_user_barge_in_disabled: false   # 2.15.0 — true = the user cannot interrupt the
                                      #   agent's spoken opening message (voice agents)
@@ -274,17 +355,15 @@ knowledge_base:                      # 2.15.0 — an agent may reference MORE TH
 #   Valid fields per prompt: id, title, subtitle, prompt. (live-verified 2.12.0)
 ```
 
-⚠ **`welcome_message` is still capped at 100 characters** (live-verified 2.15.0). The
-2.15.0 release note says the cap moved from 100 to **1000**, but that changed only the
-*recommendation* in the docs — the API still rejects a longer message outright:
+**`welcome_message` length:** on **2.18.0 SaaS a 164-character message was accepted and
+stored intact**, so the long-standing 100-character cap is gone. On 2.15.0 the API still
+rejected anything over 100 with
+`At most 100 characters are allowed for Welcome message` (422). If you target an older
+tenant and hit that error, move the prose to `description:`.
 
-```
-Failed to create agent: [{'type': 'value_error',
-  'loc': ['body','additional_properties','welcome_content','welcome_message'],
-  'msg': 'Value error, At most 100 characters are allowed for Welcome message.'}]
-```
-Put the long version in `description:` (uncapped in practice) and keep
-`welcome_message` short.
+**`starter_prompts`:** IBM's own 2.18 examples still set `is_default_prompts:` and `state:`;
+the platform ignores them. Valid per-prompt fields remain `id` (required, 2.17), `title`,
+`subtitle`, `prompt`.
 
 #### Multiple knowledge bases (2.15.0) — how routing actually works
 
@@ -336,7 +415,41 @@ llm_config:
 
 is_schedulable: true     # enables recurring runs; internal scheduling tools auto-appear
 # restrictions: …        # access restrictions (see schema reference)
+
+# Tool shortlisting (2.18.0) — retrieve the most relevant tools before planning
+tool_shortlisting:
+  enabled: true          # omit → the style's default
+  max_tools: 5           # > 0; omit → the style's default
+
+# Free-form labels for downstream routing / feature flags (2.17.0)
+custom_agents_metadata:
+  team: diagnostics
+  tier: gold
 ```
+
+⚠ **Tool shortlisting only works through the v2 chat-completions API** (live-verified 2.18.0,
+same 12-tool agent and prompt, input tokens per LLM call):
+
+| Endpoint | shortlisting OFF | shortlisting ON |
+|---|---|---|
+| `POST /v2/orchestrate/{agent_id}/chat/completions` | 708 | **288 (−59 %)** |
+| `POST /v1/orchestrate/{agent_id}/chat/completions` | 672 | 672 |
+| `POST /v1/orchestrate/runs` (what `wxo-chat.sh` uses) | 672 | 672 |
+
+The field is stored and round-trips, but on v1/runs it is silently inert. Shortlisting
+helps agents with **many** tools whose end users come in through v2. Don't enable it to "fix"
+routing you're testing through the runs API; you'd be measuring nothing. The trace's
+`GENERATION.input` omits the tool schemas, so **compare `usage.input` tokens** to check it.
+
+⚠ **`custom_agents_metadata` (live-verified 2.18.0):**
+- **Native agents:** round-trips, but the server **injects six reserved keys set to `null`**
+  (`language`, `framework`, `tool_count`, `tool_names`, `tool_parameters`,
+  `connection_requirements`; they describe *custom* agents). Don't use those names, and
+  ignore them when diffing an export.
+- **External agents:** **dropped server-side**. YAML, `agents create --custom-agents-metadata`,
+  and a direct `PATCH` all return success and store nothing. Keep external-agent labels in
+  `tags:` instead.
+- CLI: `orchestrate agents create … --custom-agents-metadata '{"key":"value"}'` (JSON dict).
 
 ### 3.3b Orchestrator / multi-agent (collaborators) — live-verified 2.13.0
 
@@ -359,22 +472,33 @@ skills:                         # 2.13.0 — attach agent skills by name (kebab-
 How it works (verified end-to-end):
 - **Import/deploy collaborators *before* the orchestrator** (they're dependencies).
   Deploy all of them on SaaS so runtime delegation can reach them.
-- At runtime wxO auto-generates a **`chat_with_collaborator_<name>`** tool on the
+- At runtime wxO auto-generates a **`chat_with_collaborator_…`** tool on the
   orchestrator. The router picks a collaborator the same way it picks a tool —
   **from the collaborator's `description`.** So collaborator descriptions must be
   **distinct and routing-friendly** (lead with the specialty/trigger). The orchestrator
   then frames the collaborator's reply in its own voice.
 - Delegation is visible in the run `step_history`/reasoning trace as a `tool_calls` step
-  named `chat_with_collaborator_<name>`.
+  named `chat_with_collaborator_…`.
 
-  > ⚠ **The specialty is appended to the name — inconsistently. Match by PREFIX, never by
-  > equality.** Live-verified 2.13.0 in a single run set:
-  > `dr_wilson` → `chat_with_collaborator_dr_wilson_oncology`,
-  > `dr_cuddy` → `chat_with_collaborator_dr_cuddy_administration`, but
-  > `dr_chase` → `chat_with_collaborator_dr_chase` (**no suffix**).
-  > An assertion written as `name == "chat_with_collaborator_dr_wilson"` reports a false
-  > failure on a run that routed perfectly. Use
-  > `name == f"chat_with_collaborator_{agent}" or name.startswith(f"chat_with_collaborator_{agent}_")`.
+  > ⚠ **On 2.18.0 the tool name is a slug of the collaborator's `display_name`, not its
+  > `name`.** Live-verified, all five specialists:
+  > `dr_wilson` (display "Dr. James Wilson (Oncology)") →
+  > `chat_with_collaborator_dr_james_wilson_oncology`;
+  > `dr_chase` ("Dr. Robert Chase (Cardiology and Surgery)") →
+  > `chat_with_collaborator_dr_robert_chase_cardiology_and_surgery`.
+  > On 2.13.0 it was `chat_with_collaborator_<name>` plus an inconsistent specialty suffix.
+  > **Neither equality nor a `…_<name>` prefix check is reliable across versions.** Assert
+  > on the step's **`agent`** field instead (the collaborator's display name appears as the
+  > `agent` of the *next* tool call), or build the expected slug from the display name:
+  > ```python
+  > import re
+  > slug = lambda s: re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")
+  > hit = name.startswith("chat_with_collaborator_") and (
+  >     slug(display_name) in name or agent_name in name)
+  > ```
+- **External agents can be collaborators** (2.17.0, import-verified 2.18.0): list a
+  `kind: external` agent's name under `collaborators:` like any native one. It must be
+  imported first; the router still picks it from its `description`.
 - Collaborators are themselves full agents (own tools/KB/collaborators) — **nesting
   works**: live-verified a 3-level chain House → Foreman → Chase where the mid-tier agent
   (Foreman) used its *own* tool AND sub-delegated. The whole nested chain (sub-agent tool
@@ -444,7 +568,8 @@ version: 1.0.0
 
 Lifecycle (group is **`skills`**):
 ```bash
-orchestrate skills import -f skills/diagnostics_protocol/SKILL.md --upsert   # or -d <dir> [-r]
+orchestrate skills import -d skills/diagnostics-protocol --upsert   # dir import: SKILL.md + scripts/ + references/
+orchestrate skills import -f skills/diagnostics_protocol/SKILL.md --upsert   # SKILL.md (+ WXO.yaml) only
 orchestrate skills list                     # Name · Description · Mode · Tools · Scripts · ID
 orchestrate skills get -n diagnostics-protocol
 orchestrate skills upload-script    …       # attach an executable script to a skill
@@ -459,6 +584,38 @@ skills:
   - diagnostics-protocol
 ```
 
+#### Skills with scripts and references (2.18.0 hello-world pattern), live-verified 2.18.0
+
+```
+skills/ppth-diagnostics-protocol/
+├── SKILL.md            # frontmatter name/description(/version) + the procedure
+├── scripts/score.py    # executable: called through the execute_skill_script tool
+└── references/criteria.md   # reference doc, uploaded alongside
+```
+`skills import -d <dir>` uploads all three in one call and reports
+`(1 script(s), 1 reference(s))`. At runtime the agent calls `load_skill`, then
+**`execute_skill_script`** with `{"script_path": "scripts/score.py", "args": {...}}`.
+
+⚠ **The runtime calls a function named `run`, whatever SKILL.md says.** A script that only
+defines `severity_score(...)` fails at runtime with
+`"Entry function 'run' not found in module 'score'"` (live-verified; IBM's own hello-world
+`greet.py` has the same shape). The model's `args` arrive as **keyword arguments**, so
+write a tolerant entry point and name its arguments in SKILL.md so the model sends the right keys:
+```python
+def run(gcs: int = 15, systolic_bp: int = 120, **_ignored) -> dict:
+    return {"urgency": severity_score(int(gcs), int(systolic_bp))}
+```
+The return value comes back as `result` / `execution_output`, with `success`, `stdout` and
+`error` beside it.
+
+⚠ **`agents export` fails for any agent that has `skills:` (2.18.0 bug).**
+`Failed to find skill. No skill found with the id 'ppth-diagnostics-protocol'`. The 2.18 CLI
+deliberately skips skill name→UUID resolution on import (source comment: the server
+rejected UUIDs on 2.16 tenants), so the agent stores the raw *name*. Export still tries
+UUID→name and aborts. The runtime resolves the name fine (`load_skill` works). Until it
+is fixed, keep the agent YAML in Git as the source of truth, and export skills separately
+with `skills export`.
+
 ⚠ **Skills cost a turn at runtime (live-verified 2.13.0).** Attaching a skill adds a real
 **`load_skill`** tool call to the run — it shows up in `step_history` as
 `{"skill_name": "diagnostics-protocol", "params": {}}` followed by a `tool_response`, and the
@@ -472,6 +629,39 @@ single hyphens only, no underscores, no leading/trailing/consecutive hyphens. Im
 `diagnostics_protocol` fails with *"Skill name … is invalid … (agentskills.io spec)"*; use
 `diagnostics-protocol`. Import is **upsert-by-name** (same name updates in place; `--upsert`
 makes that explicit). `agents list` now shows **Skills** and **Plugins** columns.
+
+### 3.3d Agent versioning (NEW in 2.17.0): live-verified 2.18.0
+
+Every agent has two **environments**, `draft` and `live`, and a list of immutable
+**versions** (releases). `orchestrate agents deploy` releases the current draft as a new
+version and points `live` at it. **The CLI has no other versioning verbs** (no
+list/switch/delete-version); the rest is the REST API under
+`<instance-url>/v1/orchestrate/agents`:
+
+| Action | Call |
+|---|---|
+| Agent's environments (+ `current_version`) | `GET /{agent_id}/environment` |
+| Release draft → new version | `POST /{agent_id}/releases` body `{"environment_id": "<live env id>", "comments": "…"}` → `201 {"released_agent_version": 2}` |
+| List versions | `GET /{agent_id}/releases` (`version_label`, `instructions`, `tools`, `llm`, `deployment_statuses`…) |
+| Get one version | `GET /{agent_id}/releases/{version}` |
+| **Switch** an env to a version (rollback) | `POST /{agent_id}/releases/{version}/environment/{env_id}` → `{"Switched to Agent Version": 1}` |
+| Undeploy | `POST /{agent_id}/releases/{version}/undeploy` |
+| Delete a version | `DELETE /{agent_id}/releases/{version}` |
+| Deployment status | `GET /{agent_id}/releases/status?environment_id=…` |
+| All released agents in an env | `GET /environment/{live\|draft}/releases` |
+
+Verified end to end: release v2 → live answered with v2 behaviour → switch to v1 → live
+answered with v1 → undeploy → switch back to v2.
+
+⚠ Gotchas (all live-verified 2.18.0):
+- **Deleting the version that is currently live returns `204` without a guard.** `live` is
+  left with `current_version: null`, which **silently undeploys the agent**. Switch first,
+  then delete.
+- **`deployment_status` on the versions list is stale.** After an undeploy, both versions
+  still said `success`. The only truth is `current_version` from `GET /{agent_id}/environment`.
+- **Version history is per draft.** `agents import` updates the draft but releases nothing.
+  Users see a change only after `deploy` (or a `POST …/releases`).
+- **Testing draft vs live is a real distinction now**, see §3.5.
 
 ### 3.4 Import (dependency-ordered)
 
@@ -497,8 +687,12 @@ orchestrate toolkits add -k mcp -n my_toolkit --description "My MCP tools" \
   --package-root ./mcp_server --language node \
   --command '["node","dist/index.js","--transport","stdio"]' --tools "*"
 
+# 4c) flows with agent nodes — import the agents they call FIRST (move those agent
+#     imports up), then the flow; an agent that uses this flow as a tool comes after it.
+orchestrate tools import -k flow -f tools/flows/second_opinion.py
+
 # 5) agent skills (2.13.0) — before the agent that references them (§3.3c)
-orchestrate skills import -f skills/diagnostics_protocol/SKILL.md --upsert
+orchestrate skills import -d skills/diagnostics-protocol --upsert   # picks up scripts/ + references/
 
 # 6) the agent
 orchestrate agents import -f agents/weather_agent.yaml
@@ -566,18 +760,35 @@ Run the MCP server `watsonx-orchestrate-adk` tool `chat_with_agent` for single-t
 
 #### 2. `watsonx-orchestrate-adk` MCP server is not available
 ```bash
-# Single-turn (1)
-./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> "<derived single-turn prompt>"
+# Single-turn (1) — --live = test the DEPLOYED version (see the draft/live note below)
+./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --live -r "<derived single-turn prompt>"
 # → { "thread_id": "3f92692d-...", "final_message": "...", ... }
 
 # Multi-turn (2a) — initial user input
-./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> "<derived multi-turn prompt>"
+./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --live "<derived multi-turn prompt>"
 # → { "thread_id": "3f92692d-...", "final_message": "...", ... }
 
 # Multi-turn (2b) — resume
-./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --thread-id <thread-id> -r "<second user input>"
+./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n <agent> --live --thread-id <thread-id> -r "<second user input>"
 # → { "thread_id": "3f92692d-...", "final_message": "...", "reasoning_trace": {"steps": [...]}, ... }
 ```
+
+⚠ **Draft vs live (live-verified 2.18.0).** Without `--live`, the runs API executes the
+agent's **draft**. With the draft and live intentionally different, the results were:
+
+| Call | Answered with |
+|---|---|
+| `wxo-chat.sh` (no flag) = `POST /orchestrate/runs` without `environment_id` | **draft** |
+| `POST /orchestrate/runs` with `"environment_id": "<live env id>"` (`--live`) | **live** |
+| `POST /{v1,v2}/orchestrate/{agent_id}/chat/completions` (even with `?environment_id=`) | **draft** |
+
+So the post-deploy gate must use `--live`, or it proves the draft works, not what users of
+the deployed agent get. Use the default (draft) mode while iterating *before* a deploy.
+`--live` fails fast with a clear message if the agent has no live version.
+
+Reading the trace: each `tool_calls` step carries an **`agent`** field (the display name of
+the agent that made the call). A delegation appears as the orchestrator calling
+`chat_with_collaborator_…` followed by the collaborator's own tool call (§3.3b).
 
 **Pass = behavior, not exact text** (LLMs are non-deterministic): no error,
 on-topic, the **expected tool was called** (visible via `-r`; `-l` for custom
@@ -613,6 +824,23 @@ record that the human declined) before §7 handover.**
   orchestrate models config enable-premier-models        # tenant-wide opt-in
   orchestrate models config disable-premier-models
   ```
+- **Gemma 4 31B on AWS Bedrock (2.18.0, public preview):** `llm: bedrock-mantle/google.gemma-4-31b`.
+  ReAct Core is applied automatically. ⚠ Live-verified on a SaaS tenant whose
+  `models list` showed only `groq/openai/gpt-oss-120b`, `bedrock/openai.gpt-oss-120b-1:0` and
+  `watsonx-orchestrate/frontier`: the Gemma agent **still imported, deployed and answered**,
+  and the trace's `observation.model` was `google.gemma-4-31b`. So **`models list` is not the
+  full set of usable models**, and **`agents import` does not validate `llm`** (a typo imports
+  fine and fails only at chat time). Confirm a model with one real chat, not with `models list`.
+  In Developer Edition it appears only when `BEDROCK_AWS_ACCESS_KEY_ID` +
+  `BEDROCK_AWS_SECRET_ACCESS_KEY` are in `.env`.
+- **Azure authentication modes (2.17.0):** API key, managed identity and Microsoft Entra ID.
+  ⚠ In the 2.18.0 ADK the auth fields (`azure_auth_mode`, `azure_managed_client_id`,
+  `azure_entra_client_id`, `azure_entra_client_secret`, `azure_entra_tenant_id`,
+  `azure_ad_token`, `ad_auth`) belong to provider **`azure-ai`**. On **`azure-openai`**, which
+  takes only `azure_resource_name`, `azure_deployment_id`, `azure_api_version` and
+  `azure_model_name`, the ADK warns *"The config option 'azure_auth_mode' is not used by
+  provider 'azure-openai'"* and the setting is ignored. Use `azure-ai/<model>` for Entra/MI
+  (source-verified, not live-run).
 - **New provider `redhat-ai`** (2.14.0). The release note calls it `red_hat_ai`; the
   actual `ModelProvider` enum value is **`redhat-ai`** — use that in `kind: model` YAML.
   Full provider list in [references/connections-models-kb.md](references/connections-models-kb.md).
@@ -836,6 +1064,10 @@ one** of `credentials_json` / `api_key`.
 - ✅ One flow per file. Wire with `aflow.sequence(START, …, END)` / `aflow.edge(...)`.
 - ✅ `map_output` / `map_input` expressions are **single-line** — no function defs/calls.
 - ✅ `aflow.prompt(...)` requires a `system_prompt`.
+- ✅ A user **activity** holds exactly **one** widget; use `form()` for multi-field layouts.
+  For `message_output_field` pass `text=` (`label` is ignored on activities) (§3.2a).
+- ✅ `thread_control_policy` is `"REUSE_AND_CORRELATE"` or `"CREATE_ALWAYS"` (string literal).
+- ✅ Import `flow_builder.flows` **before** `flow_builder.types` in scripts (circular import).
 
 **Agent YAML**
 - ✅ `spec_version: v1` and `kind: native` are mandatory — omitting them fails import.
@@ -849,6 +1081,11 @@ one** of `credentials_json` / `api_key`.
   schedulable-agent exception).
 
 **Connections YAML**
+> 🔐 **Choosing *which* auth kind, `member` vs `team`, RBAC, or per-user identity?** That is
+> the **[`watsonx-orchestrate-aaa`](../watsonx-orchestrate-aaa/SKILL.md)** skill — load it
+> alongside this one. This section covers the *mechanics*; that skill covers the decision,
+> the access-surface constraints, and what identity actually reaches your tools.
+
 - ✅ `kind: connection` (singular). Inside `environments.<env>` use
   `security_scheme:` (not `kind:`). At minimum a `draft` environment.
 - ✅ OAuth2 needs `auth_type: oauth2_auth_code` (not `authorization_code`).
@@ -868,6 +1105,24 @@ one** of `credentials_json` / `api_key`.
   until you have verified it on the target tenant.** If the API needs a non-default header,
   fall back to `--kind key_value` with an explicit entry, or send the header from the tool
   code. (`--name` is also rejected outright on any kind other than `api_key`.)
+- ✅ **OAuth 2.0 JWT Bearer (2.16.0)**, for service-to-service calls with a signed assertion.
+  Live-verified 2.18.0:
+  ```bash
+  orchestrate connections add -a lab_api
+  orchestrate connections configure -a lab_api --env draft -t team \
+    -k oauth_auth_jwt_bearer_flow -u https://lab.example.com
+  orchestrate connections set-credentials -a lab_api --env draft \
+    --client-id my-client --token-url https://idp.example.com/oauth/token \
+    --alg RS256 --private-key "$(cat key.pem)" --kid key-1 \
+    --exp 900 --include-jti --claims dept=diagnostics --claims site=ppth
+  # optional: --iss (defaults to client_id), --aud (defaults to token_url), --private-key-password
+  ```
+  Gotchas: **`-t team` only**, since `member` is rejected client-side.
+  **`--private-key` takes the PEM *contents***; a file path fails server-side with
+  `Invalid private_key: … DECODER routines::unsupported`. **`--alg` must be RS256/RS384/RS512**
+  (`HS256` → 400). **The backend calls the token URL during `set-credentials`.** An unreachable
+  IdP returns a `503 … ENOTFOUND` error, yet the credentials are still saved, so read
+  the final log line and don't assume the error meant nothing was stored.
 
 **Controls (2.15.0)** — full section in §4a
 - ✅ `--config` is **not** validated: copy key names from `controls get-type -n <a> -v`.
@@ -894,15 +1149,23 @@ Remember: After code generation always deploy/import and runs tests (see 3.5 Tes
 | Works locally, missing in prod | Wrong active env. `orchestrate env list` → `orchestrate env activate <remote>`, then re-import. |
 | `No agents with the name 'X' found` | You used the display name. Use the snake_case `name` from `orchestrate agents list -v` (display "FM - Aegis" → `name: FM_3009a0`). |
 | Orchestrator answers instead of delegating | Look at the **orchestrator's own `instructions`** first — a sentence permitting self-answer suppresses routing. Playbook: [testing-debugging.md](references/testing-debugging.md) §2a. |
-| Routing assertion fails though delegation happened | The collaborator tool name gets the specialty appended, inconsistently. Match by **prefix** (§3.3b). |
+| Routing assertion fails though delegation happened | On 2.18 the collaborator tool is named from the **display name** slug (`chat_with_collaborator_dr_james_wilson_oncology`). Assert on the next step's `agent` field or the display-name slug (§3.3b). |
+| Test passes but users still see the old behaviour (or vice versa) | You tested the **draft**. Runs/chat-completions default to draft; re-test with `wxo-chat.sh --live` (§3.5). |
+| Agent stopped answering on live after a version cleanup | You deleted the version `live` pointed at; `current_version` is now `null`. `agents deploy` or switch to another version (§3.3d). |
+| `agents export` → `No skill found with the id '<skill-name>'` | 2.18.0 bug: agents with `skills:` can't be exported. Keep the YAML in Git; `skills export` works (§3.3c). |
+| `execute_skill_script` → `Entry function 'run' not found in module '<x>'` | The skill-script runtime calls `run(**args)`. Add a `run` function that wraps your logic (§3.3c). |
+| `tool_shortlisting` has no effect | It only acts on `/v2/orchestrate/{id}/chat/completions`; runs API and v1 ignore it. Compare `usage.input` on a v2 call (§3.3a). |
+| `custom_agents_metadata` missing / extra `null` keys | External agents: dropped server-side, so use `tags`. Native: the six reserved `null` keys are injected by the server; ignore them (§3.3a). |
+| JWT connection `Invalid private_key … DECODER routines::unsupported` | You passed a path; pass the PEM contents: `--private-key "$(cat key.pem)"` (§5). |
+| Agent imported with a model `models list` doesn't show | `agents import` doesn't validate `llm`. Prove the model with one chat; e.g. Gemma 4 works without being listed (§4). |
 | Need to see the agent's reasoning | `orchestrate chat ask -n <agent> "…" -r` (`-r` = reasoning, `-l` = capture logs for custom agents). ⚠ `chat ask` **hangs on IBM Cloud SaaS** — use the runtime API or `wxo-chat.sh` there. |
-| Need token counts | **Not** on the runs API (`run.usage` is `null`). They are in the trace: `observation.usage` on `GENERATION` observations (§6a). |
+| Need token counts | 2.18.0: `run.usage.token_usage` (runs API) and `usage` (v1 chat completions) now carry run totals incl. `cached_tokens`; v2 chat completions has none. Per-LLM-call detail stays in the trace: `observation.usage` on `GENERATION` (§6a). |
 | Need to know why a run was slow | AgentOps v3 trace + the outer-vs-inner span rule (§6a). |
 | Control created but has no effect | `--config` isn't schema-validated — a mistyped key is stored verbatim and the artifact runs on defaults (everything off). Diff your config against `controls get-type -n <artifact> -v` (§4a). |
 | `controls import` → `400 … already exists` | Import is create-only, not upsert. `controls remove -n <name>` first (§4a). |
 | `controls import` → `No agent found with name 'Display Name'` | You re-imported a `controls export`, which writes **display** names. Rewrite `agent_names` to snake_case (§4a). |
 | Agent suddenly refuses a normal request | Check for a bound control before touching the prompt — a PII/guardrail control rewrites or blocks at `agent_pre_invoke`, and the model's refusal looks like a model refusal. `controls list --agent <name>`, then read the trace: redacted text shows up as `[REDACTED]` in the LLM input (§4a). |
-| `agents import` → `At most 100 characters … Welcome message` | The 2.15 release note's "cap raised to 1000" did not reach the API. Keep `welcome_message` ≤100 chars; put the long text in `description` (§3.3). |
+| `agents import` → `At most 100 characters … Welcome message` | Older tenant (≤2.15). 2.18.0 accepts longer messages; on an old tenant keep `welcome_message` ≤100 chars and move the prose to `description` (§3.3). |
 | KB import → `Unsupported file type text/markdown` | Built-in ingestion rejects `.md`. Rename to `.txt` (PDF/DOCX/PPTX/XLSX/CSV/HTML/TXT are accepted) (§3.3). |
 | Agent only searches one of several KBs | Each KB is a separate retrieval tool routed on its `description`. Make the descriptions mutually exclusive and tell the agent in `instructions:` that cross-cutting questions must consult both (§3.3). |
 | Voice config → `<vendor>_config must be specified for <vendor>` | The `provider` string must be `<vendor>_stt` / `<vendor>_tts` (e.g. `deepgram_stt`), not the bare vendor name (§4b). |
@@ -922,7 +1185,7 @@ Full field maps, the span-tree rule and the cost model:
 
 | Surface | Gives you |
 |---|---|
-| `GET /v1/orchestrate/runs/{id}` | status, `trace_id`, `thread_id`, `step_history`. **No tokens, no timings.** |
+| `GET /v1/orchestrate/runs/{id}` | status, `trace_id`, `thread_id`, `step_history`, and since 2.18.0 **`usage`** (run totals + per-model `model_usage[]`, incl. `cached_tokens`). **No timings.** |
 | `orchestrate observability traces export --trace-id` | 11 observation fields — fine for a token count or a quick look. **No `latency`, no span tree.** |
 | `GET /v1/agentops-v3/traces/{trace_id}` | +30 fields: `latency`, `parentObservationId`, `level`, cost fields, `scores[]`. **Use this to explain a number.** |
 
@@ -1017,9 +1280,17 @@ orchestrate env activate prod         # SaaS or on-prem
 ./import-all.sh
 
 # 3) Deploy / retire an agent
-orchestrate agents deploy   -n weather_agent
+orchestrate agents deploy   -n weather_agent      # releases the draft as a NEW VERSION and makes it live
 orchestrate agents undeploy -n weather_agent
+
+# 4) Verify the deployed version, not the draft (§3.5)
+./.bob/skills/watsonx-orchestrate/references/wxo-chat.sh -n weather_agent --live "…"
 ```
+
+**Rollback = switch versions (2.17.0+).** Each `deploy` creates a version. To roll back,
+don't re-import the old YAML: point `live` at the earlier version through the REST
+releases API (`POST /agents/{id}/releases/{version}/environment/{live_env_id}`, §3.3d).
+Never delete the version that is currently live.
 
 Keep **one** set of YAML/Python artifacts; only connection **credentials** and
 model `provider_config` differ per environment. Version the artifacts in Git and
@@ -1087,6 +1358,16 @@ wxO exposes a runtime REST API under `<service-url>/api/v1`, bearer-token auth:
   (greedy / `temperature: 0`), guardrails, usage. Reply at
   `result.data.message.content[0].text`.
 - **`/completions`**, **`/completions/chat`** — raw Gateway model, no agent/tools.
+- **`/v2/orchestrate/{agent_id}/chat/completions`** (live-verified 2.18.0). Same OpenAI shape
+  plus `data` and `context`; **no `usage`**. It is the **only path where `tool_shortlisting`
+  takes effect** (§3.3a). v1 chat completions now returns `usage`.
+
+⚠ **All of these run the agent's DRAFT by default** (live-verified 2.18.0). To serve the
+deployed version, call `/orchestrate/runs` with `"environment_id": "<live env UUID>"` (from
+`GET /v1/orchestrate/agents/{id}/environment`). Chat completions ignored an
+`environment_id` query parameter. An app that embeds a deployed agent through chat
+completions is therefore serving whatever the last `agents import` put in the draft. Plan
+for that before promising "deploy = what users see".
 
 Both agent families return a **`thread_id`** — send it back to continue a
 conversation (multi-turn memory). The Python SDK `RunClient` (used by the §3.6
@@ -1140,18 +1421,25 @@ MCP Server: `watsonx-orchestrate-adk` with tools like `chat_with_agent`, `list_a
 | File | Contents |
 |------|----------|
 | [references/cli-reference.md](references/cli-reference.md) | Every `orchestrate` group, subcommand, and flag (incl. `controls`, `workspaces`, `phone`, `skills`, premier models, traces) |
-| [references/agents-tools-schemas.md](references/agents-tools-schemas.md) | Agent YAML schema (native/external/assistant, `skills:`, multi-KB, `welcome_content`, the full `llm_config` field list), `@tool`/`@flow` decorators, flow nodes (5 callback events, `suppress_agent_summarization`, `page_range`), doc-processing with `language=` |
+| [references/agents-tools-schemas.md](references/agents-tools-schemas.md) | Agent YAML schema (native/external/assistant, `skills:`, multi-KB, `welcome_content`, `tool_shortlisting`, `custom_agents_metadata`, the full `llm_config` field list), `@tool`/`@flow` decorators, flow nodes (5 callback events, `suppress_agent_summarization`, `page_range`, **user activities**, **agent-node `thread_control_policy`**), doc-processing with `language=`, **`output_content_types`**, **`error_handler_config`** |
 | [references/connections-models-kb.md](references/connections-models-kb.md) | Connection auth schemes (incl. the `--name` custom API-key header), model providers (incl. `redhat-ai`), watsonx.ai AI Gateway, KB providers (Milvus/AstraDB/Elasticsearch) & custom RAG tools |
 | [references/mcp-toolkits.md](references/mcp-toolkits.md) | Importing MCP servers as toolkits; building MCP servers for tools; the wxO MCP servers |
 | [references/runtime-api-embedding.md](references/runtime-api-embedding.md) | Consuming a deployed agent from your app via the runtime REST API (`/chat/completions`, `/orchestrate/runs`, streaming, model-only completions); auth, base URLs, `thread_id` multi-turn, app-backend proxy pattern |
 | [references/testing-debugging.md](references/testing-debugging.md) | Post-deploy verification gate (test before handover) + report template, **routing playbook (§2a)**, export/restore round-trip, evaluations, programmatic flow testing, failure-mode table |
 | [references/agentops-evaluations.md](references/agentops-evaluations.md) | **AgentOps**: the `[agentops]` extra, the `evaluations` CLI + **what its metrics mean and which to trust**, input formats and the **keyword-matching trap**, the **three trace surfaces + full camelCase field map**, **latency triage**, **token/cost model (cost is NOT computed)**, **control-plane judge scores (async + sampled)**, and the **native-vs-derive boundary** |
+| **[`watsonx-orchestrate-aaa`](../watsonx-orchestrate-aaa/SKILL.md)** *(companion skill)* | Authentication / authorization / accounting: which auth kind to choose, access-surface constraints, `member` vs `team`, RBAC and `agent_pre_invoke` plugins, identity propagation, audit trail |
 | [references/setup-venv.sh](references/setup-venv.sh) | Creates virtual Python environment with `orchestrate` CLI |
-| [references/wxo-chat.sh](references/wxo-chat.sh) | Tests single-turn and multi-turn conversations with agents if the MCP server `watsonx-orchestrate-adk` is not available |
+| [references/wxo-chat.sh](references/wxo-chat.sh) | Tests single-turn and multi-turn conversations with agents if the MCP server `watsonx-orchestrate-adk` is not available. `--live` targets the deployed version (default = draft) |
 
 ### Canonical external resources (you have internet access — use them)
 - **ADK docs:** https://developer.watson-orchestrate.ibm.com (setup, agent/tool/flow guides, YAML specs)
-- **Example projects:** https://github.com/IBM/ibm-watsonx-orchestrate-adk → `examples/` (agent_builder, flow_builder, evaluations, channel-integrations, voice, plugins)
+- **Example projects:** https://github.com/IBM/ibm-watsonx-orchestrate-adk → `examples/` (agent_builder, flow_builder, evaluations, channel-integrations, voice, plugins, **`agent-skills/`** (2.18 hello-skill with scripts/references), **`multiturn_widgets/`** (2.17), `flow_builder/user_activity_nextgen/` (2.18 activities), `flow_builder/text_extraction/` (`output_content_types`))
+- **Agentic Workflow Advisor (2.17):** a companion skill that statically reviews an agentic-workflow
+  JSON (+ optional agent YAML) and reports six checks by impact: sequential nodes with no data
+  dependency, unmapped required I/O, LLM routing on deterministic results, input schemas over
+  20 fields, toolkit nodes without HTTP calls, and replaceable agent nodes. It is built into
+  Bob ("Review my agentic workflow") and lives in the ADK repo at `skills/agentic-workflow-advisor/`.
+  Use it on flows before deploying; this skill covers building and operating them.
 - **SDK source (ground truth for schemas):** same repo → `src/ibm_watsonx_orchestrate/`
 - **Live docs MCP server** (optional): `watsonx-orchestrate-adk-docs` exposes `search_ibm_watsonx_orchestrate_adk` — see [references/mcp-toolkits.md](references/mcp-toolkits.md).
 
@@ -1160,12 +1448,36 @@ from the public `examples/` directory rather than inventing one.
 
 **Always prefer live `orchestrate ... --help` over memory when a flag is in doubt.**
 
+**Verification round 4 — 2026-10-01, ADK 2.18.0, IBM Cloud SaaS (us-south).** The skill was
+three releases behind (2.15.0). A Princeton-Plainsboro hospital was built in
+`test/house_hospital/` and run end to end: a `dr_house` orchestrator, five specialists
+(one with 12 tools and shortlisting), an external collaborator, a scripted agent skill, a
+user-activity admission flow, a doc-processing flow and a thread-aware agent-node flow
+(`results/TEST_REPORT.md`). What this round *changed*, because the release notes were
+incomplete or the platform disagreed:
+
+- **Tool shortlisting only acts on v2 chat completions**: −59 % input tokens there, zero via runs/v1 (§3.3a).
+- **Runs and chat completions default to the draft**; only `environment_id` on runs hits live.
+  `wxo-chat.sh` gained `--live` (§3.5, §8).
+- **Collaborator tool names are display-name slugs** now; the 2.13 prefix rule misses them (§3.3b).
+- **Skill scripts need a `run` entry function** (§3.3c).
+- **`agents export` breaks on any agent with `skills:`** (§3.3c).
+- **Agent versioning is REST-only**; deleting the live version silently undeploys; `deployment_status`
+  is stale (§3.3d).
+- **`custom_agents_metadata`** is dropped for external agents and padded with six reserved `null`
+  keys on native ones (§3.3a).
+- **JWT Bearer**: PEM contents not path, RS* only, team only, eager token-URL call (§5).
+- **`--iam-url`** is hidden and exists on `env add` only (§2a). **Azure auth modes** live on
+  `azure-ai`, not `azure-openai` (§4). **Gemma 4** works without being in `models list` (§4).
+- Reversed from 2.15: **`run.usage` is populated**; the **100-char welcome cap is gone**.
+
 **Verification round 2 — 2026-08-05, ADK 2.13.0, IBM Cloud SaaS.** A 7-agent orchestrator +
 5 specialists + an in-graph observer agent, 6 Python tools and 2 agent skills were built,
 deployed and operated end to end (9 runs, 151k tokens). What that round *changed* in this
 skill, because the previous text was wrong or absent:
 
-- **`run.usage` is `null`** — the runs API does **not** carry tokens (§6a, runtime-api §4).
+- **`run.usage` is `null`**: the runs API does **not** carry tokens (§6a, runtime-api §4).
+  *(Superseded in round 4: populated on 2.18.0.)*
   The old text listed "usage" as something `/orchestrate/runs` returns.
 - **`trace.totalCost` is `0`** — tokens are native, **pricing is not** (§6a, agentops §5).
 - **The AgentOps v3 field set** is now documented, including that it is **camelCase** and
@@ -1197,7 +1509,8 @@ voice config carrying the new idle-handler fields, Deepgram Flux STT and
 lifecycle callbacks. What this round *changed*, because the release notes were wrong or the
 platform disagreed:
 
-- **`welcome_message` is still capped at 100 characters**, not 1000 (API 422) — §3.3.
+- **`welcome_message` is still capped at 100 characters**, not 1000 (API 422), §3.3.
+  *(Superseded in round 4: the cap is gone on 2.18.0.)*
 - The provider enums are **`redhat-ai`** and **`msftstudio`**, not `red_hat_ai` /
   `microsoft_copilot_studio` — §4.
 - **`controls` has ten commands and the delete verb is `remove`**; `--config` is *not*
