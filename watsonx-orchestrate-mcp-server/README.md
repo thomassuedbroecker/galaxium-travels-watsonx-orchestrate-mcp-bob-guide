@@ -140,3 +140,11 @@ watsonx_orchestrate_custom_explorer/
 | Connection | `#BD10E0` | named connections |
 
 See [`watsonx_orchestrate_custom_explorer/README.md`](watsonx_orchestrate_custom_explorer/README.md) for setup and usage.
+
+---
+
+## Keycloak OAuth 2.0 Configuration for watsonx Orchestrate
+
+The [`keycloak/`](./keycloak/README.md) directory contains the dedicated Keycloak realm and environment configuration used when connecting the Galaxium Travels MCP server to **watsonx Orchestrate Developer Edition**.
+
+For architectural details on why this configuration is kept separate from the standalone infrastructure (VM boundary, network isolation, token issuer claim matching), see [`keycloak/README.md`](./keycloak/README.md).

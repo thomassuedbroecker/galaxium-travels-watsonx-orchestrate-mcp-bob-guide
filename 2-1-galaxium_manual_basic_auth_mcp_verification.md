@@ -1,12 +1,17 @@
-# 2. Manually Verify The Basic Auth MCP Server
+# 2-1. Manually Verify The Basic Auth MCP Server
 
-Use this guide after starting the Basic Auth stack from
+Use this guide after starting the Basic Auth stack (section 1.3) from
 [1-galaxium_setup.md](./1-galaxium_setup.md).
+
+> **Infrastructure release:** This guide targets **`v6.1.1`** of
+> [galaxium-travels-infrastructure-tsuedbro](https://github.com/thomassuedbroecker/galaxium-travels-infrastructure-tsuedbro).
+> The compose file names and MCP port may differ on other releases.
 
 This guide talks directly to the MCP backend.
 It does not go through the browser UIs.
 
 The transport stays on `Streamable HTTP`.
+For the OAuth2 variant see [2-2-galaxium_manual_oauth2_mcp_verification.md](./2-2-galaxium_manual_oauth2_mcp_verification.md).
 
 ## 2.1 What You Will Verify
 
@@ -35,6 +40,28 @@ Default credentials:
 - username: `demo-basic-user`
 - password: `demo-basic-password`
 
+Stop the OAuth2 stack first. Both stacks publish port `8084`, so only one can run at a time.
+Check what is running:
+
+```sh
+docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep -E '8084|8086'
+```
+
+If Keycloak (port `8086`) or an OAuth2 MCP container is running, stop it:
+
+```sh
+docker compose -f local-container/booking_system_mcp_oauth2_no_implicit_flow/docker_compose.yaml \
+  down --remove-orphans
+```
+
+With Podman, replace `docker compose` with `podman compose`.
+
+Confirm that port `8084` is free (no output expected):
+
+```sh
+lsof -nP -iTCP:8084 -sTCP:LISTEN
+```
+
 If the Basic Auth stack is not already running, start it now:
 
 ```sh
@@ -60,7 +87,7 @@ curl -i \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"manual-basic-check","version":"1.0.0"}}}'
 ```
 
-Expected result:
+Expected result (this is the correct outcome, the server is protected):
 
 - HTTP `401 Unauthorized`
 - `WWW-Authenticate: Basic realm="Galaxium Booking MCP"`
@@ -188,6 +215,15 @@ docker compose --env-file local-container/basic-auth.env \
 
 If you started the local-only compose variant instead, swap the compose file name.
 
+Confirm that nothing listens on the Basic Auth ports anymore (no output expected):
+
+```sh
+lsof -nP -iTCP:8082-8085 -sTCP:LISTEN
+```
+
+To continue with the OAuth2 stack, follow guide
+[2-2](./2-2-galaxium_manual_oauth2_mcp_verification.md).
+
 ## 2.12 Common Problems
 
 - `401 Missing basic credentials`
@@ -198,6 +234,8 @@ If you started the local-only compose variant instead, swap the compose file nam
   - reuse the exact `mcp-session-id` from the `initialize` response
 - `localhost:8086` does not respond
   - that is expected in Basic Auth mode because Keycloak is not running
+- port `8084` already in use or `401 Bearer` instead of `Basic`
+  - the OAuth2 stack is still running, stop it as described in section 2.3
 - `Arguments cannot be passed to a URL-based MCP server.`
   - use raw `curl` or Inspector UI mode instead of Inspector CLI mode
 

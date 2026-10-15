@@ -12,7 +12,7 @@ Trials available:
 A local environment where:
 
 - `watsonx Orchestrate Developer Edition` runs inside a Lima VM on your laptop
-- The Galaxium Travels MCP server runs locally with Basic Auth
+- The Galaxium Travels MCP server runs locally with Basic Auth or OAuth2 (Keycloak)
 - IBM Bob assists with configuration, log inspection, agent analytics, and agent creation
 
 Here is what the finished agent looks like:
@@ -37,10 +37,12 @@ Work through the guides in order. Each guide builds on the previous one.
 
 | # | Guide | What you do |
 |---|---|---|
-| 1 | [Set Up The Galaxium Travels Infrastructure](./1-galaxium_setup.md) | Clone and start the Galaxium Travels backend with Basic Auth |
-| 2 | [Manually Verify The Basic Auth MCP Server](./2-galaxium_manual_basic_auth_mcp_verification.md) | Confirm the MCP server responds correctly before connecting it to watsonx Orchestrate |
+| 1 | [Set Up The Galaxium Travels Infrastructure](./1-galaxium_setup.md) | Clone (release `v6.1.1`) and start the Basic Auth **or** OAuth2 stack |
+| 2-1 | [Manually Verify The Basic Auth MCP Server](./2-1-galaxium_manual_basic_auth_mcp_verification.md) | Confirm the Basic Auth MCP server responds correctly before connecting it to watsonx Orchestrate |
+| 2-2 | [Manually Verify The OAuth2 MCP Server](./2-2-galaxium_manual_oauth2_mcp_verification.md) | Confirm the OAuth2 (`client_credentials`) MCP server responds correctly before connecting it to watsonx Orchestrate |
 | 3 | [Set Up The watsonx Orchestrate ADK](./3-watsonx-orchestrate-adk-setup.md) | Install the ADK, start the Developer Edition server, import the hello-world agent |
-| 4 | [Add The Basic Auth MCP Server To watsonx Orchestrate](./4-watsonx-orchestrate-adk-add-basic-auth-mcp.md) | Register the Galaxium MCP server as a toolkit in watsonx Orchestrate |
+| 4-1 | [Add The Basic Auth MCP Server To watsonx Orchestrate](./4-1-watsonx-orchestrate-adk-add-basic-auth-mcp.md) | Register the Galaxium MCP server as a toolkit using Basic Auth |
+| 4-2 | [Add The OAuth2 MCP Server To watsonx Orchestrate](./4-2-watsonx-orchestrate-adk-add-oauth2-mcp.md) | Register the Galaxium MCP server as a toolkit using OAuth2 `client_credentials` via Keycloak |
 | 5 | [Configure IBM Bob For This Repository](./5-bob-configuration.md) | Set up Bob modes, skills, and MCP connections for this project |
 | 6 | [Inspect The watsonx Orchestrate Server Logs](./6-watsonx-server-inspection.md) | Capture and analyze container logs using `wxo_bob_log_inspect.sh` and IBM Bob |
 | 7 | [Inspect Agent Analytics With IBM Bob](./7-watsonx-agent-analytics.md) | Analyze Langfuse traces for single runs and session windows using `wxo_bob_agent_analytics.sh` |
@@ -80,9 +82,11 @@ cd <your-repo-name>
 ├── .bobrules/                      ← Bob project rules
 ├── AGENTS.md                       ← team standards for agent work
 ├── 1-galaxium_setup.md
-├── 2-galaxium_manual_basic_auth_mcp_verification.md
+├── 2-1-galaxium_manual_basic_auth_mcp_verification.md
+├── 2-2-galaxium_manual_oauth2_mcp_verification.md
 ├── 3-watsonx-orchestrate-adk-setup.md
-├── 4-watsonx-orchestrate-adk-add-basic-auth-mcp.md
+├── 4-1-watsonx-orchestrate-adk-add-basic-auth-mcp.md
+├── 4-2-watsonx-orchestrate-adk-add-oauth2-mcp.md
 ├── 5-bob-configuration.md
 ├── 6-watsonx-server-inspection.md
 ├── 7-watsonx-agent-analytics.md
@@ -98,7 +102,8 @@ cd <your-repo-name>
 ├── watsonx-orchestrate-adk/
 │   ├── wxo_local_start.sh              ← start the Developer Edition server
 │   ├── wxo_local_start_and_mcp_basic_auth.sh ← start server + wire up the basic-auth MCP toolkit
-│   ├── wxo_add_basic_auth_mcp_server.sh ← add the basic-auth MCP toolkit to a running server
+│   ├── wxo_add_basic_auth_mcp_server.sh ← add the basic-auth MCP toolkit to a running server (guide 4-1)
+│   ├── wxo_add_oauth2_mcp_server.sh    ← add the OAuth2 MCP toolkit to a running server (guide 4-2)
 │   ├── get_ip-connection.sh            ← list local interface IPs for MCP host configuration
 │   ├── wxo_server_log_inspector.sh     ← parallel log capture from all containers
 │   ├── wxo_server_log_analyze.sh       ← sessions overview + ANALYSIS_REPORT.md
@@ -140,7 +145,7 @@ The Bob configuration files in this repository are:
 
 ## Related Videos And Blog Posts
 
-**System Logs and Agent Analytics** — Bob 2.0.3 + watsonx Orchestrate 2.18.2:
+**System Logs and Agent Analytics** — Bob 2.0.3 + watsonx Orchestrate 2.14.2:
 
 `What Really Happens Inside a watsonx Orchestrate Agent Run?`
 

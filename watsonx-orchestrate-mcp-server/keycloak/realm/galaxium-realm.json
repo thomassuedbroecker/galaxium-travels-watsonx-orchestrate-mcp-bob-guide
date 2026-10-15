@@ -1,0 +1,101 @@
+{
+  "realm": "galaxium",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "clients": [
+    {
+      "clientId": "booking-api",
+      "name": "Booking API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "secret": "booking-api-secret"
+    },
+    {
+      "clientId": "web-app-proxy",
+      "name": "Web App Proxy (Demo Client)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "secret": "web-app-proxy-secret",
+      "redirectUris": [
+        "http://localhost:6274/oauth/callback",
+        "http://localhost:6274/oauth/callback/debug",
+        "http://127.0.0.1:6274/oauth/callback",
+        "http://127.0.0.1:6274/oauth/callback/debug"
+      ],
+      "webOrigins": [
+        "http://localhost:6274",
+        "http://127.0.0.1:6274"
+      ],
+      "protocolMappers": [
+        {
+          "name": "aud-booking-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "booking-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "wxo-booking-mcp",
+      "name": "watsonx Orchestrate Booking MCP Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "secret": "web-app-proxy-secret",
+      "protocolMappers": [
+        {
+          "name": "aud-booking-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "booking-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "demo-user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "demo-user@galaxium.com",
+      "firstName": "Demo",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo-user-password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}
