@@ -140,7 +140,7 @@ The Bob configuration files in this repository are:
 
 ## Related Videos And Blog Posts
 
-**System Logs and Agent Analytics** — Bob 2.0.3 + watsonx Orchestrate 2.14.0:
+**System Logs and Agent Analytics** — Bob 2.0.3 + watsonx Orchestrate 2.18.2:
 
 `What Really Happens Inside a watsonx Orchestrate Agent Run?`
 
@@ -172,8 +172,8 @@ This repository is primarily documentation and helper shell scripts. It does not
 
 | Library | Version | License | Where referenced |
 |---|---|---|---|
-| `ibm-watsonx-orchestrate` | `2.14.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
-| `ibm-watsonx-orchestrate-mcp-server` | `2.14.0` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate` | `2.18.2` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
+| `ibm-watsonx-orchestrate-mcp-server` | `2.18.2` | MIT | `3-watsonx-orchestrate-adk-setup.md`, `.bob/mcp.json` |
 
 **`watsonx_orchestrate_custom_explorer` application (generated with IBM Bob):**
 
